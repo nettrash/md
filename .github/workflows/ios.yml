@@ -1,0 +1,59 @@
+name: iOS Build & Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-test:
+    name: Build and Test
+    # The app target requires IPHONEOS_DEPLOYMENT_TARGET = 26.0, which
+    # only macos-26 (Xcode 26 + iOS 26 SDK) provides. `macos-latest`
+    # still aliases to an older Xcode at the time of writing, so we pin.
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes | grep -E "^iOS " || xcrun simctl list runtimes
+
+      - name: Resolve simulator
+        id: sim
+        # Pick the first available iPhone simulator on any installed iOS
+        # runtime. Robust to whatever model+OS Apple ships on the runner.
+        run: |
+          set -euo pipefail
+          DEVICE=$(xcrun simctl list devices available \
+            | awk '/^-- iOS/{flag=1; next} /^-- /{flag=0} flag && /iPhone/{print; exit}' \
+            | sed -E 's/^[[:space:]]+([^(]+) \(.*$/\1/' \
+            | xargs)
+          if [ -z "$DEVICE" ]; then
+            echo "::error::No iPhone simulator with an iOS runtime is installed on this runner."
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "Resolved simulator: $DEVICE"
+          echo "name=$DEVICE" >> "$GITHUB_OUTPUT"
+
+      - name: Build & test
+        run: |
+          xcodebuild test \
+            -project md.xcodeproj \
+            -scheme md \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }},OS=latest" \
+            -resultBundlePath build/TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults
+          path: build/TestResults.xcresult
+          retention-days: 7

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+        Mac Catalyst sandbox.
+
+        On iOS these keys are ignored (the app is sandboxed implicitly).
+        On Mac Catalyst the App Sandbox is on by default and required for
+        Mac App Store distribution, and file access has to be granted
+        explicitly:
+
+        • com.apple.security.app-sandbox — be explicit about being
+          sandboxed on Catalyst.
+        • com.apple.security.files.user-selected.read-write — the document
+          architecture (`DocumentGroup`) opens, edits and saves files the
+          user picks. Read-write (not read-only) is required so the editor
+          can save back to the original document.
+    -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+</dict>
+</plist>
