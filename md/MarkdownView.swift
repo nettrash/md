@@ -37,6 +37,10 @@ struct MarkdownView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        // Typewriter prose, on ink — `.secondary`/`.tertiary` below derive
+        // from this, so muted text stays warm rather than going system-grey.
+        .font(Typewriter.font(17))
+        .foregroundStyle(Typewriter.ink)
         .textSelection(.enabled)
         .tint(.accentColor)
     }
@@ -76,15 +80,16 @@ private struct BlockView: View {
         }
     }
 
-    /// Heading sizes use semantic fonts so they scale with Dynamic Type.
+    /// Heading sizes use the typewriter face at sizes tied to a text style,
+    /// so they still scale with Dynamic Type.
     static func headingFont(_ level: Int) -> Font {
         switch level {
-        case 1: return .largeTitle.bold()
-        case 2: return .title.bold()
-        case 3: return .title2.bold()
-        case 4: return .title3.weight(.semibold)
-        case 5: return .headline
-        default: return .subheadline.weight(.semibold)
+        case 1: return Typewriter.font(30, relativeTo: .largeTitle).bold()
+        case 2: return Typewriter.font(25, relativeTo: .title).bold()
+        case 3: return Typewriter.font(21, relativeTo: .title2).bold()
+        case 4: return Typewriter.font(19, relativeTo: .title3).weight(.semibold)
+        case 5: return Typewriter.font(17, relativeTo: .headline).bold()
+        default: return Typewriter.font(15, relativeTo: .subheadline).weight(.semibold)
         }
     }
 }
@@ -133,12 +138,12 @@ private struct CodeBlock: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             Text(code.isEmpty ? " " : code)
-                .font(.system(.callout, design: .monospaced))
+                .font(Typewriter.code(15, relativeTo: .callout))
                 .textSelection(.enabled)
                 .padding(12)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.secondarySystemBackground, in: RoundedRectangle(cornerRadius: 8))
+        .background(Typewriter.paperSecondary, in: RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -150,7 +155,7 @@ private struct QuoteBlock: View {
     var body: some View {
         HStack(spacing: 10) {
             RoundedRectangle(cornerRadius: 2)
-                .fill(Color.secondary.opacity(0.4))
+                .fill(Color.accentColor.opacity(0.45))
                 .frame(width: 4)
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
@@ -192,7 +197,7 @@ private struct TableBlock: View {
             .padding(12)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.secondarySystemBackground, in: RoundedRectangle(cornerRadius: 8))
+        .background(Typewriter.paperSecondary, in: RoundedRectangle(cornerRadius: 8))
     }
 
     private func horizontal(at index: Int) -> HorizontalAlignment {
@@ -202,15 +207,5 @@ private struct TableBlock: View {
         case .center: return .center
         case .trailing: return .trailing
         }
-    }
-}
-
-// MARK: - Color helper
-
-private extension Color {
-    /// `UIColor.secondarySystemBackground` bridged to SwiftUI. Used for
-    /// code-block and table chrome so it adapts to light / dark mode.
-    static var secondarySystemBackground: Color {
-        Color(uiColor: .secondarySystemBackground)
     }
 }
