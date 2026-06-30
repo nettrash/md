@@ -319,6 +319,112 @@ final class mdTests: XCTestCase {
             return XCTFail("expected a quote block")
         }
     }
+
+    // MARK: HTML serialization (print / PDF / share-rendered)
+
+    func testHTMLWrapsDocument() {
+        let html = MarkdownHTML.document("# Title", title: "Doc", dark: false)
+        XCTAssertTrue(html.contains("<!DOCTYPE html>"))
+        XCTAssertTrue(html.contains("<title>Doc</title>"))
+        XCTAssertTrue(html.contains("<h1>Title</h1>"))
+    }
+
+    func testHTMLEscapesSpecialCharacters() {
+        let html = MarkdownHTML.document("a < b & c > d", title: "t", dark: false)
+        XCTAssertTrue(html.contains("a &lt; b &amp; c &gt; d"))
+    }
+
+    func testHTMLInlineEmphasis() {
+        let html = MarkdownHTML.document("**bold** and *italic* and ~~gone~~", title: "t", dark: false)
+        XCTAssertTrue(html.contains("<strong>bold</strong>"))
+        XCTAssertTrue(html.contains("<em>italic</em>"))
+        XCTAssertTrue(html.contains("<del>gone</del>"))
+    }
+
+    func testHTMLCodeSpanIsEscapedAndNotReinterpreted() {
+        let html = MarkdownHTML.document("`a < *b* > c`", title: "t", dark: false)
+        XCTAssertTrue(html.contains("<code>a &lt; *b* &gt; c</code>"))
+        // The `*` inside the code span must stay literal, not become <em>.
+        XCTAssertFalse(html.contains("<em>b</em>"))
+    }
+
+    func testHTMLLink() {
+        let html = MarkdownHTML.document("[site](https://nettrash.me)", title: "t", dark: false)
+        XCTAssertTrue(html.contains("<a href=\"https://nettrash.me\">site</a>"))
+    }
+
+    func testHTMLUnderscoreInWordIsNotItalic() {
+        // snake_case must survive (underscore italic is word-boundary only).
+        let html = MarkdownHTML.document("call some_long_name now", title: "t", dark: false)
+        XCTAssertFalse(html.contains("<em>"))
+    }
+
+    func testHTMLTableAlignmentsAndCells() {
+        let html = MarkdownHTML.document("| A | B |\n|:-:|--:|\n| 1 | 2 |", title: "t", dark: false)
+        XCTAssertTrue(html.contains("text-align:center"))
+        XCTAssertTrue(html.contains("text-align:right"))
+        XCTAssertTrue(html.contains("<td"))
+    }
+
+    func testHTMLThemeVariantsDiffer() {
+        let light = MarkdownHTML.document("hi", title: "t", dark: false)
+        let dark = MarkdownHTML.document("hi", title: "t", dark: true)
+        XCTAssertNotEqual(light, dark)
+        XCTAssertTrue(dark.contains("color-scheme: dark"))
+        // Backgrounds must be forced to print so the theme survives to PDF.
+        XCTAssertTrue(dark.contains("print-color-adjust: exact"))
+    }
+
+    // MARK: In-app rename
+
+    private func makeTempDir() throws -> URL {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("mdRename-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    @MainActor
+    func testRenameMovesFileInPlaceKeepingExtension() throws {
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let old = dir.appendingPathComponent("Old Notes.md")
+        try "content".write(to: old, atomically: true, encoding: .utf8)
+
+        XCTAssertNil(DocumentExport.renameInPlace(fileURL: old, to: "New Notes"))
+        let moved = dir.appendingPathComponent("New Notes.md")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: moved.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: old.path))
+        // Same folder, content preserved.
+        XCTAssertEqual(try String(contentsOf: moved, encoding: .utf8), "content")
+    }
+
+    @MainActor
+    func testRenameDoesNotDoubleAnAlreadyTypedExtension() throws {
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let old = dir.appendingPathComponent("Doc.md")
+        try "x".write(to: old, atomically: true, encoding: .utf8)
+
+        XCTAssertNil(DocumentExport.renameInPlace(fileURL: old, to: "Final.md"))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: dir.appendingPathComponent("Final.md").path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: dir.appendingPathComponent("Final.md.md").path))
+    }
+
+    @MainActor
+    func testRenameRejectsCollisionAndInvalidNames() throws {
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let a = dir.appendingPathComponent("A.md")
+        try "a".write(to: a, atomically: true, encoding: .utf8)
+        try "b".write(to: dir.appendingPathComponent("Taken.md"), atomically: true, encoding: .utf8)
+
+        XCTAssertNotNil(DocumentExport.renameInPlace(fileURL: a, to: "Taken"))  // collision
+        XCTAssertNotNil(DocumentExport.renameInPlace(fileURL: a, to: "   "))    // empty
+        XCTAssertNotNil(DocumentExport.renameInPlace(fileURL: a, to: "a/b"))    // path separator
+        // The original is untouched after every rejected rename.
+        XCTAssertTrue(FileManager.default.fileExists(atPath: a.path))
+    }
 }
 
 // Equatable conformance for assertions on alignment arrays.

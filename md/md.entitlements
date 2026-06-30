@@ -3,23 +3,17 @@
 <plist version="1.0">
 <dict>
     <!--
-        Mac Catalyst sandbox.
+        Intentionally empty. This is an iOS / iPadOS app, which is sandboxed
+        implicitly and needs no `com.apple.security.*` file-access keys (those
+        are macOS App Sandbox entitlements and are ignored on iOS).
 
-        On iOS these keys are ignored (the app is sandboxed implicitly).
-        On Mac Catalyst the App Sandbox is on by default and required for
-        Mac App Store distribution, and file access has to be granted
-        explicitly:
-
-        • com.apple.security.app-sandbox — be explicit about being
-          sandboxed on Catalyst.
-        • com.apple.security.files.user-selected.read-write — the document
-          architecture (`DocumentGroup`) opens, edits and saves files the
-          user picks. Read-write (not read-only) is required so the editor
-          can save back to the original document.
+        The Mac build was Mac Catalyst, but its document file management
+        (enclosing-folder display, rename, New) is unfixably limited there —
+        Catalyst's `DocumentGroup` is a UIKit stack bridged to AppKit, not a
+        real `NSDocument` app. Catalyst is therefore disabled
+        (`SUPPORTS_MACCATALYST = NO`); a proper native macOS target will be
+        added later and will reintroduce the App Sandbox + user-selected /
+        Downloads file-access entitlements it needs.
     -->
-    <key>com.apple.security.app-sandbox</key>
-    <true/>
-    <key>com.apple.security.files.user-selected.read-write</key>
-    <true/>
 </dict>
 </plist>
