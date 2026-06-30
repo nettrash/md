@@ -96,6 +96,17 @@
     </array>
     <key>LSSupportsOpeningDocumentsInPlace</key>
     <true/>
+    <!--
+        Expose the app's own Documents folder as a local "On My iPhone/md"
+        storage location. Paired with LSSupportsOpeningDocumentsInPlace, this
+        gives the document browser a guaranteed local place to create and keep
+        files even when iCloud Drive isn't signed in. Without it, on a fresh
+        device / simulator with no iCloud there is no valid local location, so
+        the browser's "Create Document" fails with "the location could not be
+        found".
+    -->
+    <key>UIFileSharingEnabled</key>
+    <true/>
 
     <!-- Scene + launch scaffolding. Multiple scenes are enabled so iPad
          and Mac can open several document windows at once. -->
