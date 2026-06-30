@@ -24,6 +24,13 @@
     <key>CFBundleVersion</key>
     <string>$(CURRENT_PROJECT_VERSION)</string>
 
+    <!-- The app makes no network connections and uses no encryption, so it
+         is exempt from U.S. export compliance. Declaring this here means
+         App Store Connect won't ask the export-compliance question on every
+         upload. -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.productivity</string>
 
@@ -88,6 +95,17 @@
         </dict>
     </array>
     <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
+    <!--
+        Expose the app's own Documents folder as a local "On My iPhone/md"
+        storage location. Paired with LSSupportsOpeningDocumentsInPlace, this
+        gives the document browser a guaranteed local place to create and keep
+        files even when iCloud Drive isn't signed in. Without it, on a fresh
+        device / simulator with no iCloud there is no valid local location, so
+        the browser's "Create Document" fails with "the location could not be
+        found".
+    -->
+    <key>UIFileSharingEnabled</key>
     <true/>
 
     <!-- Scene + launch scaffolding. Multiple scenes are enabled so iPad

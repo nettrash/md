@@ -1,8 +1,8 @@
 # Privacy Policy
 
 **Effective date:** 28 June 2026
-**Applies to:** md — the iOS / iPadOS / macOS (Mac Catalyst) Markdown
-editor published by nettrash. This policy is versioned alongside the
+**Applies to:** md — the iOS / iPadOS Markdown editor published by
+nettrash. This policy is versioned alongside the
 app's source code; the most recent commit on `main` is authoritative.
 
 ## TL;DR
