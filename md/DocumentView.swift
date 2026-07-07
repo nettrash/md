@@ -231,12 +231,10 @@ struct DocumentView: View {
     }
 
     private var previewPane: some View {
-        ScrollView {
-            MarkdownView(document.text)
-                .padding(.horizontal)
-                .padding(.vertical, 16)
-                .frame(maxWidth: 760, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
+        // The rendered preview is a WebView showing the same themed HTML as
+        // print / share, so LaTeX math, Mermaid and PlantUML render (offline).
+        // It scrolls and lays out internally (see the CSS in MarkdownHTML).
+        MarkdownWebView(text: document.text, title: baseName)
+            .ignoresSafeArea(.container, edges: .bottom)
     }
 }

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The build number (`CFBundleVersion`) is auto-incremented on every build by
 a scheme post-action (`agvtool bump`) and is not tracked here.
 
+## [1.1] — 2026-07-05
+
+### Added
+
+- **Math, Mermaid and PlantUML in the preview.** The rendered preview now draws
+  TeX/LaTeX math — `$…$` inline and `$$…$$` display, plus ` ```math ` blocks,
+  the way GitHub does — as well as **Mermaid** graphs (` ```mermaid `) and
+  **PlantUML** diagrams (` ```plantuml `). Everything renders **on-device** from
+  bundled engines: no network, no accounts, nothing leaves your device. The same
+  rendering flows through to Print / Save-as-PDF and “share rendered”, so a
+  diagram or formula you see in the preview is exactly what you export.
+
+### Changed
+
+- The rendered preview now uses the same HTML/WebKit rendering as Print / PDF /
+  share (previously a separate native renderer), so the preview and the exported
+  document are pixel-identical.
+
 ## [1.0] — 2026-06-28
 
 ### Added
