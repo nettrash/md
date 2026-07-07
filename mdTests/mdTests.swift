@@ -375,6 +375,74 @@ final class mdTests: XCTestCase {
         XCTAssertTrue(dark.contains("print-color-adjust: exact"))
     }
 
+    // MARK: rich blocks — math / Mermaid / PlantUML (v1.1)
+
+    func testHTMLMermaidBlockEmitsContainer() {
+        let html = MarkdownHTML.document("```mermaid\ngraph TD\nA-->B\n```", title: "t", dark: false)
+        XCTAssertTrue(html.contains("<pre class=\"mermaid\">"))
+        XCTAssertTrue(html.contains("graph TD"))
+        // A mermaid fence must NOT become an ordinary code block.
+        XCTAssertFalse(html.contains("<pre><code>graph TD"))
+        // And the Mermaid engine is pulled in, but not KaTeX/PlantUML.
+        XCTAssertTrue(html.contains("mermaid.min.js"))
+        XCTAssertFalse(html.contains("katex.min.js"))
+        XCTAssertFalse(html.contains("viz-global.js"))
+    }
+
+    func testHTMLPlantumlBlockEmitsContainer() {
+        let html = MarkdownHTML.document("```plantuml\n@startuml\nA->B\n@enduml\n```", title: "t", dark: false)
+        XCTAssertTrue(html.contains("<div class=\"plantuml\">"))
+        XCTAssertTrue(html.contains("@startuml"))
+        // PlantUML needs Viz/Graphviz; the engine itself is imported lazily by md-init.js.
+        XCTAssertTrue(html.contains("viz-global.js"))
+    }
+
+    func testHTMLMathFenceEmitsDisplayMath() {
+        let html = MarkdownHTML.document("```math\n\\int_0^1 x\\,dx\n```", title: "t", dark: false)
+        XCTAssertTrue(html.contains("class=\"md-mathd\""))
+        XCTAssertTrue(html.contains("\\int_0^1"))
+        XCTAssertTrue(html.contains("katex.min.js"))
+    }
+
+    func testHTMLInlineMathIsNotMangledByEmphasis() {
+        // A `*` inside inline math must stay literal, not become <em>.
+        let html = MarkdownHTML.document("total $a*b*c$ units", title: "t", dark: false)
+        XCTAssertTrue(html.contains("class=\"md-mathi\""))
+        XCTAssertTrue(html.contains("a*b*c"))
+        XCTAssertFalse(html.contains("<em>"))
+        XCTAssertTrue(html.contains("katex.min.js"))
+    }
+
+    func testHTMLDisplayMathSpanPreserved() {
+        let html = MarkdownHTML.document("$$x^2 + y^2$$", title: "t", dark: false)
+        XCTAssertTrue(html.contains("class=\"md-mathd\""))
+        XCTAssertTrue(html.contains("x^2 + y^2"))
+    }
+
+    func testHTMLCurrencyDollarsAreNotMath() {
+        // "$5 and $10" is prose, not a formula; leave the text intact.
+        let html = MarkdownHTML.document("it costs $5 and $10 today", title: "t", dark: false)
+        XCTAssertTrue(html.contains("$5 and $10"))
+        XCTAssertFalse(html.contains("class=\"md-mathi\""))
+        XCTAssertFalse(html.contains("katex.min.js"))
+    }
+
+    func testHTMLPlainDocumentStaysLight() {
+        // No rich content → none of the heavy engines are included; md-init.js
+        // (tiny, always present) still runs and flags render-complete.
+        let html = MarkdownHTML.document("# Just text\n\nA paragraph.", title: "t", dark: false)
+        XCTAssertFalse(html.contains("katex.min.js"))
+        XCTAssertFalse(html.contains("mermaid.min.js"))
+        XCTAssertFalse(html.contains("viz-global.js"))
+        XCTAssertTrue(html.contains("rich/md-init.js"))
+    }
+
+    func testHTMLCodeSpanDollarIsNotMath() {
+        // `$x$` inside a code span stays literal code, not a formula.
+        let html = MarkdownHTML.document("use `$x$` here", title: "t", dark: false)
+        XCTAssertTrue(html.contains("<code>$x$</code>"))
+    }
+
     // MARK: In-app rename
 
     private func makeTempDir() throws -> URL {

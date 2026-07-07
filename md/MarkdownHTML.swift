@@ -24,7 +24,43 @@ enum MarkdownHTML {
     /// A full HTML document for `source`, themed light or dark. `title`
     /// becomes the document `<title>` (and the print / PDF job name).
     static func document(_ source: String, title: String, dark: Bool) -> String {
-        let body = MarkdownParser.parse(source).map(renderBlock).joined(separator: "\n")
+        let blocks = MarkdownParser.parse(source)
+        let body = blocks.map(renderBlock).joined(separator: "\n")
+
+        // Rich renderers (KaTeX math, Mermaid, PlantUML) load entirely from
+        // bundled assets under `rich/` — no network. Each heavy engine is
+        // pulled in only when the document uses it, so a plain document stays
+        // light (PlantUML alone is 7 MB): the KaTeX / Mermaid / Viz scripts are
+        // included conditionally here, and `md-init.js` dynamically imports the
+        // PlantUML engine only when a `.plantuml` block exists. `md-init.js`
+        // itself is tiny and always runs; when it finishes it flags
+        // `data-md-render-complete` (which the print / PDF path waits on).
+        //
+        // The WebView must load this with a base URL whose origin serves
+        // `rich/` (a WKURLSchemeHandler on Apple, WebViewAssetLoader on
+        // Android) so the ES-module import in `md-init.js` resolves.
+        let langs = Set(blocks.compactMap { block -> String? in
+            if case let .codeBlock(language, _) = block.kind { return (language ?? "").lowercased() }
+            return nil
+        })
+        let needsMermaid = langs.contains("mermaid")
+        let needsPlantuml = !langs.isDisjoint(with: ["plantuml", "puml", "plant-uml"])
+        // Math is needed iff `inline()` actually emitted a math span — which it
+        // only does for real formulas, never for currency like "$5". Keying off
+        // the produced markup (rather than a raw "$" heuristic) means prose with
+        // stray dollar signs never even loads KaTeX.
+        let needsMath = body.contains("md-mathi") || body.contains("md-mathd")
+
+        var head = ""
+        if needsMath {
+            head += """
+            <link rel="stylesheet" href="rich/katex.min.css">
+            <script defer src="rich/katex.min.js"></script>
+            """
+        }
+        if needsMermaid { head += "\n<script src=\"rich/mermaid.min.js\"></script>" }
+        if needsPlantuml { head += "\n<script src=\"rich/viz-global.js\"></script>" }
+
         return """
         <!DOCTYPE html>
         <html lang="en">
@@ -32,10 +68,11 @@ enum MarkdownHTML {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>\(escape(title))</title>
-        <style>\(css(dark: dark))</style>
+        <style>\(css(dark: dark))</style>\(head)
         </head>
-        <body>
+        <body data-md-dark="\(dark ? "1" : "0")">
         \(body)
+        <script type="module" src="rich/md-init.js"></script>
         </body>
         </html>
         """
@@ -49,15 +86,30 @@ enum MarkdownHTML {
             return "<h\(level)>\(inline(text))</h\(level)>"
 
         case let .paragraph(text):
-            // Preserve soft line breaks the way the editor shows them.
-            let html = inline(text).replacingOccurrences(of: "\n", with: "<br>\n")
-            return "<p>\(html)</p>"
+            // Preserve soft line breaks the way the editor shows them. The
+            // break conversion happens inside `inline` (before protected math /
+            // code spans are restored) so a multi-line display-math span keeps
+            // its own internal newlines instead of getting `<br>`s injected.
+            return "<p>\(inline(text, softBreaks: true))</p>"
 
         case let .list(ordered, items):
             return renderList(items, ordered: ordered)
 
-        case let .codeBlock(_, code):
-            return "<pre><code>\(escape(code))</code></pre>"
+        case let .codeBlock(language, code):
+            // A fenced block's info string selects a rich renderer; md-init.js
+            // turns these containers into diagrams/formulas in the WebView.
+            switch (language ?? "").lowercased() {
+            case "mermaid":
+                return "<pre class=\"mermaid\">\(escape(code))</pre>"
+            case "plantuml", "puml", "plant-uml":
+                return "<div class=\"plantuml\">\(escape(code))</div>"
+            case "math", "latex", "tex":
+                // A whole-block display formula: md-init.js typesets the .md-mathd
+                // element's text with KaTeX (displayMode).
+                return "<div class=\"md-mathd\">\(escape(code))</div>"
+            default:
+                return "<pre><code>\(escape(code))</code></pre>"
+            }
 
         case let .quote(blocks):
             return "<blockquote>\n\(blocks.map(renderBlock).joined(separator: "\n"))\n</blockquote>"
@@ -124,30 +176,29 @@ enum MarkdownHTML {
 
     // MARK: - Inline
 
-    /// Convert a block's inline Markdown to HTML. Code spans are lifted out
-    /// first (their content is literal and must not be re-interpreted), the
-    /// remainder is HTML-escaped, span syntax is converted, then the code
-    /// spans are restored.
-    private static func inline(_ text: String) -> String {
-        var codeSpans: [String] = []
+    /// Convert a block's inline Markdown to HTML. Code spans and math spans are
+    /// lifted out first — their content is literal and must not be re-interpreted
+    /// by the span-syntax pass — then the remainder is HTML-escaped, span syntax
+    /// is converted, optional soft breaks are inserted, and finally the protected
+    /// spans are restored. Math is emitted as explicit `.md-mathi` / `.md-mathd`
+    /// spans (rendered by md-init.js with KaTeX), so this pass — not a browser
+    /// delimiter scan — decides what is a formula. Their content is escaped, but
+    /// KaTeX reads the decoded textContent so `<`, `>`, `&` in a formula are fine.
+    private static func inline(_ text: String, softBreaks: Bool = false) -> String {
+        var protected: [String] = []
         var working = text
 
-        // 1. Extract `code spans`, replacing each with a private-use token.
-        if let regex = try? NSRegularExpression(pattern: "`([^`]+)`") {
-            let ns = working as NSString
-            let matches = regex.matches(in: working, range: NSRange(location: 0, length: ns.length))
-            // Replace back-to-front so earlier match ranges stay valid.
-            var result = ns as String
-            for match in matches.reversed() {
-                let content = ns.substring(with: match.range(at: 1))
-                let index = codeSpans.count
-                codeSpans.append("<code>\(escape(content))</code>")
-                result = (result as NSString).replacingCharacters(in: match.range, with: token(index))
-            }
-            working = result
-        }
+        // 1. Protect, in order: code spans, then display math ($$…$$, \[…\]),
+        //    then inline math ($…$, \(…\)). Code wins over math, so `$x$` inside
+        //    backticks stays literal code. The inline `$…$` form carries a
+        //    currency guard so "$5 and $10" is left as prose.
+        working = protect(#"`([^`]+)`"#, in: working, store: &protected) { "<code>\(escape($0))</code>" }
+        working = protect(#"\$\$([\s\S]+?)\$\$"#, in: working, store: &protected) { mathSpan($0, display: true) }
+        working = protect(#"\\\[([\s\S]+?)\\\]"#, in: working, store: &protected) { mathSpan($0, display: true) }
+        working = protect(#"(?<![\w$])\$([^$\n]+?)\$(?![\w$])"#, in: working, store: &protected) { mathSpan($0, display: false) }
+        working = protect(#"\\\(([^\n]+?)\\\)"#, in: working, store: &protected) { mathSpan($0, display: false) }
 
-        // 2. Escape the literal text (tokens are private-use chars, untouched).
+        // 2. Escape the literal text (protection tokens are private-use, untouched).
         working = escape(working)
 
         // 3. Span syntax → tags. Links first; bold before italic so `**` wins.
@@ -159,19 +210,56 @@ enum MarkdownHTML {
         // Underscore italic only at word boundaries, so snake_case survives.
         working = replace(#"(?<![\w])_([^_]+)_(?![\w])"#, "<em>$1</em>", in: working)
 
-        // 4. Restore code spans.
-        for (index, html) in codeSpans.enumerated() {
+        // 4. Soft line breaks (paragraphs only), before restoring protected spans
+        //    so a multi-line display-math span keeps its own internal newlines.
+        if softBreaks {
+            working = working.replacingOccurrences(of: "\n", with: "<br>\n")
+        }
+
+        // 5. Restore protected spans.
+        for (index, html) in protected.enumerated() {
             working = working.replacingOccurrences(of: token(index), with: html)
         }
         return working
     }
 
+    /// Replace every match of `pattern` (capture group 1) with a unique
+    /// private-use token, appending `transform(group1)` to `store`. Matches are
+    /// rewritten back-to-front so earlier ranges stay valid.
+    private static func protect(_ pattern: String, in text: String,
+                                store: inout [String], transform: (String) -> String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) else {
+            return text
+        }
+        let ns = text as NSString
+        let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+        var result = text
+        for match in matches.reversed() where match.numberOfRanges >= 2 {
+            let content = ns.substring(with: match.range(at: 1))
+            let index = store.count
+            store.append(transform(content))
+            result = (result as NSString).replacingCharacters(in: match.range, with: token(index))
+        }
+        return result
+    }
+
     private static func token(_ index: Int) -> String { "\u{E000}\(index)\u{E001}" }
 
+    /// A KaTeX target element for `latex`. md-init.js renders `.md-mathi`
+    /// inline and `.md-mathd` in display mode; the LaTeX is escaped for HTML but
+    /// KaTeX reads the decoded textContent.
+    private static func mathSpan(_ latex: String, display: Bool) -> String {
+        "<span class=\"md-math\(display ? "d" : "i")\">\(escape(latex))</span>"
+    }
+
     private static func escape(_ s: String) -> String {
+        // `"` is escaped too so a link URL (which lands in a double-quoted href
+        // attribute, and whose characters aren't otherwise constrained) can't
+        // break out and inject attributes / event handlers into the WebView.
         s.replacingOccurrences(of: "&", with: "&amp;")
             .replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
     }
 
     private static func replace(_ pattern: String, _ template: String, in s: String) -> String {
@@ -226,6 +314,16 @@ enum MarkdownHTML {
         .md-item { display: flex; gap: 0.5em; margin: 0.22em 0; }
         .md-marker { color: \(muted); min-width: 1.5em; text-align: right; }
         .md-item.done { color: \(muted); text-decoration: line-through; }
+        /* Rich blocks: diagrams and display formulas render as SVG/markup, not
+           code — drop the code-block chrome, centre them, allow horizontal
+           scroll. Inline math (.md-mathi) flows with the text. */
+        .mermaid, .plantuml, .md-mathd {
+            background: none; padding: 6px 0; margin: 0 0 0.9em;
+            overflow-x: auto; text-align: center;
+        }
+        .mermaid svg, .plantuml svg { max-width: 100%; height: auto; }
+        .md-mathd .katex-display { margin: 0; }
+        .katex-display { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
         """
     }
 }
