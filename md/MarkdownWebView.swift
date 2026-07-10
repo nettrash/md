@@ -87,22 +87,41 @@ final class MdAssetSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 }
 
+// MARK: - Preview navigation
+
+/// A one-shot "scroll the preview to this heading" request, driven by the
+/// table-of-contents menu. Each request carries a fresh `id` so tapping the
+/// same heading twice still re-fires (plain value equality would swallow the
+/// repeat — the coordinator compares ids, not slugs).
+struct PreviewNavigation: Equatable {
+    let id: UUID
+    let slug: String
+}
+
 // MARK: - SwiftUI preview
 
 struct MarkdownWebView: UIViewRepresentable {
     let text: String
     let title: String
+    /// The latest table-of-contents jump request, if any. Handled once per
+    /// `id` by the coordinator; `nil` while no jump has been asked for.
+    var navigation: PreviewNavigation?
     @Environment(\.colorScheme) private var colorScheme
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> WKWebView {
         context.coordinator.update(text: text, title: title, dark: colorScheme == .dark)
+        // A request left over from a previous incarnation of the preview
+        // (mode switched away and back) is stale: adopt it as handled rather
+        // than scrolling a page that hasn't even loaded yet.
+        context.coordinator.adopt(navigation)
         return context.coordinator.webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         context.coordinator.update(text: text, title: title, dark: colorScheme == .dark)
+        context.coordinator.navigate(to: navigation)
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
@@ -112,6 +131,10 @@ struct MarkdownWebView: UIViewRepresentable {
         private var lastKey: String?
         private var savedScrollY: Double = 0
         private var pending: DispatchWorkItem?
+        /// The last `PreviewNavigation.id` acted on (or adopted), so each
+        /// request scrolls exactly once however many times SwiftUI calls
+        /// `updateUIView` afterwards.
+        private var lastNavigationID: UUID?
 
         override init() {
             let config = WKWebViewConfiguration()
@@ -143,6 +166,27 @@ struct MarkdownWebView: UIViewRepresentable {
             }
         }
 
+        /// Mark a navigation request as already handled *without* scrolling —
+        /// used at web-view creation, where the document hasn't loaded yet.
+        func adopt(_ navigation: PreviewNavigation?) {
+            lastNavigationID = navigation?.id
+        }
+
+        /// Scroll the rendered document to a heading's anchor — the HTML
+        /// gives every top-level heading `id="<slug>"` (see MarkdownHTML).
+        /// Runs once per request id.
+        func navigate(to navigation: PreviewNavigation?) {
+            guard let navigation, navigation.id != lastNavigationID else { return }
+            lastNavigationID = navigation.id
+            // Slugs contain only letters, digits, `-` and `_` (see
+            // `MarkdownParser.slug`) — never quotes, backslashes or tag
+            // characters — so plain interpolation can't break out of the JS
+            // string literal; no escaping needed.
+            webView.evaluateJavaScript(
+                "document.getElementById('\(navigation.slug)')?.scrollIntoView(true)",
+                completionHandler: nil)
+        }
+
         private func reloadPreservingScroll() {
             webView.evaluateJavaScript("window.scrollY") { [weak self] value, _ in
                 self?.savedScrollY = (value as? Double) ?? 0
@@ -155,16 +199,26 @@ struct MarkdownWebView: UIViewRepresentable {
             webView.evaluateJavaScript("window.scrollTo(0, \(savedScrollY))", completionHandler: nil)
         }
 
-        // A tapped link never navigates the preview itself: http/https open in
-        // the browser, everything else (javascript:, data:, file:, …) is simply
-        // cancelled — so a malicious `[x](javascript:…)` link can't run in this
+        // A tapped link never *navigates* the preview itself: in-document
+        // anchors scroll it, http/https open in the browser, and everything
+        // else (javascript:, data:, file:, …) is simply cancelled — so a
+        // malicious `[x](javascript:…)` link can't run in this
         // network-capable WebView. Internal loads/reloads are `.other` and pass.
         func webView(_ webView: WKWebView,
                      decidePolicyFor navigationAction: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             if navigationAction.navigationType == .linkActivated {
-                if let url = navigationAction.request.url,
-                   url.scheme == "http" || url.scheme == "https" {
+                let url = navigationAction.request.url
+                // In-document anchor hops — `[…](#section)` onto the
+                // GitHub-style heading ids the renderer emits — resolve to
+                // our own `mdassets://…#fragment` origin; allowing them just
+                // scrolls the page (WebKit treats a fragment-only hop as
+                // same-document, nothing reloads).
+                if let url, url.scheme == MdAssetSchemeHandler.scheme, url.fragment != nil {
+                    decisionHandler(.allow)
+                    return
+                }
+                if let url, url.scheme == "http" || url.scheme == "https" {
                     UIApplication.shared.open(url)
                 }
                 decisionHandler(.cancel)

@@ -38,8 +38,73 @@ final class EditorController: ObservableObject {
     fileprivate var undoAction: () -> Void = {}
     fileprivate var redoAction: () -> Void = {}
 
+    /// The live text view, wired in `makeUIView`; weak so a torn-down pane
+    /// (mode switched to Preview) doesn't linger. `scrollTo(line:)` uses it.
+    fileprivate weak var textView: UITextView?
+
+    /// A jump requested while no editor pane existed — e.g. tapping a note
+    /// in Preview mode switches to Edit first, and the jump has to wait for
+    /// the pane to be built. Consumed by `flushPendingScroll()`.
+    private var pendingLine: Int?
+
     func undo() { undoAction() }
     func redo() { redoAction() }
+
+    /// Move the caret to the start of the given 0-based source line and
+    /// scroll it into view (used by the Contents / Notes menus). If the
+    /// editor pane doesn't exist yet, remember the request — the pane
+    /// flushes it as soon as it comes on screen.
+    func scrollTo(line: Int) {
+        guard let textView else {
+            pendingLine = line
+            return
+        }
+        let range = NSRange(location: Self.offset(ofLine: line, in: textView.text ?? ""),
+                            length: 0)
+        textView.selectedRange = range
+        textView.scrollRangeToVisible(range)
+        // Focus the editor so the caret marks the destination — scrolling
+        // alone leaves nothing visible at the target line. Only when the
+        // view is actually installed; a detached view can't take focus.
+        if textView.window != nil, !textView.isFirstResponder {
+            textView.becomeFirstResponder()
+        }
+    }
+
+    /// UTF-16 offset of the first character of `line` (0-based). Line
+    /// breaks are counted exactly the way `MarkdownParser` normalises
+    /// them — `\n`, `\r\n` and a bare `\r` each end one line — so parser
+    /// line numbers land on the right spot even in a CRLF file.
+    /// (`NSString.lineRange(for:)` is deliberately not used: it also
+    /// breaks at U+2028 / U+2029, which the parser does not.)
+    static func offset(ofLine line: Int, in string: String) -> Int {
+        let ns = string as NSString
+        var offset = 0
+        var remaining = line
+        var i = 0
+        while remaining > 0, i < ns.length {
+            let ch = ns.character(at: i)
+            i += 1
+            if ch == 0x0A {                               // \n
+                remaining -= 1; offset = i
+            } else if ch == 0x0D {                        // \r or \r\n
+                if i < ns.length, ns.character(at: i) == 0x0A { i += 1 }
+                remaining -= 1; offset = i
+            }
+        }
+        // Asked for a line past the end? Stay at the start of the last
+        // line that exists — the closest sensible spot.
+        return offset
+    }
+
+    /// Complete a jump that was requested before the editor pane existed.
+    /// Called by the pane (async, so the view is in the window and laid out
+    /// by then) right after `makeUIView` wires `textView`.
+    fileprivate func flushPendingScroll() {
+        guard let line = pendingLine else { return }
+        pendingLine = nil
+        scrollTo(line: line)
+    }
 
     /// Refresh the published availability from a text view's undo manager.
     fileprivate func refresh(_ undoManager: UndoManager?) {
@@ -96,6 +161,12 @@ struct MarkdownEditor: UIViewRepresentable {
             coordinator?.sync()
         }
         context.coordinator.textView = textView
+        controller.textView = textView
+        // A jump may be waiting from before this pane existed (a Notes tap
+        // in Preview mode switches to Edit first). Flush it on the next
+        // main-actor turn — after SwiftUI has installed the view in the
+        // window and laid it out, so the scroll actually lands.
+        Task { [weak controller] in controller?.flushPendingScroll() }
 
         return textView
     }
