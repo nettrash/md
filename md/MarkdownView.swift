@@ -77,6 +77,19 @@ private struct BlockView: View {
 
         case .thematicBreak:
             Divider().padding(.vertical, 2)
+
+        case .pageBreak:
+            // The author's `\newpage` — a dashed rule, distinct from a
+            // thematic break, marking where an exported page ends.
+            Rectangle()
+                .fill(.clear)
+                .frame(height: 1)
+                .overlay(Divider())
+                .padding(.vertical, 6)
+
+        case .note:
+            // Private author notes are never rendered.
+            EmptyView()
         }
     }
 

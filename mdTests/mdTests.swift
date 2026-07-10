@@ -326,7 +326,7 @@ final class mdTests: XCTestCase {
         let html = MarkdownHTML.document("# Title", title: "Doc", dark: false)
         XCTAssertTrue(html.contains("<!DOCTYPE html>"))
         XCTAssertTrue(html.contains("<title>Doc</title>"))
-        XCTAssertTrue(html.contains("<h1>Title</h1>"))
+        XCTAssertTrue(html.contains("<h1 id=\"title\">Title</h1>"))
     }
 
     func testHTMLEscapesSpecialCharacters() {
@@ -351,6 +351,35 @@ final class mdTests: XCTestCase {
     func testHTMLLink() {
         let html = MarkdownHTML.document("[site](https://nettrash.me)", title: "t", dark: false)
         XCTAssertTrue(html.contains("<a href=\"https://nettrash.me\">site</a>"))
+    }
+
+    func testHTMLLinkWithTitle() {
+        let html = MarkdownHTML.document("[site](https://nettrash.me \"Hover title\")",
+                                         title: "t", dark: false)
+        XCTAssertTrue(html.contains("<a href=\"https://nettrash.me\" title=\"Hover title\">site</a>"))
+    }
+
+    func testHTMLImage() {
+        let html = MarkdownHTML.document("![Alt text](https://nettrash.me/favicon.ico)",
+                                         title: "t", dark: false)
+        XCTAssertTrue(html.contains("<img src=\"https://nettrash.me/favicon.ico\" alt=\"Alt text\">"))
+    }
+
+    func testHTMLImageWithTitle() {
+        let html = MarkdownHTML.document("![Alt](https://nettrash.me/favicon.ico \"The favicon\")",
+                                         title: "t", dark: false)
+        XCTAssertTrue(html.contains(
+            "<img src=\"https://nettrash.me/favicon.ico\" alt=\"Alt\" title=\"The favicon\">"))
+    }
+
+    func testHTMLLinkedImage() {
+        // The image pass must run before the link pass, so `[![…](…)](…)`
+        // nests the <img> inside the <a> instead of the link eating the label.
+        let html = MarkdownHTML.document(
+            "[![badge](https://nettrash.me/favicon.ico)](https://nettrash.me)",
+            title: "t", dark: false)
+        XCTAssertTrue(html.contains(
+            "<a href=\"https://nettrash.me\"><img src=\"https://nettrash.me/favicon.ico\" alt=\"badge\"></a>"))
     }
 
     func testHTMLUnderscoreInWordIsNotItalic() {
@@ -443,6 +472,100 @@ final class mdTests: XCTestCase {
         XCTAssertTrue(html.contains("<code>$x$</code>"))
     }
 
+    // MARK: Page breaks, notes & outline
+
+    func testPageBreakParses() {
+        let blocks = MarkdownParser.parse("before\n\n\\newpage\n\nafter")
+        XCTAssertEqual(blocks.count, 3)
+        guard case .pageBreak = blocks[1].kind else { return XCTFail("Expected a page break") }
+    }
+
+    func testPageBreakVariantInterruptsParagraph() {
+        // `\pagebreak` works too, and a marker interrupts a paragraph run.
+        let blocks = MarkdownParser.parse("line one\n\\pagebreak\nline two")
+        XCTAssertEqual(blocks.count, 3)
+        guard case .pageBreak = blocks[1].kind else { return XCTFail("Expected a page break") }
+    }
+
+    func testNoteCommentBecomesNoteBlock() {
+        let blocks = MarkdownParser.parse("<!-- note: check the intro -->")
+        XCTAssertEqual(blocks.count, 1)
+        guard case let .note(text) = blocks[0].kind else { return XCTFail("Expected a note") }
+        XCTAssertEqual(text, "check the intro")
+    }
+
+    func testPlainCommentIsDropped() {
+        // A non-note HTML comment vanishes entirely — no block, no output.
+        let blocks = MarkdownParser.parse("a\n\n<!-- just a comment -->\n\nb")
+        XCTAssertEqual(blocks.count, 2)
+    }
+
+    func testMultilineNote() {
+        let blocks = MarkdownParser.parse("<!-- note: first\nsecond -->")
+        guard case let .note(text) = blocks.first?.kind else { return XCTFail("Expected a note") }
+        XCTAssertTrue(text.contains("first"))
+        XCTAssertTrue(text.contains("second"))
+    }
+
+    func testOutlineLevelsSlugsAndLines() {
+        let source = "# One\n\ntext\n\n## Two\n\n```\n# not a heading\n```\n\nSetext\n---"
+        let outline = MarkdownParser.outline(source)
+        XCTAssertEqual(outline.count, 3)
+        XCTAssertEqual(outline[0].level, 1)
+        XCTAssertEqual(outline[0].slug, "one")
+        XCTAssertEqual(outline[0].line, 0)
+        XCTAssertEqual(outline[1].slug, "two")
+        XCTAssertEqual(outline[2].level, 2)          // setext `---` underline
+        XCTAssertEqual(outline[2].text, "Setext")
+        XCTAssertEqual(outline[2].line, 10)
+    }
+
+    func testDuplicateHeadingSlugsAreDeduped() {
+        let outline = MarkdownParser.outline("# Same\n\n# Same")
+        XCTAssertEqual(outline.map(\.slug), ["same", "same-1"])
+    }
+
+    func testOutlineSkipsUnderlineAfterMultiLineParagraph() {
+        // `---` after a 2+-line paragraph is a rule, not a setext heading —
+        // parse() and outline() must agree, or the Contents menu would list
+        // a phantom entry and desync every later anchor slug.
+        XCTAssertTrue(MarkdownParser.outline("line1\nline2\n---").isEmpty)
+        XCTAssertEqual(MarkdownParser.outline("only\n---").count, 1)
+    }
+
+    func testSlugDropsPunctuationLikeGitHub() {
+        var used: [String: Int] = [:]
+        XCTAssertEqual(MarkdownParser.slug(for: "C# & F#!", used: &used), "c--f")
+    }
+
+    func testNotesHelperFindsLine() {
+        let notes = MarkdownParser.notes("start\n\n<!-- note: fix me -->\n\nend")
+        XCTAssertEqual(notes.count, 1)
+        XCTAssertEqual(notes[0].text, "fix me")
+        XCTAssertEqual(notes[0].line, 2)
+    }
+
+    func testHTMLHeadingsCarryAnchorIds() {
+        let html = MarkdownHTML.document("# My Title\n\n# My Title", title: "t", dark: false)
+        XCTAssertTrue(html.contains("<h1 id=\"my-title\">"))
+        XCTAssertTrue(html.contains("<h1 id=\"my-title-1\">"))
+    }
+
+    func testHTMLPageBreakMarkerAndExportCSS() {
+        let preview = MarkdownHTML.document("a\n\n\\newpage\n\nb", title: "t", dark: false)
+        XCTAssertTrue(preview.contains("md-pagebreak"))
+        XCTAssertFalse(preview.contains("break-after: page"))
+        let export = MarkdownHTML.document("a\n\n\\newpage\n\nb", title: "t", dark: false, export: true)
+        XCTAssertTrue(export.contains("break-after: page"))
+    }
+
+    func testHTMLOmitsAuthorNotes() {
+        let html = MarkdownHTML.document("visible\n\n<!-- note: secret draft thought -->",
+                                         title: "t", dark: false)
+        XCTAssertTrue(html.contains("visible"))
+        XCTAssertFalse(html.contains("secret draft thought"))
+    }
+
     // MARK: In-app rename
 
     private func makeTempDir() throws -> URL {
@@ -492,6 +615,259 @@ final class mdTests: XCTestCase {
         XCTAssertNotNil(DocumentExport.renameInPlace(fileURL: a, to: "a/b"))    // path separator
         // The original is untouched after every rejected rename.
         XCTAssertTrue(FileManager.default.fileExists(atPath: a.path))
+    }
+
+    // MARK: Book naming (the navigator's rename / reorder plans)
+
+    @MainActor
+    func testBookReorderPlanRenumbersSiblings() {
+        // Move "03-End" up one place; the whole group renumbers to match
+        // the new display order, and the untouched first item is skipped.
+        let plan = BookNaming.renamePlan(
+            siblings: ["01-Intro.md", "02-Middle.md", "03-End.md"], moveFrom: 2, to: 1)
+        XCTAssertEqual(plan.map { $0.from }, ["03-End.md", "02-Middle.md"])
+        XCTAssertEqual(plan.map { $0.to }, ["02-End.md", "03-Middle.md"])
+    }
+
+    @MainActor
+    func testBookReorderPlanAssignsPrefixToUnprefixed() {
+        // Unprefixed siblings gain a "NN-" prefix when the group
+        // materializes; chapters (no article extension) renumber alike.
+        let plan = BookNaming.renamePlan(
+            siblings: ["01-First", "Drafts", "Extras"], moveFrom: 2, to: 1)
+        XCTAssertEqual(plan.map { $0.from }, ["Extras", "Drafts"])
+        XCTAssertEqual(plan.map { $0.to }, ["02-Extras", "03-Drafts"])
+    }
+
+    @MainActor
+    func testBookReorderPlanSwapsIdenticalDisplayNames() {
+        // Swapping two siblings whose display names match is an exchange
+        // cycle — the plan simply states both renames; the navigator's
+        // two-phase apply is what makes it collision-safe on disk.
+        let plan = BookNaming.renamePlan(
+            siblings: ["01-Draft.md", "02-Draft.md"], moveFrom: 0, to: 1)
+        XCTAssertEqual(plan.map { $0.from }, ["02-Draft.md", "01-Draft.md"])
+        XCTAssertEqual(plan.map { $0.to }, ["01-Draft.md", "02-Draft.md"])
+    }
+
+    @MainActor
+    func testBookReorderPlanNoOpAndBoundsAreEmpty() {
+        // Already numbered and not actually moving → nothing to rename.
+        XCTAssertTrue(BookNaming.renamePlan(
+            siblings: ["01-A.md", "02-B.md"], moveFrom: 1, to: 1).isEmpty)
+        // Out-of-range destinations (first item up / last item down).
+        XCTAssertTrue(BookNaming.renamePlan(
+            siblings: ["01-A.md", "02-B.md"], moveFrom: 0, to: -1).isEmpty)
+        XCTAssertTrue(BookNaming.renamePlan(
+            siblings: ["01-A.md", "02-B.md"], moveFrom: 1, to: 2).isEmpty)
+    }
+
+    @MainActor
+    func testBookRenameKeepsPrefixAndExtension() {
+        XCTAssertEqual(BookNaming.renamed("01-The Editor.md", toDisplay: "Editing"),
+                       "01-Editing.md")
+        // The author's own separator punctuation survives a rename.
+        XCTAssertEqual(BookNaming.renamed("2. setup.txt", toDisplay: "Setup"),
+                       "2. Setup.txt")
+        // No prefix, no article extension (a chapter): the whole name is
+        // the display name.
+        XCTAssertEqual(BookNaming.renamed("Old Chapter", toDisplay: "New Chapter"),
+                       "New Chapter")
+        // Display names round-trip: what the rename prompt pre-fills is
+        // exactly what the prefix/extension get re-attached to.
+        XCTAssertEqual(BookNaming.displayName("01-The Editor.md"), "The Editor")
+        XCTAssertEqual(BookNaming.displayName("Preface.markdown"), "Preface")
+        // An all-numeric name is its own title, not a prefix.
+        XCTAssertEqual(BookNaming.displayName("01.md"), "01")
+    }
+
+    // MARK: Book compilation (share / export the whole book as one PDF)
+
+    @MainActor
+    func testBookCompileOrdersRootArticlesThenChapters() {
+        let source = BookLibrary.compile(
+            bookName: "My Book",
+            parts: [
+                BookLibrary.Part(articles: ["Root one.", "Root two."]),
+                BookLibrary.Part(title: "Getting Started", articles: ["The editor."]),
+                BookLibrary.Part(title: "Going Further", articles: ["Rich content.", "Books."]),
+            ])
+        // Split at the exact joint the compiler emits: every unit — the
+        // title page, each chapter heading, every single article — is its
+        // own page, in reading order, with article content untouched.
+        XCTAssertEqual(source.components(separatedBy: "\n\n\\newpage\n\n"), [
+            "# My Book",
+            "Root one.",
+            "Root two.",
+            "# Getting Started",
+            "The editor.",
+            "# Going Further",
+            "Rich content.",
+            "Books.",
+        ])
+    }
+
+    @MainActor
+    func testBookCompileEdgeShapes() {
+        // An empty book is just its title page — no trailing page break.
+        XCTAssertEqual(BookLibrary.compile(bookName: "Empty", parts: []), "# Empty")
+        // No root articles → the book opens straight into chapter one; an
+        // article-less chapter still contributes its heading page.
+        XCTAssertEqual(
+            BookLibrary.compile(bookName: "B", parts: [
+                BookLibrary.Part(articles: []),
+                BookLibrary.Part(title: "One", articles: []),
+            ]),
+            "# B\n\n\\newpage\n\n# One")
+    }
+
+    @MainActor
+    func testBookCompileJointsParseAsPageBreaks() {
+        // The joints must be the marker the parser (and thus the export
+        // CSS's `break-after: page`) actually honors — and the units must
+        // still parse as their own blocks around them.
+        let source = BookLibrary.compile(
+            bookName: "B",
+            parts: [BookLibrary.Part(title: "One", articles: ["Hello.", "World."])])
+        let kinds = parse(source)
+        XCTAssertEqual(kinds.count, 7)   // 4 units + 3 breaks
+        let breaks = kinds.filter { if case .pageBreak = $0 { return true } else { return false } }
+        XCTAssertEqual(breaks.count, 3)
+        guard case let .heading(level, text)? = kinds.first else {
+            return XCTFail("expected the title page heading first")
+        }
+        XCTAssertEqual(level, 1)
+        XCTAssertEqual(text, "B")
+    }
+
+    // MARK: PDF layout setting (share / export pagination)
+
+    @MainActor
+    func testPDFLayoutDecodingDefaultsToSinglePage() {
+        // Missing or unrecognized stored values keep today's behavior.
+        XCTAssertEqual(PDFLayout.from(stored: nil), .single)
+        XCTAssertEqual(PDFLayout.from(stored: "letter"), .single)
+        // The two real choices round-trip (they're what AppStorage writes).
+        XCTAssertEqual(PDFLayout.from(stored: "single"), .single)
+        XCTAssertEqual(PDFLayout.from(stored: "a4"), .a4)
+        XCTAssertEqual(PDFLayout.single.rawValue, "single")
+        XCTAssertEqual(PDFLayout.a4.rawValue, "a4")
+    }
+
+    // MARK: EPUB export (zip / XHTML / package — the pure pieces)
+
+    @MainActor
+    func testStoredZipShapeAndCRC() {
+        // The standard CRC-32 check value.
+        XCTAssertEqual(StoredZip.crc32(Data("123456789".utf8)), 0xCBF4_3926)
+
+        let archive = StoredZip.archive([
+            (name: "mimetype", data: Data("application/epub+zip".utf8)),
+            (name: "META-INF/container.xml", data: Data("<container/>".utf8)),
+        ])
+        // Local-file-header magic first…
+        XCTAssertEqual(Array(archive.prefix(4)), [0x50, 0x4B, 0x03, 0x04])
+        // …stored method (bytes 8–9)…
+        XCTAssertEqual(archive[8], 0)
+        XCTAssertEqual(archive[9], 0)
+        // …and the mimetype name + payload directly after the fixed 30-byte
+        // header — the sniffable EPUB magic readers check without unzipping.
+        XCTAssertEqual(String(data: archive.subdata(in: 30..<38), encoding: .utf8),
+                       "mimetype")
+        XCTAssertEqual(String(data: archive.subdata(in: 38..<58), encoding: .utf8),
+                       "application/epub+zip")
+        // End-of-central-directory record: magic and total entry count.
+        let eocd = archive.count - 22
+        XCTAssertEqual(Array(archive.subdata(in: eocd..<(eocd + 4))),
+                       [0x50, 0x4B, 0x05, 0x06])
+        XCTAssertEqual(archive[eocd + 10], 2)
+        XCTAssertEqual(archive[eocd + 11], 0)
+    }
+
+    @MainActor
+    func testEpubXHTMLFixerClosesVoidsAndStripsScripts() {
+        let html = """
+        <p>a<br>
+        b</p>
+        <hr>
+        <img src="x.png" alt="pic">
+        <table><thead><tr><th style="text-align:left">h</th></tr></thead>\
+        <tbody><tr><td style="text-align:left">c</td></tr></tbody></table>
+        <div class="md-list"><div class="md-item">\
+        <span class="md-marker">&bull;</span><span>item</span></div></div>
+        <script type="module" src="rich/md-init.js"></script>
+        """
+        let fixed = EpubBuilder.xhtml(html)
+        // Void elements self-closed for XML.
+        XCTAssertTrue(fixed.contains("<br/>"))
+        XCTAssertTrue(fixed.contains("<hr/>"))
+        XCTAssertTrue(fixed.contains("<img src=\"x.png\" alt=\"pic\"/>"))
+        // No scripts or engine references survive.
+        XCTAssertFalse(fixed.contains("<script"))
+        XCTAssertFalse(fixed.contains("md-init"))
+        // XML-undefined named entities become numeric references.
+        XCTAssertFalse(fixed.contains("&bull;"))
+        XCTAssertTrue(fixed.contains("&#8226;"))
+        // Already well-formed content passes through untouched.
+        XCTAssertTrue(fixed.contains("<td style=\"text-align:left\">c</td>"))
+    }
+
+    @MainActor
+    func testEpubPackageAndNavForSmallTree() {
+        let opf = EpubBuilder.contentOPF(
+            title: "My Book", identifier: "urn:uuid:TEST",
+            modified: "2026-07-10T00:00:00Z",
+            units: [(id: "u001", href: "u001.xhtml"), (id: "u002", href: "u002.xhtml")],
+            images: ["images/u002-01.png"])
+        XCTAssertTrue(opf.contains("<dc:title>My Book</dc:title>"))
+        XCTAssertTrue(opf.contains("<dc:language>en</dc:language>"))
+        XCTAssertTrue(opf.contains("<dc:identifier id=\"book-id\">urn:uuid:TEST</dc:identifier>"))
+        XCTAssertTrue(opf.contains("property=\"dcterms:modified\">2026-07-10T00:00:00Z<"))
+        XCTAssertTrue(opf.contains("properties=\"nav\""))
+        XCTAssertTrue(opf.contains("href=\"images/u002-01.png\" media-type=\"image/png\""))
+        // Spine order is reading order.
+        let first = opf.range(of: "<itemref idref=\"u001\"/>")
+        let second = opf.range(of: "<itemref idref=\"u002\"/>")
+        XCTAssertNotNil(first)
+        XCTAssertNotNil(second)
+        XCTAssertLessThan(first!.lowerBound, second!.lowerBound)
+
+        let nav = EpubBuilder.navXHTML(
+            bookTitle: "My Book",
+            rootArticles: [(title: "Intro", href: "u002.xhtml")],
+            chapters: [(title: "One", href: "u003.xhtml",
+                        articles: [(title: "First", href: "u004.xhtml")])])
+        XCTAssertTrue(nav.contains("epub:type=\"toc\""))
+        XCTAssertTrue(nav.contains("xmlns:epub=\"http://www.idpf.org/2007/ops\""))
+        // Root article before the chapter, the chapter's articles nested
+        // in an inner list (one outer <ol> + one nested).
+        let root = nav.range(of: "<a href=\"u002.xhtml\">Intro</a>")
+        let chapter = nav.range(of: "<a href=\"u003.xhtml\">One</a>")
+        let article = nav.range(of: "<a href=\"u004.xhtml\">First</a>")
+        XCTAssertNotNil(root)
+        XCTAssertNotNil(chapter)
+        XCTAssertNotNil(article)
+        XCTAssertLessThan(root!.lowerBound, chapter!.lowerBound)
+        XCTAssertLessThan(chapter!.lowerBound, article!.lowerBound)
+        XCTAssertEqual(nav.components(separatedBy: "<ol>").count - 1, 2)
+    }
+
+    @MainActor
+    func testEpubRichElementRangesFindContainersInOrder() {
+        // The scanner must see the containers exactly as MarkdownHTML
+        // emits them, in document order — the DOM query pairs with it
+        // index-for-index when snapshots replace them.
+        let source = "Inline $a^2$ math.\n\n```mermaid\ngraph TD; A-->B\n```\n\n```math\nE=mc^2\n```"
+        let html = MarkdownHTML.document(source, title: "t", dark: false, export: true)
+        let body = EpubBuilder.bodyContent(ofDocument: html)
+        let ranges = EpubBuilder.richElementRanges(in: body)
+        XCTAssertEqual(ranges.count, 3)
+        XCTAssertEqual(ranges[0].kind, .formula)   // $a^2$
+        XCTAssertEqual(ranges[1].kind, .diagram)   // mermaid
+        XCTAssertEqual(ranges[2].kind, .formula)   // math fence
+        // Ranges are ordered and non-overlapping.
+        XCTAssertLessThan(ranges[0].range.upperBound, ranges[1].range.lowerBound)
+        XCTAssertLessThan(ranges[1].range.upperBound, ranges[2].range.lowerBound)
     }
 }
 
