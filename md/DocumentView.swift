@@ -30,6 +30,115 @@
 //
 
 import SwiftUI
+import UIKit
+
+// MARK: - Split-view scroll sync
+
+/// Links the two panes of Split so they scroll as one: each pane reports
+/// the fraction of its scrollable range it sits at, and the other follows.
+/// Proportional, not line-mapped — the panes' heights diverge around tall
+/// rendered content (a diagram is one source line), but the neighborhood
+/// always matches, which is what side-by-side writing needs.
+///
+/// A plain class, deliberately not observable: scroll events arrive at
+/// display rate and must never re-render SwiftUI views. Unlike the Mac
+/// sibling, both panes here are real `UIScrollView`s, so the whole sync
+/// is native — no JavaScript bridge. Echo suppression is UIKit's own
+/// bookkeeping: a pane only *reports* a scroll the user's finger is
+/// behind (tracking / dragging / decelerating), so relayed positions,
+/// navigation jumps and reload restores never bounce back.
+@MainActor
+final class ScrollSync {
+    /// Set by the editor pane: scroll the editor to a fraction [0, 1].
+    var scrollEditor: ((CGFloat) -> Void)?
+    /// Set by the preview pane: scroll the preview to a fraction [0, 1].
+    var scrollPreview: ((CGFloat) -> Void)?
+
+    func editorDidScroll(to fraction: CGFloat) {
+        scrollPreview?(fraction)
+    }
+
+    func previewDidScroll(to fraction: CGFloat) {
+        scrollEditor?(fraction)
+    }
+}
+
+/// The per-pane geometry both sides of the sync share, inset-aware so the
+/// fractions line up even with the keyboard up or content under bars.
+extension UIScrollView {
+    private var syncMaxOffset: CGFloat {
+        contentSize.height + adjustedContentInset.top + adjustedContentInset.bottom
+            - bounds.height
+    }
+
+    /// The fraction [0, 1] of the scrollable range currently scrolled to;
+    /// nil when the content fits and there is nothing to sync.
+    var syncFraction: CGFloat? {
+        let maxOffset = syncMaxOffset
+        guard maxOffset > 0 else { return nil }
+        let offset = (contentOffset.y + adjustedContentInset.top) / maxOffset
+        return min(max(offset, 0), 1)
+    }
+
+    /// Follow the other pane to `fraction` of this pane's range.
+    func syncScroll(toFraction fraction: CGFloat) {
+        let maxOffset = syncMaxOffset
+        guard maxOffset > 0 else { return }
+        let clamped = min(max(fraction, 0), 1)
+        setContentOffset(CGPoint(x: contentOffset.x,
+                                 y: clamped * maxOffset - adjustedContentInset.top),
+                         animated: false)
+    }
+
+    /// True while the scroll is the user's finger or its momentum — the
+    /// gate that keeps everything programmatic (relays, anchor jumps,
+    /// reload restores) from being reported back into the sync.
+    var isUserScrolling: Bool { isTracking || isDragging || isDecelerating }
+}
+
+// MARK: - Writing stats (the footer)
+
+/// The author-facing counters in the document footer.
+enum WritingStats {
+    /// Locale-aware word count (what "words" means to a writer, not a
+    /// whitespace split — "it's" is one word, "—" is none).
+    static func words(in text: String) -> Int {
+        var count = 0
+        text.enumerateSubstrings(in: text.startIndex...,
+                                 options: [.byWords, .substringNotRequired]) { _, _, _, _ in
+            count += 1
+        }
+        return count
+    }
+}
+
+/// The footer's counters, computed off the per-keystroke `body` path: one
+/// full-text scan per typing pause (the owner's `.task(id: text)` restart
+/// is the debounce), off the main thread — a book-length document costs
+/// real milliseconds per scan.
+struct WordCounts: Equatable {
+    var words = 0
+    var characters = 0
+    /// False only before the first computation — the owner's task skips
+    /// the debounce then, so a fresh window's footer fills immediately.
+    var computed = false
+
+    static func compute(from text: String) async -> WordCounts {
+        await Task.detached {
+            WordCounts(words: WritingStats.words(in: text),
+                       characters: text.count,
+                       computed: true)
+        }.value
+    }
+
+    func refreshed(from text: String) async -> WordCounts {
+        if computed {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            guard !Task.isCancelled else { return self }
+        }
+        return await Self.compute(from: text)
+    }
+}
 
 struct DocumentView: View {
     @Binding var document: MarkdownDocument
@@ -54,10 +163,12 @@ struct DocumentView: View {
     /// (AppStorage has no `Data` flavor). Empty string = no book. AppStorage,
     /// not SceneStorage: the book outlives any one window.
     @AppStorage("md.bookBookmark") private var bookBookmark = ""
-    /// How Share Rendered PDF / Export as PDF paginate (see `PDFLayout`).
-    /// AppStorage, not SceneStorage: an app-wide preference, not a
-    /// window's — the book navigator's PDFs honor it too.
-    @AppStorage(PDFLayout.storageKey) private var pdfLayout = PDFLayout.single.rawValue
+    /// Links the panes' scrolling in Split (identity-stable across
+    /// renders; the panes register themselves on it).
+    @State private var scrollSync = ScrollSync()
+    /// The footer's counters, cached off the per-keystroke render path
+    /// (see `WordCounts`).
+    @State private var counts = WordCounts()
     /// Presents the book navigator sheet when non-nil.
     @State private var bookSheet: BookPresentation?
     /// The "New Book…" name prompt (the folder picker follows it).
@@ -120,10 +231,19 @@ struct DocumentView: View {
         // automatically; setting `navigationDocument` to a snapshot of
         // `file.fileURL` only overrode that. `fileURL` is used solely to name
         // exports / the print job and to drive the in-app Rename.
-        content
+        VStack(spacing: 0) {
+            content
+            Divider()
+            footer
+        }
             .background(Typewriter.paper.ignoresSafeArea())
             .toolbar { toolbarContent }
             .navigationBarTitleDisplayMode(.inline)
+            // Recompute the footer's counters once per typing pause — the
+            // task restarts (cancelling the sleeping one) on every change.
+            .task(id: document.text) {
+                counts = await counts.refreshed(from: document.text)
+            }
             .sheet(item: $bookSheet) { presentation in
                 BookNavigator(root: presentation.url)
             }
@@ -329,14 +449,6 @@ struct DocumentView: View {
                 } label: {
                     Label("Export as PDF…", systemImage: "square.and.arrow.down")
                 }
-                // Layout for the two PDF actions above: one content-tall
-                // page (with the author's \newpage cuts) or real A4 pages
-                // via the print pipeline. Renders as a submenu here —
-                // discoverable exactly where the PDFs are made.
-                Picker("PDF Layout", selection: $pdfLayout) {
-                    Text("One long page").tag(PDFLayout.single.rawValue)
-                    Text("A4 pages").tag(PDFLayout.a4.rawValue)
-                }
                 Divider()
                 Button {
                     Task { await DocumentExport.print(source: document.text, title: baseName,
@@ -387,8 +499,23 @@ struct DocumentView: View {
         Binding(get: { effectiveMode }, set: { storedMode = $0.rawValue })
     }
 
+    /// The author's counters: live words and characters, tucked under the
+    /// panes.
+    private var footer: some View {
+        HStack {
+            Spacer()
+            Text("\(counts.words) words · \(counts.characters) characters")
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
+        .font(Typewriter.font(11))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
+        .background(Typewriter.paperSecondary)
+    }
+
     private var editorPane: some View {
-        MarkdownEditor(text: $document.text, controller: editor)
+        MarkdownEditor(text: $document.text, controller: editor, scrollSync: scrollSync)
             .overlay(alignment: .topLeading) {
                 if document.text.isEmpty {
                     // The text view has no native placeholder; mimic one,
@@ -408,7 +535,8 @@ struct DocumentView: View {
         // The rendered preview is a WebView showing the same themed HTML as
         // print / share, so LaTeX math, Mermaid and PlantUML render (offline).
         // It scrolls and lays out internally (see the CSS in MarkdownHTML).
-        MarkdownWebView(text: document.text, title: baseName, navigation: previewNavigation)
+        MarkdownWebView(text: document.text, title: baseName, navigation: previewNavigation,
+                        scrollSync: scrollSync)
             .ignoresSafeArea(.container, edges: .bottom)
     }
 

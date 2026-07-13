@@ -119,6 +119,9 @@ struct MarkdownEditor: UIViewRepresentable {
     @Binding var text: String
     /// Shared with the toolbar so it can drive and reflect undo / redo.
     let controller: EditorController
+    /// The Split layout's pane link (see `ScrollSync`): the editor reports
+    /// the scrolls the user's finger makes and follows the preview's.
+    var scrollSync: ScrollSync? = nil
 
     func makeUIView(context: Context) -> UITextView {
         let textView = UITextView()
@@ -162,6 +165,7 @@ struct MarkdownEditor: UIViewRepresentable {
         }
         context.coordinator.textView = textView
         controller.textView = textView
+        context.coordinator.registerScrollSync()
         // A jump may be waiting from before this pane existed (a Notes tap
         // in Preview mode switches to Edit first). Flush it on the next
         // main-actor turn — after SwiftUI has installed the view in the
@@ -173,6 +177,7 @@ struct MarkdownEditor: UIViewRepresentable {
 
     func updateUIView(_ textView: UITextView, context: Context) {
         context.coordinator.parent = self
+        context.coordinator.registerScrollSync()
         // Only reassign on a genuine *external* change (revert, open, a
         // programmatic edit) — never on our own keystroke echo, which would
         // yank the caret to the end. Preserve the selection across the swap.
@@ -205,6 +210,27 @@ struct MarkdownEditor: UIViewRepresentable {
         func textViewDidChange(_ textView: UITextView) { sync() }
         func textViewDidBeginEditing(_ textView: UITextView) {
             parent.controller.refresh(textView.undoManager)
+        }
+
+        // MARK: Scroll sync (UITextView is a UIScrollView; its delegate
+        // refines UIScrollViewDelegate, so the pane's scrolling arrives
+        // right here.)
+
+        /// (Re-)hand the sync our "follow the preview" closure — from make
+        /// and update, so pane recreation (a mode round-trip) always
+        /// leaves the live coordinator registered.
+        @MainActor func registerScrollSync() {
+            parent.scrollSync?.scrollEditor = { [weak self] fraction in
+                self?.textView?.syncScroll(toFraction: fraction)
+            }
+        }
+
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            // Only the user's finger (or its momentum) is reported: caret
+            // scrolls, jump requests and the sync's own relays stay out,
+            // which is the whole feedback-loop guard.
+            guard scrollView.isUserScrolling, let fraction = scrollView.syncFraction else { return }
+            parent.scrollSync?.editorDidScroll(to: fraction)
         }
     }
 }

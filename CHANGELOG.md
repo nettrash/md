@@ -19,10 +19,15 @@ a scheme post-action (`agvtool bump`) and is not tracked here.
   to it. Headings now carry GitHub-style anchors, so `[…](#section)` links
   navigate inside the document too.
 - **Page breaks.** Write `\newpage` (or `\pagebreak`) on its own line — the
-  Pandoc convention — to end a page where *you* decide: the shared / exported
-  PDF becomes one content-tall page per section (still nothing sliced
-  mid-line), printing breaks there, and the preview shows a subtle dashed
-  rule.
+  Pandoc convention — to end a page where *you* decide: shared and exported
+  PDFs and printouts start a fresh A4 page there, and the preview shows a
+  subtle dashed rule.
+- **Synchronized scrolling in Split.** On iPad, the editor and the preview
+  scroll as one: move either pane and the other follows proportionally.
+  Jumping to a heading from the Contents menu still lands each pane on its
+  precise spot.
+- **Word and character count.** Every document shows its live word and
+  character count in a footer under the page.
 - **Private author notes.** `<!-- note: … -->` comments are the writer's
   working notes: a new "Notes" toolbar menu lists them and jumps to them in
   the editor, and they never appear in the preview, the PDF, or print.
@@ -53,10 +58,6 @@ a scheme post-action (`agvtool bump`) and is not tracked here.
   reading order, each starting on a fresh page — through the same PDF
   pipeline as a single document, ready to share or save as
   "&lt;Book name&gt;.pdf".
-- **PDF Layout setting.** Choose how PDFs are built, right in the share
-  menu: "One long page" (the continuous, nothing-sliced page — still the
-  default) or "A4 pages" — real A4 pagination with line-aware page breaks,
-  produced by the same engine as printing, honouring `\newpage`.
 - **Export a book as EPUB.** "Export as EPUB…" packages the book as a
   standard EPUB 3 — chapters and articles in reading order with a proper
   table of contents — that opens in Apple Books and other readers. Math
@@ -65,6 +66,16 @@ a scheme post-action (`agvtool bump`) and is not tracked here.
 
 ### Changed
 
+- **PDFs are real A4 pages.** Shared and exported PDFs come from the same
+  engine as printing: A4 pages, paginated line-aware — no line of text or
+  diagram sliced at a fold — with `\newpage` starting a fresh page. The
+  earlier one-long-page layout is gone; the continuous page lives on where
+  it belongs, in the on-screen preview.
+- **Paper is white.** Printouts and PDFs no longer carry the on-screen
+  paper tint — the tinted block ended mid-page against the white A4
+  margins — and always use the light ink, even from a dark-mode device:
+  the whole page is one color, the way a manuscript prints. The preview
+  keeps its warm paper and dark theme on screen.
 - Printed and exported documents now use a smaller body size (11 pt, down
   from 13 pt) — standard print typography that fits more of the document per
   page — and long code lines wrap instead of being clipped at the code
@@ -74,13 +85,14 @@ a scheme post-action (`agvtool bump`) and is not tracked here.
 ### Fixed
 
 - **Shared PDFs no longer cut lines.** "Share Rendered PDF" (and the new
-  export) now produces a single continuous page exactly as tall as the
-  rendered document — the whole page as you see it in the app — so no line of
-  text or diagram is ever sliced at an A4 page boundary. Documents that
-  render taller than the PDF format's 14,400 pt (200-inch) page cap are
-  scaled down uniformly so the export is still one complete page rather than
-  being clipped at the cap. Printing still paginates to real paper,
-  unchanged.
+  export) paginates with the print engine's line-aware page breaks, so no
+  line of text or diagram is ever sliced through the middle at a page
+  boundary — the break falls between lines, as printing always did.
+- **Legacy Cyrillic text files decode correctly.** A Windows-1251 file
+  without a byte-order mark could be misread as UTF-16 — mojibake that the
+  next autosave would have baked into the file. UTF-16 is now only detected
+  by its BOM, so such files open (and round-trip) as the Cyrillic text they
+  are.
 
 ## [1.1] — 2026-07-05
 

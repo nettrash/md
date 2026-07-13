@@ -740,18 +740,62 @@ final class mdTests: XCTestCase {
         XCTAssertEqual(text, "B")
     }
 
-    // MARK: PDF layout setting (share / export pagination)
+    // MARK: Export theming (print / PDF pages)
 
-    @MainActor
-    func testPDFLayoutDecodingDefaultsToSinglePage() {
-        // Missing or unrecognized stored values keep today's behavior.
-        XCTAssertEqual(PDFLayout.from(stored: nil), .single)
-        XCTAssertEqual(PDFLayout.from(stored: "letter"), .single)
-        // The two real choices round-trip (they're what AppStorage writes).
-        XCTAssertEqual(PDFLayout.from(stored: "single"), .single)
-        XCTAssertEqual(PDFLayout.from(stored: "a4"), .a4)
-        XCTAssertEqual(PDFLayout.single.rawValue, "single")
-        XCTAssertEqual(PDFLayout.a4.rawValue, "a4")
+    func testExportPageIsPlainWhiteAndAlwaysLight() {
+        // Print / PDF pages keep their own single color: no paper tint
+        // (which would end mid-page next to the white A4 margins), and the
+        // light palette even from a dark window — dark cream-on-carbon is
+        // a screen theme, unreadable as cream-on-white.
+        let export = MarkdownHTML.document("hello", title: "t", dark: true, export: true)
+        XCTAssertTrue(export.contains("background: #FFFFFF"), "The page background is plain white")
+        XCTAssertTrue(export.contains("color-scheme: light"), "Export always renders light")
+        XCTAssertFalse(export.contains("#241E18"), "No dark-paper color anywhere in an export")
+        XCTAssertTrue(export.contains("data-md-dark=\"0\""),
+                      "The rich renderers (Mermaid theme) see the light mode too")
+        // The on-screen preview still honors the app's appearance.
+        let preview = MarkdownHTML.document("hello", title: "t", dark: true)
+        XCTAssertTrue(preview.contains("background: #241E18"), "Dark preview keeps the carbon paper")
+        XCTAssertTrue(preview.contains("data-md-dark=\"1\""))
+    }
+
+    // MARK: Plain-text decode (legacy encodings)
+
+    func testDecodeReadsUTF8() {
+        let decoded = MarkdownDocument.decode(Data("# Привет\n".utf8))
+        XCTAssertEqual(decoded?.0, "# Привет\n")
+        XCTAssertEqual(decoded?.1, .utf8)
+    }
+
+    func testDecodeDoesNotMistakeBOMlessCP1251ForUTF16() {
+        // Cyrillic prose in Windows-1251 — even-length and BOM-less, the
+        // shape a naive UTF-16 trial happily (and wrongly) accepts as CJK
+        // mojibake. It must decode as CP1251 and round-trip byte-exactly.
+        let original = "Привет, мир!"
+        let data = original.data(using: .windowsCP1251)!
+        let decoded = MarkdownDocument.decode(data)
+        XCTAssertEqual(decoded?.0, original)
+        XCTAssertEqual(decoded?.1, .windowsCP1251)
+        XCTAssertEqual(decoded!.0.data(using: decoded!.1), data)
+    }
+
+    func testDecodeRoundTripsBOMedUTF16() {
+        let original = "# Chapter\n"
+        let data = original.data(using: .utf16)! // data(using:) writes a BOM
+        let decoded = MarkdownDocument.decode(data)
+        XCTAssertEqual(decoded?.0, original)
+        XCTAssertEqual(decoded?.1, .utf16)
+    }
+
+    // MARK: Writing stats (the document footer)
+
+    func testWordCountIsLocaleAwareNotAWhitespaceSplit() {
+        XCTAssertEqual(WritingStats.words(in: ""), 0)
+        XCTAssertEqual(WritingStats.words(in: "   \n\n"), 0)
+        XCTAssertEqual(WritingStats.words(in: "Hello, world!"), 2)
+        // An apostrophe joins a word; a dash alone is none.
+        XCTAssertEqual(WritingStats.words(in: "it's — done"), 2)
+        XCTAssertEqual(WritingStats.words(in: "One\ntwo\n\nthree"), 3)
     }
 
     // MARK: EPUB export (zip / XHTML / package — the pure pieces)
