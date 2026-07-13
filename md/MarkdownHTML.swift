@@ -25,10 +25,13 @@ enum MarkdownHTML {
     /// becomes the document `<title>` (and the print / PDF job name).
     /// `export` styles the document for paper / PDF instead of the live
     /// preview: a smaller, print-typical body size (everything else is
-    /// em-based and scales with it), and code blocks wrap long lines —
-    /// paper can't scroll, so an overflowing line would be clipped at the
-    /// block's edge.
+    /// em-based and scales with it), code blocks wrap long lines — paper
+    /// can't scroll, so an overflowing line would be clipped at the
+    /// block's edge — and the page is plain white in the light palette
+    /// regardless of `dark`: the tinted paper and cream-on-carbon ink are
+    /// screen themes, not something to fix into a printout.
     static func document(_ source: String, title: String, dark: Bool, export: Bool = false) -> String {
+        let dark = dark && !export
         let blocks = MarkdownParser.parse(source)
         // Top-level headings carry a GitHub-style anchor id, so `[…](#slug)`
         // links navigate and the table of contents can scroll the preview.
@@ -314,11 +317,14 @@ enum MarkdownHTML {
         let muted      = dark ? "#B3A98E" : "#6B635A"
         let border     = dark ? "rgba(231,219,194,0.16)" : "rgba(43,38,32,0.16)"
         return """
-        /* Force backgrounds to render in print / PDF so the chosen theme
-           (including the dark paper) survives, rather than being dropped. */
+        /* Force backgrounds to render in print / PDF so the content chrome
+           (code blocks, table headers) survives, rather than being dropped. */
         * { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box; }
         :root { color-scheme: \(dark ? "dark" : "light"); }
-        html, body { background: \(paper); }
+        /* On paper the page keeps its own single color: the paper tint is a
+           screen theme, and a content-height background would end mid-page
+           next to the white A4 margins. */
+        html, body { background: \(export ? "#FFFFFF" : paper); }
         body {
             color: \(ink);
             font-family: "American Typewriter", "Courier New", serif;

@@ -106,12 +106,17 @@ struct MarkdownWebView: UIViewRepresentable {
     /// The latest table-of-contents jump request, if any. Handled once per
     /// `id` by the coordinator; `nil` while no jump has been asked for.
     var navigation: PreviewNavigation?
+    /// The Split layout's pane link (see `ScrollSync`): the preview
+    /// reports the scrolls the user's finger makes and follows the
+    /// editor's.
+    var scrollSync: ScrollSync? = nil
     @Environment(\.colorScheme) private var colorScheme
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> WKWebView {
         context.coordinator.update(text: text, title: title, dark: colorScheme == .dark)
+        context.coordinator.attach(scrollSync)
         // A request left over from a previous incarnation of the preview
         // (mode switched away and back) is stale: adopt it as handled rather
         // than scrolling a page that hasn't even loaded yet.
@@ -121,10 +126,11 @@ struct MarkdownWebView: UIViewRepresentable {
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         context.coordinator.update(text: text, title: title, dark: colorScheme == .dark)
+        context.coordinator.attach(scrollSync)
         context.coordinator.navigate(to: navigation)
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, UIScrollViewDelegate {
         let webView: WKWebView
         private let assets = MdAssetSchemeHandler()
         private var loadedOnce = false
@@ -136,6 +142,9 @@ struct MarkdownWebView: UIViewRepresentable {
         /// `updateUIView` afterwards.
         private var lastNavigationID: UUID?
 
+        /// The Split layout's pane link, when this preview is half of one.
+        private var scrollSync: ScrollSync?
+
         override init() {
             let config = WKWebViewConfiguration()
             config.setURLSchemeHandler(assets, forURLScheme: MdAssetSchemeHandler.scheme)
@@ -145,6 +154,27 @@ struct MarkdownWebView: UIViewRepresentable {
             webView.isOpaque = false
             webView.backgroundColor = .clear
             webView.scrollView.backgroundColor = .clear
+            // The preview's half of the scroll sync is fully native: the
+            // web view's scroll view reports the user's scrolls below.
+            webView.scrollView.delegate = self
+        }
+
+        /// (Re-)hand the sync our "follow the editor" closure — from make
+        /// and update, so pane recreation always leaves the live
+        /// coordinator registered.
+        @MainActor func attach(_ sync: ScrollSync?) {
+            scrollSync = sync
+            sync?.scrollPreview = { [weak self] fraction in
+                self?.webView.scrollView.syncScroll(toFraction: fraction)
+            }
+        }
+
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            // Only the reader's finger is reported — anchor jumps, reload
+            // restores and the sync's own relays are all programmatic and
+            // fall through the gate.
+            guard scrollView.isUserScrolling, let fraction = scrollView.syncFraction else { return }
+            scrollSync?.previewDidScroll(to: fraction)
         }
 
         /// Re-render when the text, title, or theme changes. The first render

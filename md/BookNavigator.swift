@@ -410,9 +410,9 @@ struct BookNavigator: View {
                 // The whole book as one file: root articles first, then the
                 // chapters in order (see BookLibrary.compile / EpubBook).
                 // The PDFs render through the same pipeline as a single
-                // document — export CSS and the "PDF Layout" preference
-                // both apply; the EPUB packages the same reading order
-                // with rich blocks snapshotted to images.
+                // document — real A4 pages, each part starting a fresh one;
+                // the EPUB packages the same reading order with rich blocks
+                // snapshotted to images.
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button {
