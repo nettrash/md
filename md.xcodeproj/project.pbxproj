@@ -22,6 +22,10 @@
 		D0000000000000000000F102 /* MarkdownWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F101 /* MarkdownWebView.swift */; };
 		D0000000000000000000F111 /* rich in Resources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F110 /* rich */; };
 		D000000000000000000020AF /* DocumentExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D000000000000000000010AF /* DocumentExport.swift */; };
+		D0000000000000000000F302 /* BookNavigator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F301 /* BookNavigator.swift */; };
+		D0000000000000000000F402 /* TestData in Resources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F401 /* TestData */; };
+		D0000000000000000000F404 /* TestDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F403 /* TestDataTests.swift */; };
+		D0000000000000000000F502 /* Examples in Resources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F501 /* Examples */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -52,6 +56,10 @@
 		D0000000000000000000F101 /* MarkdownWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownWebView.swift; sourceTree = "<group>"; };
 		D0000000000000000000F110 /* rich */ = {isa = PBXFileReference; lastKnownFileType = folder; path = rich; sourceTree = "<group>"; };
 		D000000000000000000010AF /* DocumentExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentExport.swift; sourceTree = "<group>"; };
+		D0000000000000000000F301 /* BookNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookNavigator.swift; sourceTree = "<group>"; };
+		D0000000000000000000F401 /* TestData */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TestData; sourceTree = "<group>"; };
+		D0000000000000000000F403 /* TestDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestDataTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000F501 /* Examples */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Examples; sourceTree = "<group>"; };
 		D0000000000000000000A002 /* md.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = md.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0000000000000000000A004 /* mdTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = mdTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -105,8 +113,10 @@
 				D000000000000000000010AE /* MarkdownHTML.swift */,
 				D0000000000000000000F101 /* MarkdownWebView.swift */,
 				D000000000000000000010AF /* DocumentExport.swift */,
+				D0000000000000000000F301 /* BookNavigator.swift */,
 				D000000000000000000010AC /* TypewriterTheme.swift */,
 				D0000000000000000000F110 /* rich */,
+				D0000000000000000000F501 /* Examples */,
 				D000000000000000000010A7 /* Assets.xcassets */,
 				D000000000000000000010A9 /* Info.plist */,
 				D000000000000000000010AA /* md.entitlements */,
@@ -127,6 +137,8 @@
 			isa = PBXGroup;
 			children = (
 				D000000000000000000010AB /* mdTests.swift */,
+				D0000000000000000000F403 /* TestDataTests.swift */,
+				D0000000000000000000F401 /* TestData */,
 			);
 			path = mdTests;
 			sourceTree = "<group>";
@@ -215,6 +227,7 @@
 				D000000000000000000020A8 /* Preview Assets.xcassets in Resources */,
 				D000000000000000000020A7 /* Assets.xcassets in Resources */,
 				D0000000000000000000F111 /* rich in Resources */,
+				D0000000000000000000F502 /* Examples in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -222,6 +235,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D0000000000000000000F402 /* TestData in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -241,6 +255,7 @@
 				D000000000000000000020AE /* MarkdownHTML.swift in Sources */,
 				D0000000000000000000F102 /* MarkdownWebView.swift in Sources */,
 				D000000000000000000020AF /* DocumentExport.swift in Sources */,
+				D0000000000000000000F302 /* BookNavigator.swift in Sources */,
 				D000000000000000000020AC /* TypewriterTheme.swift in Sources */,
 				D000000000000000000020A1 /* mdApp.swift in Sources */,
 			);
@@ -251,6 +266,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D000000000000000000020AB /* mdTests.swift in Sources */,
+				D0000000000000000000F404 /* TestDataTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -406,7 +422,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 83;
+				CURRENT_PROJECT_VERSION = 129;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_ASSET_PATHS = "\"md/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
@@ -420,7 +436,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = me.nettrash.md;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -442,7 +458,7 @@
 				CODE_SIGN_ENTITLEMENTS = md/md.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 83;
+				CURRENT_PROJECT_VERSION = 129;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_ASSET_PATHS = "\"md/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
@@ -456,7 +472,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = me.nettrash.md;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = NO;
@@ -474,7 +490,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 83;
+				CURRENT_PROJECT_VERSION = 129;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -484,7 +500,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = nettrash.mdTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = NO;
@@ -502,7 +518,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 83;
+				CURRENT_PROJECT_VERSION = 129;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -512,7 +528,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = nettrash.mdTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = NO;

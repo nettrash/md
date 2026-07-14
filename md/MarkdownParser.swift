@@ -38,7 +38,26 @@ struct MarkdownBlock {
         case quote(blocks: [MarkdownBlock])
         case table(header: [String], alignments: [ColumnAlignment], rows: [[String]])
         case thematicBreak
+        case pageBreak
+        case note(text: String)
     }
+}
+
+/// One table-of-contents entry. `line` is the 0-based source line of the
+/// heading, so the editor can jump to it; `slug` matches the `id` the HTML
+/// renderer gives the same heading, so the preview can scroll to it.
+struct OutlineEntry {
+    let level: Int
+    let text: String
+    let slug: String
+    let line: Int
+}
+
+/// One private author note (`<!-- note: … -->`). `line` is the 0-based
+/// source line the note starts on, so the notes panel can jump to it.
+struct NoteEntry {
+    let text: String
+    let line: Int
 }
 
 /// A single list row. `level` is the indentation depth (0 = top level)
@@ -106,6 +125,35 @@ enum MarkdownParser {
                 continue
             }
 
+            // Page break: a line of exactly `\newpage` (or `\pagebreak`),
+            // the Pandoc convention — where the author says a page ends.
+            // Shown as a subtle divider in the preview; starts a new page
+            // in print and in the shared / exported PDF.
+            if isPageBreak(line) {
+                blocks.append(.init(kind: .pageBreak))
+                i += 1
+                continue
+            }
+
+            // HTML comment block: `<!-- … -->`, possibly spanning lines.
+            // A `<!-- note: … -->` comment is the author's private note —
+            // kept as a block so the notes panel can list it. Any other
+            // comment is simply dropped. Neither appears in the preview,
+            // the PDF, or print.
+            if isCommentStart(line) {
+                var raw: [String] = []
+                while i < lines.count {
+                    raw.append(lines[i])
+                    let closed = lines[i].contains("-->")
+                    i += 1
+                    if closed { break }
+                }
+                if let note = noteText(raw.joined(separator: "\n")) {
+                    blocks.append(.init(kind: .note(text: note)))
+                }
+                continue
+            }
+
             // ATX heading: 1–6 leading #, a space, then the text.
             if let heading = parseHeading(line) {
                 blocks.append(.init(kind: .heading(level: heading.level, text: heading.text)))
@@ -165,7 +213,8 @@ enum MarkdownParser {
                         let l = lines[i]
                         if l.trimmingCharacters(in: .whitespaces).isEmpty { break }
                         if listMarker(l) != nil || FenceMarker(line: l) != nil
-                            || isThematicBreak(l) || parseHeading(l) != nil || isQuote(l) {
+                            || isThematicBreak(l) || parseHeading(l) != nil || isQuote(l)
+                            || isPageBreak(l) || isCommentStart(l) {
                             break
                         }
                         if i + 1 < lines.count, parseTable(header: l, delimiter: lines[i + 1]) != nil {
@@ -202,7 +251,8 @@ enum MarkdownParser {
                     break
                 }
                 if FenceMarker(line: l) != nil || isThematicBreak(l) || parseHeading(l) != nil
-                    || isQuote(l) || listMarker(l) != nil {
+                    || isQuote(l) || listMarker(l) != nil
+                    || isPageBreak(l) || isCommentStart(l) {
                     break
                 }
                 paragraph.append(l)
@@ -257,6 +307,169 @@ enum MarkdownParser {
         if t.allSatisfy({ $0 == "=" }) { return 1 }
         if t.allSatisfy({ $0 == "-" }) { return 2 }
         return nil
+    }
+
+    // MARK: - Page breaks & comments
+
+    /// A page break: a line whose only content is `\newpage` or
+    /// `\pagebreak` (the Pandoc / LaTeX conventions).
+    private static func isPageBreak(_ line: String) -> Bool {
+        let t = line.trimmingCharacters(in: .whitespaces)
+        return t == "\\newpage" || t == "\\pagebreak"
+    }
+
+    /// A line that opens an HTML comment block.
+    private static func isCommentStart(_ line: String) -> Bool {
+        line.drop { $0 == " " }.hasPrefix("<!--")
+    }
+
+    /// `<!-- note: … -->` → the note's text; any other comment → nil.
+    private static func noteText(_ comment: String) -> String? {
+        guard let open = comment.range(of: "<!--") else { return nil }
+        let close = comment.range(of: "-->")?.lowerBound ?? comment.endIndex
+        guard open.upperBound <= close else { return nil }
+        let body = comment[open.upperBound..<close]
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard body.lowercased().hasPrefix("note:") else { return nil }
+        return String(body.dropFirst(5)).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // MARK: - Outline, notes & anchors
+
+    /// The document's table of contents: every ATX / setext heading outside
+    /// a code fence, with the source line and the same anchor slug the HTML
+    /// renderer assigns. Line-oriented like `parse`, so it stays cheap
+    /// enough to recompute whenever the TOC is shown.
+    static func outline(_ source: String) -> [OutlineEntry] {
+        let lines = normalizedLines(source)
+        var entries: [OutlineEntry] = []
+        var used: [String: Int] = [:]
+        var fence: FenceMarker?
+        var previousPlain: (text: String, line: Int)?
+        // How many plain lines ran up to `previousPlain`. `parse` only treats
+        // an underline as setext when the buffered paragraph has exactly ONE
+        // line; the outline must apply the same rule, or it would list
+        // headings the rendered document doesn't have (and their phantom
+        // slugs would shift every later anchor).
+        var plainRun = 0
+        var i = 0
+        while i < lines.count {
+            let line = lines[i]
+            if let open = fence {
+                if open.closes(line) { fence = nil }
+                previousPlain = nil
+                plainRun = 0
+                i += 1
+                continue
+            }
+            if let open = FenceMarker(line: line) {
+                fence = open
+                previousPlain = nil
+                plainRun = 0
+                i += 1
+                continue
+            }
+            if isCommentStart(line) {
+                while i < lines.count, !lines[i].contains("-->") { i += 1 }
+                previousPlain = nil
+                plainRun = 0
+                i += 1
+                continue
+            }
+            if let heading = parseHeading(line) {
+                entries.append(OutlineEntry(level: heading.level, text: heading.text,
+                                            slug: slug(for: heading.text, used: &used), line: i))
+                previousPlain = nil
+                plainRun = 0
+                i += 1
+                continue
+            }
+            // Setext heading: exactly one plain buffered line underlined by
+            // === / --- (a longer run is a paragraph; `parse` then reads the
+            // underline as a rule / plain text, and so must we).
+            if let previous = previousPlain, plainRun == 1, let level = setextUnderline(line) {
+                entries.append(OutlineEntry(level: level, text: previous.text,
+                                            slug: slug(for: previous.text, used: &used),
+                                            line: previous.line))
+                previousPlain = nil
+                plainRun = 0
+                i += 1
+                continue
+            }
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            let isPlain = !trimmed.isEmpty && !isThematicBreak(line) && !isQuote(line)
+                && listMarker(line) == nil && !isPageBreak(line)
+            plainRun = isPlain ? plainRun + 1 : 0
+            previousPlain = isPlain ? (trimmed, i) : nil
+            i += 1
+        }
+        return entries
+    }
+
+    /// Every private author note in the document, with its source line.
+    static func notes(_ source: String) -> [NoteEntry] {
+        let lines = normalizedLines(source)
+        var entries: [NoteEntry] = []
+        var fence: FenceMarker?
+        var i = 0
+        while i < lines.count {
+            let line = lines[i]
+            if let open = fence {
+                if open.closes(line) { fence = nil }
+                i += 1
+                continue
+            }
+            if let open = FenceMarker(line: line) {
+                fence = open
+                i += 1
+                continue
+            }
+            if isCommentStart(line) {
+                let start = i
+                var raw: [String] = []
+                while i < lines.count {
+                    raw.append(lines[i])
+                    let closed = lines[i].contains("-->")
+                    i += 1
+                    if closed { break }
+                }
+                if let note = noteText(raw.joined(separator: "\n")) {
+                    entries.append(NoteEntry(text: note, line: start))
+                }
+                continue
+            }
+            i += 1
+        }
+        return entries
+    }
+
+    /// GitHub-style anchor slug for a heading, unique within one document
+    /// via the caller-maintained `used` counts ("title", "title-1", …).
+    /// Keeps letters, digits, `_` and `-`; spaces become hyphens; all other
+    /// punctuation (including inline-markup characters) is dropped — the
+    /// same rule GitHub applies, so links written for GitHub keep working.
+    static func slug(for text: String, used: inout [String: Int]) -> String {
+        var base = ""
+        for ch in text.lowercased() {
+            if ch.isLetter || ch.isNumber || ch == "_" || ch == "-" {
+                base.append(ch)
+            } else if ch == " " {
+                base.append("-")
+            }
+        }
+        if base.isEmpty { base = "section" }
+        let seen = used[base, default: 0]
+        used[base] = seen + 1
+        return seen == 0 ? base : "\(base)-\(seen)"
+    }
+
+    /// Source split into terminator-free lines, with line endings normalised
+    /// the same way `parse` does — so `outline` / `notes` line numbers match.
+    private static func normalizedLines(_ source: String) -> [String] {
+        source
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .components(separatedBy: "\n")
     }
 
     // MARK: - Thematic break
