@@ -38,6 +38,11 @@ a scheme post-action (`agvtool bump`) and is not tracked here.
   articles, ordered by numeric filename prefix ("01-intro.md") and then
   alphabetically. The book navigator opens any article and creates new
   chapters and articles in place; the book is remembered across launches.
+- **The book, right from the launch screen.** The opening screen now offers
+  the same actions as the editor's Book menu beside "New Document": Show
+  Book reopens the book you were writing, Open Book… picks a folder, and
+  New Book… creates one — so writer mode no longer requires opening a
+  document first.
 - **Images.** `![alt](url "title")` now renders in the preview, shared and
   exported PDFs, and print — including linked images (`[![…](…)](…)`).
   Links also honour an optional hover title. Images keep their original
@@ -84,6 +89,12 @@ a scheme post-action (`agvtool bump`) and is not tracked here.
 
 ### Fixed
 
+- **Book articles open again.** Tapping an article in the book did nothing
+  on iPhone — the editor never appeared, and tapping a *second* article was
+  just as dead. (Under the hood the app asked iOS for an extra window, which
+  a phone flatly refuses.) Articles now open in the editor the way tapping a
+  file in the browser does, including switching straight from one article to
+  another while the first is open.
 - **Shared PDFs no longer cut lines.** "Share Rendered PDF" (and the new
   export) paginates with the print engine's line-aware page breaks, so no
   line of text or diagram is ever sliced through the middle at a page

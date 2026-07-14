@@ -75,37 +75,120 @@ enum BookStore {
 
 /// Ask the system to open a document in the editor.
 ///
-/// The obvious API — SwiftUI's `openDocument` environment action — is
-/// macOS-only (`@available(iOS, unavailable)` in the SDK), and iOS's
-/// `DocumentGroup` ships *no* public programmatic open at all (a
-/// well-documented gap). What DocumentGroup does handle is the document
-/// user activity the system itself uses to open a document scene — the
-/// path behind dragging a file out of Files into a new window on iPad:
-/// activity type `com.apple.SwiftUI.document` carrying the file URL
-/// under `documentURL` (both strings verified against the shipping
-/// SwiftUI.framework binary). So we request a scene activation with
-/// exactly that activity. The app declares multiple-scene support; on
-/// iPad this may open the document in a new window, on a single-scene
-/// iPhone the system routes the request into the existing scene.
-/// Best-effort by nature — replace with the real `openDocument` the day
-/// Apple ships it for iOS. Both the book navigator's article rows and
-/// DocumentView's Examples menu open through here.
+/// SwiftUI's `openDocument` environment action is macOS-only
+/// (`@available(iOS, unavailable)` in the SDK) and iOS's `DocumentGroup`
+/// ships no public programmatic open, so this goes through the browser the
+/// document group is built on. `DocumentGroup` hosts a
+/// `UIDocumentBrowserViewController`, and telling *its* delegate —
+/// SwiftUI's own — that a file was "picked" is exactly the path a tap in
+/// the browser takes: the document opens in the editor, fully managed
+/// (autosave, rename, revert), replacing whatever was open before.
+///
+/// The browser is only in the view-controller tree while the launch screen
+/// shows; opening a document takes it out again. It stays alive, though,
+/// and so does its delegate — so the first sighting is remembered
+/// (`cachedBrowser`), and *that* is what makes the second tap work: book
+/// open → article → another article, the flow that used to do nothing.
+///
+/// What used to be here was a request for a whole new *scene*, carrying
+/// the system's document user activity. That cannot work on an iPhone at
+/// all — "The current device does not support multiple scenes", the exact
+/// error the Console reported for every tapped article, whether the
+/// request named the existing session or not. It survives only as the last
+/// resort for a scene that never had a browser (an iPad, where a second
+/// window is a fine answer).
+///
+/// Both the book navigator's article rows and DocumentView's Examples menu
+/// open through here.
+/// Holds the open book's security scope for as long as its articles may be
+/// open in the editor.
+///
+/// A tapped article becomes a real document: the document architecture goes
+/// on reading it, autosaving it and coordinating writes long after the
+/// navigator sheet is gone — so the scope cannot be released on a timer (the
+/// old five-second grace would have expired mid-edit for a book kept in
+/// Files or iCloud). It stays held until another book takes its place, the
+/// same lifetime the Mac's book session uses.
+@MainActor
+enum BookScope {
+    private static var held: URL?
+
+    static func hold(_ root: URL) {
+        let standardized = root.standardizedFileURL
+        guard held?.standardizedFileURL != standardized else { return }
+        held?.stopAccessingSecurityScopedResource()
+        held = root.startAccessingSecurityScopedResource() ? root : nil
+    }
+}
+
 @MainActor
 enum DocumentSceneOpener {
 
+    /// The scene's document browser, remembered the first time it is seen:
+    /// once a document opens, `DocumentGroup` takes the browser out of the
+    /// view-controller tree, but it — and the SwiftUI delegate that opens
+    /// documents through it — stay alive and keep working.
+    private static var cachedBrowser: UIDocumentBrowserViewController?
+
     static func open(_ url: URL) {
+        if let browser = documentBrowser() ?? cachedBrowser, let delegate = browser.delegate {
+            cachedBrowser = browser
+            delegate.documentBrowser?(browser, didPickDocumentsAt: [url])
+            return
+        }
+        activateDocumentScene(url)
+    }
+
+    /// The `UIDocumentBrowserViewController` inside the active scene, if
+    /// one is on screen. Found by walking the whole tree — children *and*
+    /// presented controllers — because `DocumentGroup` buries it several
+    /// levels down (under its launch view controller, and behind a
+    /// presentation at that).
+    private static func documentBrowser() -> UIDocumentBrowserViewController? {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let windows = (scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first)?
+            .windows ?? []
+        for window in windows {
+            if let root = window.rootViewController, let found = search(root) { return found }
+        }
+        return nil
+    }
+
+    private static func search(_ controller: UIViewController) -> UIDocumentBrowserViewController? {
+        if let browser = controller as? UIDocumentBrowserViewController { return browser }
+        for child in controller.children {
+            if let found = search(child) { return found }
+        }
+        if let presented = controller.presentedViewController {
+            return search(presented)
+        }
+        return nil
+    }
+
+    /// Hand the system its own document activity. Aimed at the scene the
+    /// app is already showing — that is what makes this work on a phone,
+    /// where a *new* scene is refused outright ("The current device does
+    /// not support multiple scenes"). Only when there is no such scene to
+    /// aim at does it ask for a new one, which an iPad grants.
+    private static func activateDocumentScene(_ url: URL) {
         let activity = NSUserActivity(activityType: "com.apple.SwiftUI.document")
         activity.userInfo = ["documentURL": url]
         // (`var`, not `let`: UIKit's Swift overlay imports the request as a
         // value type.)
-        var request = UISceneSessionActivationRequest()
+        var request = currentSession().map { UISceneSessionActivationRequest(session: $0) }
+            ?? UISceneSessionActivationRequest()
         request.userActivity = activity
         UIApplication.shared.activateSceneSession(for: request) { error in
-            // Fires only when the *activation* fails (e.g. multitasking
-            // restrictions) — a Console trace, not an alert: the requesting
-            // UI (sheet / menu) is already dismissed by then.
             bookLog.error("open document failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    /// The session of the scene on screen — what the document activity is
+    /// aimed at.
+    private static func currentSession() -> UISceneSession? {
+        let scenes = UIApplication.shared.connectedScenes
+        let active = scenes.first { $0.activationState == .foregroundActive }
+        return (active ?? scenes.first)?.session
     }
 }
 
@@ -321,6 +404,149 @@ enum BookLibrary {
 }
 
 // MARK: - Navigator sheet
+
+// MARK: - Opening the book from the launch screen
+
+/// The launch screen's road into writer mode. The editor's Book menu lives
+/// in an open document's toolbar — which doesn't exist before a document
+/// is open — so without this, the book would be unreachable from the
+/// app's very first screen.
+///
+/// The launch scene's action buttons have no presentation context of
+/// their own, so they only flip state on this shared model;
+/// `BookLaunchBackdrop` — the scene's background view, a real member of
+/// the SwiftUI scene — observes it and presents the navigator sheet and
+/// the prompts with the full scene environment. (Presenting a bare
+/// `UIHostingController` instead looked right but broke everything
+/// downstream: with no SwiftUI presentation to resolve, the navigator's
+/// `dismiss` was a silent no-op — an opened article stayed hidden behind
+/// the never-closing sheet.)
+@MainActor
+final class BookLaunchModel: ObservableObject {
+
+    static let shared = BookLaunchModel()
+
+    /// The same key `DocumentView`'s `@AppStorage` observes — writing
+    /// through UserDefaults keeps the editor's Book menu in sync.
+    static let bookmarkKey = "md.bookBookmark"
+
+    /// Presents the navigator sheet while non-nil — the same shape as the
+    /// editor's presentation.
+    @Published var bookSheet: BookPresentation?
+    /// The New Book name prompt and its field.
+    @Published var showNewBookName = false
+    @Published var newBookName = ""
+    /// A failed create / bookmark, alerted instead of failing silently.
+    @Published var errorMessage: String?
+
+    /// Open Book: resume the remembered book, or pick a folder first —
+    /// exactly the editor's Show Book / Open Book… pair, collapsed into
+    /// the one launch action.
+    /// Show Book: reopen the remembered book, no questions asked — the
+    /// launch screen's twin of the editor's Show Book, and only offered
+    /// when there *is* a book to show. A bookmark whose folder is gone is
+    /// dropped rather than failing forever; the remaining actions (Open
+    /// Book… / New Book…) are then the way back in.
+    func showBook() {
+        let defaults = UserDefaults.standard
+        guard let stored = defaults.string(forKey: Self.bookmarkKey), !stored.isEmpty else { return }
+        guard let resolved = BookStore.resolve(bookmark: stored) else {
+            defaults.removeObject(forKey: Self.bookmarkKey)
+            return
+        }
+        if let refreshed = resolved.refreshed {
+            defaults.set(refreshed, forKey: Self.bookmarkKey)
+        }
+        bookSheet = BookPresentation(url: resolved.url)
+    }
+
+    /// Open Book…: always the folder picker — the ellipsis promises a
+    /// question, so ask it. (This used to silently reopen the remembered
+    /// book, which made the picker unreachable once any book had been
+    /// opened — a sample book, say.) The picked folder becomes the
+    /// remembered one, exactly as in the editor.
+    func chooseBook() {
+        BookFolderPicker.present { [weak self] url in
+            guard let self, let encoded = BookStore.encodeBookmark(for: url) else { return }
+            UserDefaults.standard.set(encoded, forKey: Self.bookmarkKey)
+            self.bookSheet = BookPresentation(url: url)
+        }
+    }
+
+    /// New Book: prompt for the name; `createBook` follows from the
+    /// prompt's Create action.
+    func startNewBook() {
+        newBookName = ""
+        showNewBookName = true
+    }
+
+    /// The editor's create flow, verbatim in spirit (see
+    /// `DocumentView.createBook`): name → parent folder picker → a fresh
+    /// folder inside it, bookmarked while the parent's scope still covers
+    /// it — a brand-new folder has no sandbox grant of its own.
+    func createBook() {
+        let name = newBookName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, !name.contains("/"), !name.contains(":") else { return }
+        // The alert is still animating out when its Create action runs, so
+        // present the picker a beat later — presenting mid-dismissal finds
+        // no usable presenter and silently drops the picker.
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            BookFolderPicker.present { [weak self] parent in
+                guard let self else { return }
+                let scoped = parent.startAccessingSecurityScopedResource()
+                defer { if scoped { parent.stopAccessingSecurityScopedResource() } }
+
+                let bookURL = parent.appendingPathComponent(name, isDirectory: true)
+                do {
+                    // No intermediate directories, and an existing
+                    // "<name>" is an error — a new book must be a fresh
+                    // folder.
+                    try FileManager.default.createDirectory(
+                        at: bookURL, withIntermediateDirectories: false)
+                } catch {
+                    self.errorMessage = error.localizedDescription
+                    return
+                }
+                guard let encoded = BookStore.encodeBookmark(for: bookURL) else {
+                    self.errorMessage = "Couldn't keep access to “\(name)” — try Open Book instead."
+                    return
+                }
+                UserDefaults.standard.set(encoded, forKey: Self.bookmarkKey)
+                self.bookSheet = BookPresentation(url: bookURL)
+            }
+        }
+    }
+}
+
+/// The launch scene's background — the warm paper the editor writes on —
+/// doubling as the scene-embedded presenter for the launch actions (see
+/// `BookLaunchModel`).
+struct BookLaunchBackdrop: View {
+    @ObservedObject private var model = BookLaunchModel.shared
+
+    var body: some View {
+        Typewriter.paper
+            .ignoresSafeArea()
+            .sheet(item: $model.bookSheet) { presentation in
+                BookNavigator(root: presentation.url)
+            }
+            .alert("New Book", isPresented: $model.showNewBookName) {
+                TextField("Book name", text: $model.newBookName)
+                Button("Create") { model.createBook() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("You'll choose where to keep it next.")
+            }
+            .alert("Something Went Wrong",
+                   isPresented: Binding(get: { model.errorMessage != nil },
+                                        set: { if !$0 { model.errorMessage = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(model.errorMessage ?? "")
+            }
+    }
+}
 
 struct BookNavigator: View {
     /// The book's root folder (security-scoped; see the header comment).
@@ -602,15 +828,10 @@ struct BookNavigator: View {
     /// Open an article in the editor, via the shared scene-activation
     /// request (see `DocumentSceneOpener` for why that's the mechanism).
     private func open(_ url: URL) {
-        // Keep the book's security scope alive while the receiving scene
-        // performs its coordinated open — that happens asynchronously, so
-        // release on a grace delay rather than immediately. (The balancing
-        // stop is guaranteed: the Task runs however the request fares.)
-        let scoped = root.startAccessingSecurityScopedResource()
-        Task {
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            if scoped { root.stopAccessingSecurityScopedResource() }
-        }
+        // The article becomes a document the editor keeps open — and keeps
+        // autosaving — so the book's security scope must outlive this tap
+        // (see `BookScope`), not expire on a timer.
+        BookScope.hold(root)
 
         DocumentSceneOpener.open(url)
         dismiss()
