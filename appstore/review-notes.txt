@@ -1,0 +1,38 @@
+md is a Markdown editor and live previewer for iPhone and iPad. This update (1.2) adds writer mode — a book is an ordinary folder of Markdown files — plus synchronized split scrolling on iPad, A4 PDF and EPUB export.
+
+1. ACCESS — NOTHING TO SET UP
+No account, no sign-in, no registration, no in-app purchases, no subscriptions. Every feature works the moment the app launches, so no demo credentials exist or are needed.
+
+No test file is needed: the app ships with sample documents. Open any document, tap the Examples button in the toolbar and pick one (Welcome, Formatting, Tables, Code, Images, Math, Diagrams, Writer Tools).
+
+2. A THREE-MINUTE WALKTHROUGH OF EVERYTHING NEW
+a) On the opening screen, tap New Document (or, if the actions are collapsed, tap More…). The editor opens. Type Markdown and watch the preview update. On iPhone the mode switch offers Edit and Preview; on iPad it also offers Split, where the two panes now scroll together.
+b) The word and character count sits at the bottom of the page. The Contents button jumps to any heading; the Notes button lists the author's private notes.
+c) Share, then Print — real A4 pages. Share, then Export as PDF — saves the same pages into Files.
+d) WRITER MODE. On the opening screen tap More…, then "New Book" (name it, then choose where to keep it) — or open the sample book instead: in an open document, tap Examples, then "Example Book…", and choose a folder. The book opens: chapters and articles listed in reading order.
+e) Tap an article to write it; tap another to move to it. Long-press or swipe a row to rename, reorder or delete it. Use the book's share button for "Share as PDF", "Export as PDF…" and "Export as EPUB…".
+
+A book is nothing more than a folder the user picks: its subfolders are chapters, its Markdown files are articles. The app creates no hidden files or sidecar metadata. Folder access is granted by the standard system folder picker and kept as a security-scoped bookmark.
+
+3. PURPOSE AND AUDIENCE
+Writers, developers and students who keep notes, documentation or a book in plain Markdown files and want to see, print and export the finished page. Nothing is shared, published or hosted anywhere, so there is nothing to moderate, report or block.
+
+4. NETWORK AND EXTERNAL SERVICES
+The app contacts no servers of ours; there are none. It has no analytics, no advertising, no tracking, and it collects no data (the Privacy Nutrition Label answer is "Data Not Collected").
+
+The one time the app touches the network is when a document the user opened references an image by a remote URL: the renderer fetches that image so it can be shown and printed. That request goes to the host named in the user's own document. Nothing else is ever sent or fetched.
+
+5. NO DOWNLOADED CODE (2.5.2)
+Math and diagrams (KaTeX, Mermaid, Graphviz, PlantUML) are drawn by open-source JavaScript engines bundled inside the app and served to WKWebView from a private, offline scheme. No executable code is downloaded or updated at runtime, and no interpreted code comes from any server. There are no third-party Swift packages or SDKs.
+
+6. PERMISSIONS
+None are requested: no camera, microphone, location, contacts, calendars, notifications, or tracking prompt. Files are reached only through the system document browser and folder picker — the user always chooses what the app may touch.
+
+7. REGIONAL DIFFERENCES, REGULATED CONTENT
+None. The app behaves identically everywhere, contains no regulated or age-restricted content, and includes no third-party trademarked or copyrighted material beyond the open-source engines named above, which ship under their own permissive licences.
+
+Encryption: ITSAppUsesNonExemptEncryption is false — the app implements no encryption.
+
+Minimum system: iOS and iPadOS 26. The source code and the privacy policy are public.
+
+Thank you for reviewing.

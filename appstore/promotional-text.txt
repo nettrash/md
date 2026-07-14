@@ -1,0 +1,1 @@
+Version 1.2 makes md a book writer: chapters in a folder, panes that scroll as one on iPad, real A4 PDFs, and EPUB export — straight from the opening screen.

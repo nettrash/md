@@ -1,0 +1,25 @@
+Version 1.2 — write a whole book, not just a page.
+
+WRITER MODE
+• Books arrive: a book is a folder, its subfolders are chapters, its Markdown files are articles. Tap an article to write it, tap another to move on.
+• Reach it from the opening screen — Show Book, Open Book and New Book sit beside New Document, so writer mode no longer needs a document open first.
+• Long-press or swipe a chapter or article to rename, reorder or delete it. The order is written back to the file names.
+• Compile the whole book into one PDF, or export it as a standard EPUB 3 with a table of contents — math and diagrams included as images.
+
+WRITING
+• Synchronized scrolling in Split on iPad: move either pane and the other follows.
+• A live word and character count under every page.
+• A table of contents that jumps both panes to any heading, and private author notes that never leave your draft.
+• Page breaks: write \newpage on its own line to start a new page where you decide.
+
+PRINT AND PDF
+• Shared and exported PDFs are now real A4 pages from the engine that prints them: pagination is line-aware, so no line of text is sliced at a page boundary. A dedicated Export as PDF saves straight into Files.
+• Pages come out white with dark ink, whatever theme you write in.
+
+MORE
+• Images render in the preview, the PDF and the printout.
+• Built-in examples, including a small sample book, to explore what the app can do.
+
+FIXED
+• Tapping an article in a book opens it in the editor — on iPhone it did nothing at all — and you can move straight from one article to the next.
+• Legacy Cyrillic (Windows-1251) files open as the text they are, instead of mojibake.
