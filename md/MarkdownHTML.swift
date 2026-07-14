@@ -23,9 +23,28 @@ enum MarkdownHTML {
 
     /// A full HTML document for `source`, themed light or dark. `title`
     /// becomes the document `<title>` (and the print / PDF job name).
-    static func document(_ source: String, title: String, dark: Bool) -> String {
+    /// `export` styles the document for paper / PDF instead of the live
+    /// preview: a smaller, print-typical body size (everything else is
+    /// em-based and scales with it), code blocks wrap long lines — paper
+    /// can't scroll, so an overflowing line would be clipped at the
+    /// block's edge — and the page is plain white in the light palette
+    /// regardless of `dark`: the tinted paper and cream-on-carbon ink are
+    /// screen themes, not something to fix into a printout.
+    static func document(_ source: String, title: String, dark: Bool, export: Bool = false) -> String {
+        let dark = dark && !export
         let blocks = MarkdownParser.parse(source)
-        let body = blocks.map(renderBlock).joined(separator: "\n")
+        // Top-level headings carry a GitHub-style anchor id, so `[…](#slug)`
+        // links navigate and the table of contents can scroll the preview.
+        // The slugs come from the same `MarkdownParser.slug` the TOC uses,
+        // so the two always agree.
+        var slugs: [String: Int] = [:]
+        let body = blocks.map { block -> String in
+            if case let .heading(level, text) = block.kind {
+                let id = MarkdownParser.slug(for: text, used: &slugs)
+                return "<h\(level) id=\"\(id)\">\(inline(text))</h\(level)>"
+            }
+            return renderBlock(block)
+        }.joined(separator: "\n")
 
         // Rich renderers (KaTeX math, Mermaid, PlantUML) load entirely from
         // bundled assets under `rich/` — no network. Each heavy engine is
@@ -68,7 +87,7 @@ enum MarkdownHTML {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>\(escape(title))</title>
-        <style>\(css(dark: dark))</style>\(head)
+        <style>\(css(dark: dark, export: export))</style>\(head)
         </head>
         <body data-md-dark="\(dark ? "1" : "0")">
         \(body)
@@ -119,6 +138,16 @@ enum MarkdownHTML {
 
         case .thematicBreak:
             return "<hr>"
+
+        case .pageBreak:
+            // In the preview a subtle dashed rule; in export / print it
+            // becomes a real page boundary (see the CSS).
+            return "<div class=\"md-pagebreak\"></div>"
+
+        case .note:
+            // Private author notes never reach the rendered document —
+            // they live in the editor and the notes panel only.
+            return ""
         }
     }
 
@@ -201,7 +230,17 @@ enum MarkdownHTML {
         // 2. Escape the literal text (protection tokens are private-use, untouched).
         working = escape(working)
 
-        // 3. Span syntax → tags. Links first; bold before italic so `**` wins.
+        // 3. Span syntax → tags. Images before links (image syntax is link
+        //    syntax with a leading `!`, so the link pass would eat it), links
+        //    before emphasis, bold before italic so `**` wins. The text is
+        //    already escaped, so an optional source title reads `&quot;…&quot;`
+        //    here and attribute values can't break out of their quotes.
+        working = replace(#"!\[([^\]]*)\]\(([^)\s]+)\s+&quot;(.*?)&quot;\)"#,
+                          "<img src=\"$2\" alt=\"$1\" title=\"$3\">", in: working)
+        working = replace(#"!\[([^\]]*)\]\(([^)\s]+)\)"#,
+                          "<img src=\"$2\" alt=\"$1\">", in: working)
+        working = replace(#"\[([^\]]+)\]\(([^)\s]+)\s+&quot;(.*?)&quot;\)"#,
+                          "<a href=\"$2\" title=\"$3\">$1</a>", in: working)
         working = replace(#"\[([^\]]+)\]\(([^)\s]+)\)"#, "<a href=\"$2\">$1</a>", in: working)
         working = replace(#"\*\*([^*]+)\*\*"#, "<strong>$1</strong>", in: working)
         working = replace(#"__([^_]+)__"#, "<strong>$1</strong>", in: working)
@@ -270,7 +309,7 @@ enum MarkdownHTML {
 
     // MARK: - CSS
 
-    private static func css(dark: Bool) -> String {
+    private static func css(dark: Bool, export: Bool) -> String {
         let paper      = dark ? "#241E18" : "#F4EFE2"
         let ink        = dark ? "#E7DBC2" : "#2B2620"
         let secondary  = dark ? "#2F2820" : "#EAE2CF"
@@ -278,15 +317,18 @@ enum MarkdownHTML {
         let muted      = dark ? "#B3A98E" : "#6B635A"
         let border     = dark ? "rgba(231,219,194,0.16)" : "rgba(43,38,32,0.16)"
         return """
-        /* Force backgrounds to render in print / PDF so the chosen theme
-           (including the dark paper) survives, rather than being dropped. */
+        /* Force backgrounds to render in print / PDF so the content chrome
+           (code blocks, table headers) survives, rather than being dropped. */
         * { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box; }
         :root { color-scheme: \(dark ? "dark" : "light"); }
-        html, body { background: \(paper); }
+        /* On paper the page keeps its own single color: the paper tint is a
+           screen theme, and a content-height background would end mid-page
+           next to the white A4 margins. */
+        html, body { background: \(export ? "#FFFFFF" : paper); }
         body {
             color: \(ink);
             font-family: "American Typewriter", "Courier New", serif;
-            font-size: 13pt;
+            font-size: \(export ? 11 : 13)pt;
             line-height: 1.55;
             margin: 0;
             padding: 48px 56px;
@@ -304,9 +346,18 @@ enum MarkdownHTML {
         code, pre { font-family: "Courier New", monospace; }
         code { background: \(secondary); padding: 0.1em 0.3em; border-radius: 4px; font-size: 0.92em; }
         pre { background: \(secondary); padding: 12px 14px; border-radius: 8px; overflow-x: auto; }
+        /* In export, code wraps: paper can't scroll a too-wide block, so a
+           long line would otherwise be clipped at the block's edge. */
+        \(export ? "pre { white-space: pre-wrap; overflow-wrap: anywhere; }" : "")
         pre code { background: none; padding: 0; font-size: 0.92em; }
         blockquote { margin: 0 0 0.9em; padding-left: 14px; border-left: 4px solid \(accent); color: \(muted); }
         hr { border: none; border-top: 1px solid \(border); margin: 1.4em 0; }
+        /* The author's `\newpage`: a dashed rule on screen; in export / print
+           it collapses to an invisible marker where a new page starts (the
+           PDF capture splits pages at it, and paginated printing breaks). */
+        \(export
+            ? ".md-pagebreak { height: 0; margin: 0; break-after: page; }"
+            : ".md-pagebreak { border-top: 2px dashed \(border); margin: 1.6em 0; }")
         table { border-collapse: collapse; margin: 0 0 0.9em; }
         th, td { border: 1px solid \(border); padding: 6px 12px; }
         th { background: \(secondary); }
@@ -322,6 +373,9 @@ enum MarkdownHTML {
             overflow-x: auto; text-align: center;
         }
         .mermaid svg, .plantuml svg { max-width: 100%; height: auto; }
+        /* Images render at their natural size, only capped to the page width;
+           height follows so the aspect ratio never distorts. */
+        img { max-width: 100%; height: auto; }
         .md-mathd .katex-display { margin: 0; }
         .katex-display { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
         """

@@ -47,12 +47,11 @@ struct MarkdownDocument: FileDocument {
         guard let data = configuration.file.regularFileContents else {
             throw CocoaError(.fileReadCorruptFile)
         }
-        // Decode strictly. Using the lossy `String(decoding:as:UTF8.self)`
-        // would replace every non-UTF-8 byte with U+FFFD and then bake that
-        // corruption into the file on the next autosave — silent data loss
-        // for a legacy-encoded (Cyrillic, Latin-1, UTF-16) text file opened
-        // in place. Instead try UTF-8 first (the Markdown convention), then
-        // a few common encodings, and remember which one matched.
+        // Decode strictly (see `decode`). Using the lossy
+        // `String(decoding:as:UTF8.self)` would replace every non-UTF-8
+        // byte with U+FFFD and then bake that corruption into the file on
+        // the next autosave — silent data loss for a legacy-encoded
+        // (Cyrillic, Latin-1, UTF-16) text file opened in place.
         guard let (decoded, enc) = Self.decode(data) else {
             throw CocoaError(.fileReadInapplicableStringEncoding)
         }
@@ -60,11 +59,21 @@ struct MarkdownDocument: FileDocument {
         encoding = enc
     }
 
-    /// Try to decode `data` as text, returning the matched encoding. The
-    /// list is ordered most- to least-specific; `.isoLatin1` maps every
-    /// byte, so it round-trips arbitrary bytes losslessly as a last resort.
-    private static func decode(_ data: Data) -> (String, String.Encoding)? {
-        for enc: String.Encoding in [.utf8, .utf16, .windowsCP1251, .isoLatin1] {
+    /// Try to decode `data` as text, returning the matched encoding.
+    /// UTF-16 is only considered behind an explicit BOM — without one,
+    /// `String(data:encoding:.utf16)` happily pairs up the bytes of many
+    /// legacy single-byte files (BOM-less CP1251 prose, say) into CJK
+    /// mojibake, and the next save would bake that corruption in. The
+    /// BOM'd decode strips the BOM and `data(using: .utf16)` writes one
+    /// back, so such files round-trip. The single-byte trials run most- to
+    /// least-specific; `.isoLatin1` maps every byte, so it round-trips
+    /// arbitrary bytes losslessly as a last resort. Internal for the tests.
+    static func decode(_ data: Data) -> (String, String.Encoding)? {
+        if data.starts(with: [0xFF, 0xFE]) || data.starts(with: [0xFE, 0xFF]),
+           let text = String(data: data, encoding: .utf16) {
+            return (text, .utf16)
+        }
+        for enc: String.Encoding in [.utf8, .windowsCP1251, .isoLatin1] {
             if let s = String(data: data, encoding: enc) { return (s, enc) }
         }
         return nil
