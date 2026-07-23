@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The build number (`CFBundleVersion`) is auto-incremented on every build by
 a scheme post-action (`agvtool bump`) and is not tracked here.
 
+## [1.3] — 2026-07-23
+
+### Added
+
+- **Open PlantUML files.** `.puml` (and `.plantuml`) documents now open in
+  md — from the document browser, Files, or "Open with md". A file that is a
+  raw PlantUML diagram (`@startuml … @enduml`, with no code fence) renders as
+  the diagram in the preview, print and exported PDF, while the source stays
+  fully editable and saves as plain UTF-8 text.
+
 ## [1.2] — 2026-07-14
 
 ### Added

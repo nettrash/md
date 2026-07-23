@@ -54,6 +54,16 @@
         </dict>
         <dict>
             <key>CFBundleTypeName</key>
+            <string>PlantUML Diagram</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>net.sourceforge.plantuml.puml</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
             <string>Plain Text</string>
             <key>LSHandlerRank</key>
             <string>Alternate</string>
@@ -90,6 +100,31 @@
                     <string>mdown</string>
                     <string>markdn</string>
                     <string>mdtext</string>
+                </array>
+            </dict>
+        </dict>
+        <!--
+            PlantUML source (.puml) is ordinary UTF-8 text the app opens and
+            edits exactly like Markdown. The format isn't ours and the system
+            declares no identifier for it, so we *import* one that conforms to
+            public.plain-text (and public.source-code, itself plain text).
+        -->
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>net.sourceforge.plantuml.puml</string>
+            <key>UTTypeDescription</key>
+            <string>PlantUML Diagram</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.source-code</string>
+                <string>public.plain-text</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>puml</string>
+                    <string>plantuml</string>
                 </array>
             </dict>
         </dict>

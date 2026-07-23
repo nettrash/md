@@ -759,6 +759,33 @@ final class mdTests: XCTestCase {
         XCTAssertTrue(preview.contains("data-md-dark=\"1\""))
     }
 
+    func testRawPlantUMLDocumentRendersAsDiagram() {
+        // An opened `.puml` is bare diagram source with no ```plantuml fence.
+        // It must render as one PlantUML diagram — a `.plantuml` container that
+        // md-init.js turns into an SVG — not as Markdown text, which would show
+        // the `@startuml…` source as paragraphs and never draw anything.
+        let puml = "@startuml\nAlice -> Bob: hi\nBob --> Alice: hi\n@enduml\n"
+        let html = MarkdownHTML.document(puml, title: "d", dark: false)
+        XCTAssertTrue(html.contains("<div class=\"plantuml\">"),
+                      "Raw PlantUML renders through the .plantuml container")
+        XCTAssertTrue(html.contains("rich/viz-global.js"),
+                      "The PlantUML engine's Viz dependency is pulled in")
+        XCTAssertFalse(html.contains("<p>@startuml"),
+                       "The source must not be parsed as Markdown paragraphs")
+
+        // Detection skips PlantUML line comments and blank lines before the
+        // opener, and recognizes any @start… diagram, not only @startuml.
+        XCTAssertTrue(MarkdownHTML.isRawPlantUML("' header comment\n\n@startmindmap\n* root\n@endmindmap"))
+        XCTAssertTrue(MarkdownHTML.isRawPlantUML("   \n@startuml\n@enduml"))
+
+        // A normal Markdown document is untouched: not a whole-document diagram,
+        // and `@startuml` mentioned mid-prose is not a false positive.
+        XCTAssertFalse(MarkdownHTML.isRawPlantUML("# Title\n\nSome prose about @startuml in passing."))
+        let md = MarkdownHTML.document("# Title\n\nHello.", title: "d", dark: false)
+        XCTAssertFalse(md.contains("<div class=\"plantuml\">"))
+        XCTAssertTrue(md.contains("<h1"))
+    }
+
     // MARK: Plain-text decode (legacy encodings)
 
     func testDecodeReadsUTF8() {
