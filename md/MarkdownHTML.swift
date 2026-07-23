@@ -32,19 +32,52 @@ enum MarkdownHTML {
     /// screen themes, not something to fix into a printout.
     static func document(_ source: String, title: String, dark: Bool, export: Bool = false) -> String {
         let dark = dark && !export
-        let blocks = MarkdownParser.parse(source)
-        // Top-level headings carry a GitHub-style anchor id, so `[…](#slug)`
-        // links navigate and the table of contents can scroll the preview.
-        // The slugs come from the same `MarkdownParser.slug` the TOC uses,
-        // so the two always agree.
-        var slugs: [String: Int] = [:]
-        let body = blocks.map { block -> String in
-            if case let .heading(level, text) = block.kind {
-                let id = MarkdownParser.slug(for: text, used: &slugs)
-                return "<h\(level) id=\"\(id)\">\(inline(text))</h\(level)>"
-            }
-            return renderBlock(block)
-        }.joined(separator: "\n")
+
+        // A raw PlantUML document — an opened `.puml`: bare diagram source with
+        // no ```plantuml fence (see `isRawPlantUML`). Render the whole file as
+        // one diagram rather than parsing it as Markdown, which would only show
+        // the `@startuml…` text. Everything else — a `.md` / `.txt` file — is
+        // parsed as Markdown exactly as before.
+        let body: String
+        let needsMath: Bool
+        let needsMermaid: Bool
+        let needsPlantuml: Bool
+
+        if isRawPlantUML(source) {
+            // md-init.js turns the `.plantuml` container into an SVG offline;
+            // on failure it restores the source, so an invalid diagram still
+            // shows its text. No Markdown here, so no math / Mermaid.
+            body = "<div class=\"plantuml\">\(escape(source))</div>"
+            needsMath = false
+            needsMermaid = false
+            needsPlantuml = true
+        } else {
+            let blocks = MarkdownParser.parse(source)
+            // Top-level headings carry a GitHub-style anchor id, so `[…](#slug)`
+            // links navigate and the table of contents can scroll the preview.
+            // The slugs come from the same `MarkdownParser.slug` the TOC uses,
+            // so the two always agree.
+            var slugs: [String: Int] = [:]
+            body = blocks.map { block -> String in
+                if case let .heading(level, text) = block.kind {
+                    let id = MarkdownParser.slug(for: text, used: &slugs)
+                    return "<h\(level) id=\"\(id)\">\(inline(text))</h\(level)>"
+                }
+                return renderBlock(block)
+            }.joined(separator: "\n")
+
+            let langs = Set(blocks.compactMap { block -> String? in
+                if case let .codeBlock(language, _) = block.kind { return (language ?? "").lowercased() }
+                return nil
+            })
+            needsMermaid = langs.contains("mermaid")
+            needsPlantuml = !langs.isDisjoint(with: ["plantuml", "puml", "plant-uml"])
+            // Math is needed iff `inline()` actually emitted a math span — which
+            // it only does for real formulas, never for currency like "$5".
+            // Keying off the produced markup (rather than a raw "$" heuristic)
+            // means prose with stray dollar signs never even loads KaTeX.
+            needsMath = body.contains("md-mathi") || body.contains("md-mathd")
+        }
 
         // Rich renderers (KaTeX math, Mermaid, PlantUML) load entirely from
         // bundled assets under `rich/` — no network. Each heavy engine is
@@ -58,17 +91,6 @@ enum MarkdownHTML {
         // The WebView must load this with a base URL whose origin serves
         // `rich/` (a WKURLSchemeHandler on Apple, WebViewAssetLoader on
         // Android) so the ES-module import in `md-init.js` resolves.
-        let langs = Set(blocks.compactMap { block -> String? in
-            if case let .codeBlock(language, _) = block.kind { return (language ?? "").lowercased() }
-            return nil
-        })
-        let needsMermaid = langs.contains("mermaid")
-        let needsPlantuml = !langs.isDisjoint(with: ["plantuml", "puml", "plant-uml"])
-        // Math is needed iff `inline()` actually emitted a math span — which it
-        // only does for real formulas, never for currency like "$5". Keying off
-        // the produced markup (rather than a raw "$" heuristic) means prose with
-        // stray dollar signs never even loads KaTeX.
-        let needsMath = body.contains("md-mathi") || body.contains("md-mathd")
 
         var head = ""
         if needsMath {
@@ -95,6 +117,23 @@ enum MarkdownHTML {
         </body>
         </html>
         """
+    }
+
+    /// True when `source` is a raw PlantUML document rather than Markdown —
+    /// its first non-blank, non-comment line opens a PlantUML diagram
+    /// (`@startuml`, `@startmindmap`, `@startgantt`, `@startjson`, …). That is
+    /// exactly what an opened `.puml` file is: bare diagram source with no
+    /// ```plantuml fence. Such a document is rendered as a single diagram
+    /// (see `document`) instead of being parsed as Markdown, which would only
+    /// show the source text. PlantUML line comments (`'…`) and blank lines
+    /// before the opener are skipped, so a commented header doesn't hide it.
+    static func isRawPlantUML(_ source: String) -> Bool {
+        for rawLine in source.split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            if line.isEmpty || line.hasPrefix("'") { continue }
+            return line.hasPrefix("@start")
+        }
+        return false
     }
 
     // MARK: - Blocks
