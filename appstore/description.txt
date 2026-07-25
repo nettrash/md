@@ -1,29 +1,33 @@
-md is a Markdown editor and live previewer for iPhone and iPad. Write plain Markdown, watch the finished page take shape as you type, then print it, export it as a PDF, or turn a folder of chapters into a whole book.
+md is a Markdown editor and live previewer for iPhone and iPad. Write plain Markdown, watch the finished page take shape as you type, then print it, export it, or turn a folder of chapters into a whole book.
 
 WRITE AND SEE
 • Edit and Preview on iPhone; on iPad, a Split view puts the source and the rendered page side by side — and the two panes scroll as one, so the passage you are reading is the paragraph you are writing.
-• The preview is the printed page: one renderer draws the preview, the printout and the PDF — the same layout, set for paper (white pages, dark ink, print-sized type).
-• Headings, lists, task lists, tables, quotes, code blocks, links and images — plus LaTeX math, Mermaid graphs and PlantUML diagrams, all drawn on your device by engines built into the app.
-• Contents lists every heading and jumps the editor and the preview to it.
-• Private author notes — an HTML comment on its own line whose text begins with “note:” — are listed in the Notes menu and never appear in the preview, the PDF or the printout.
-• A live word and character count sits under every page.
-• Undo and redo, always within reach.
+• The preview is the printed page: one renderer draws the preview, the printout and the PDF — the same layout, set for paper.
+• Headings, lists, task lists, tables, quotes, code, links and images — plus footnotes, and metadata front matter (YAML or TOML) recognised and kept out of the page.
+• LaTeX math and mhchem chemistry, Mermaid graphs, Graphviz and PlantUML diagrams — all drawn on your device by engines built into the app.
+• Code fenced with a language reads with its keywords, comments and strings set apart, in a quiet palette that matches the page rather than a bright editor theme.
+• Paste a table straight from a spreadsheet into a csv or tsv block and md draws it — the first row the header, number columns lined up on the right.
+• Contents lists every heading and jumps the editor and the preview to it. Private author notes — an HTML comment on its own line whose text begins with the word note — are listed in the Notes menu and never appear in the preview, the PDF or the printout.
+• A live word and character count, and undo and redo, always within reach.
 
 PRINT AND EXPORT
-• Print or export real A4 pages. Breaks fall between lines, never through them, and \newpage starts a fresh page wherever you decide.
-• Share the rendered PDF, share the Markdown source, or save the PDF into Files.
+• Print or export real A4 pages — or A5, US Letter, US Legal, or a paperback trim size for a book bound for print. Breaks fall between lines, and \newpage starts a fresh page wherever you decide.
+• Export as HTML: one self-contained file that opens anywhere, diagrams as drawings and formulas as real, selectable text.
+• Export as LaTeX: a .tex file where your mathematics stays mathematics, ready to paste into a paper.
+• Export a diagram as a standalone .svg vector, or the whole document — or a single one — as a standard EPUB 3.
+• Share the rendered PDF, share the Markdown source, or open and export TextBundle and TextPack, the Markdown-with-images container.
 
 WRITER MODE: BOOKS
-• A book is simply a folder: its subfolders are chapters, its Markdown files are articles, ordered by name. Start one from the opening screen — New Book — or open a folder you already have.
-• The book lists your chapters and articles; tap one to write, and tap another to move on. Long-press or swipe a row to rename, reorder or delete it. The order is written back to the file names, so it stays true in Files.
-• Compile the whole book into one PDF, or export it as a standard EPUB 3 with a proper table of contents — math and diagrams travel with it as images.
+• A book is simply a folder: its subfolders are chapters, its Markdown files are articles, ordered by name. Start one from the opening screen, or open a folder you already have.
+• Tap an article to write, tap another to move on. Rename, reorder or delete a row and the order is written back to the file names, so it stays true in Files.
+• Compile the whole book into one PDF at the page size you choose, or export it as a standard EPUB 3 with a proper table of contents — math and diagrams travel with it as images.
 
 FILES YOU CAN KEEP
 • Your documents are ordinary .md, .markdown and .txt files, kept where you choose — on your device or in your own iCloud Drive — and saved in the encoding they arrived in.
-• Built-in examples, including a small sample book, show everything the app can do.
+• md also opens .puml, .gv, .textbundle and .textpack files. Built-in examples, including a small sample book, show everything the app can do.
 
 PRIVATE BY DESIGN
 • No accounts, no sign-in, no analytics, no tracking, no ads.
-• Math and diagrams are rendered on your device. The only thing md fetches from the network is an image your own document points at by URL.
+• Everything is rendered on your device. The only thing md fetches from the network is an image your own document points at by URL.
 
-Written in Swift and SwiftUI, with no accounts and no servers. The only outside code in the app is the open-source engines that draw the math and the diagrams — KaTeX, Mermaid, Graphviz and PlantUML — bundled in, and run on your device. The source code is public.
+Written in Swift and SwiftUI, with no accounts and no servers. The only outside code in the app is the open-source engines that draw the math, chemistry, diagrams and code — KaTeX, mhchem, Mermaid, Graphviz, PlantUML and highlight.js — bundled in, and run on your device. The source code is public.
