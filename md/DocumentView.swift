@@ -163,6 +163,11 @@ struct DocumentView: View {
     /// (AppStorage has no `Data` flavor). Empty string = no book. AppStorage,
     /// not SceneStorage: the book outlives any one window.
     @AppStorage("md.bookBookmark") private var bookBookmark = ""
+    /// The remembered PDF trim size, shared with the book navigator (one
+    /// choice for the whole app). AppStorage, not SceneStorage: the last size
+    /// the author picked should outlive the window. Stored as the stable
+    /// `PageSize.id`; `PageSize.named` maps it back and defaults to A4.
+    @AppStorage("md.pdfPageSize") private var pdfPageSizeID = PageSize.a4.id
     /// Links the panes' scrolling in Split (identity-stable across
     /// renders; the panes register themselves on it).
     @State private var scrollSync = ScrollSync()
@@ -224,6 +229,11 @@ struct DocumentView: View {
     /// track edits, so there's nothing worth caching here.
     private var outline: [OutlineEntry] { MarkdownParser.outline(document.text) }
     private var noteEntries: [NoteEntry] { MarkdownParser.notes(document.text) }
+    /// The document's diagram blocks (Mermaid / Graphviz / PlantUML), each
+    /// exportable as a standalone `.svg`. Recomputed each render like the
+    /// outline above so the SVG submenu's rows and enabled state track edits;
+    /// it is one parse, the same cost the live preview already pays.
+    private var diagrams: [DiagramSVG.Diagram] { DiagramSVG.diagrams(inSource: document.text) }
 
     var body: some View {
         // No `.navigationDocument` / `.navigationTitle` here on purpose: in a
@@ -439,16 +449,82 @@ struct DocumentView: View {
                 }
                 Button {
                     Task { await DocumentExport.sharePDF(source: document.text, title: baseName,
-                                                         dark: colorScheme == .dark) }
+                                                         dark: colorScheme == .dark,
+                                                         pageSize: PageSize.named(pdfPageSizeID)) }
                 } label: {
                     Label("Share Rendered PDF…", systemImage: "doc.richtext")
                 }
                 Button {
                     Task { await DocumentExport.exportPDF(source: document.text, title: baseName,
-                                                          dark: colorScheme == .dark) }
+                                                          dark: colorScheme == .dark,
+                                                          pageSize: PageSize.named(pdfPageSizeID)) }
                 } label: {
                     Label("Export as PDF…", systemImage: "square.and.arrow.down")
                 }
+                // The trim size both PDF actions above use. A Picker inside a
+                // Menu renders as an inline checklist — the platform's own
+                // size-picker idiom — and the choice is remembered across
+                // launches (and shared with the book navigator's PDF compile).
+                Picker(selection: $pdfPageSizeID) {
+                    ForEach(PageSize.all) { size in
+                        Text(size.label).tag(size.id)
+                    }
+                } label: {
+                    Label("PDF Page Size", systemImage: "rectangle.portrait")
+                }
+                Button {
+                    Task { await DocumentExport.exportHTML(source: document.text, title: baseName,
+                                                           dark: colorScheme == .dark) }
+                } label: {
+                    Label("Export as HTML…", systemImage: "chevron.left.forwardslash.chevron.right")
+                }
+                Button {
+                    // The document as a single-unit EPUB (see
+                    // DocumentExport.exportDocumentEPUB): its title comes from
+                    // the front-matter `title:` or the file name, so `baseName`
+                    // is passed as the fallback. No `dark:` — a reflowing book
+                    // owns its own theme.
+                    Task { await DocumentExport.exportDocumentEPUB(source: document.text,
+                                                                   fileName: baseName) }
+                } label: {
+                    Label("Export as EPUB…", systemImage: "books.vertical")
+                }
+                Button {
+                    // No theme and no rendering: the .tex is written from the
+                    // parsed blocks alone, so there is nothing to await.
+                    DocumentExport.exportLaTeX(source: document.text, title: baseName)
+                } label: {
+                    Label("Export as LaTeX…", systemImage: "function")
+                }
+                Button {
+                    // The document as a `.textbundle` (text.md + info.json +
+                    // assets/). `fileURL` is passed so referenced local images
+                    // beside the saved document can be copied into assets/;
+                    // pure string work plus a few small reads, so no await.
+                    DocumentExport.exportTextBundle(source: document.text,
+                                                    fileURL: fileURL, title: baseName)
+                } label: {
+                    Label("Export as TextBundle…", systemImage: "shippingbox")
+                }
+                // One diagram → one standalone .svg. A submenu lists the
+                // document's diagram blocks (by engine and a snippet of the
+                // source); math is not here — KaTeX renders it as HTML+CSS, not
+                // SVG, so there is no vector to export. Disabled when the
+                // document has no diagrams.
+                Menu {
+                    ForEach(diagrams, id: \.ordinal) { diagram in
+                        Button {
+                            Task { await DocumentExport.exportDiagramSVG(
+                                source: document.text, title: baseName, diagram: diagram) }
+                        } label: {
+                            Text(diagram.menuTitle)
+                        }
+                    }
+                } label: {
+                    Label("Export Diagram as SVG…",
+                          systemImage: "point.3.connected.trianglepath.dotted")
+                }
+                .disabled(diagrams.isEmpty)
                 Divider()
                 Button {
                     Task { await DocumentExport.print(source: document.text, title: baseName,

@@ -24,6 +24,7 @@
 //  first.
 //
 
+import CryptoKit
 import UIKit
 import WebKit
 import os
@@ -177,6 +178,59 @@ enum EpubBuilder {
             .replacingOccurrences(of: "\"", with: "&quot;")
     }
 
+    /// A stable identifier for a book, derived from its title — an RFC 4122
+    /// version 5 (name-based) UUID in the standard URL namespace.
+    ///
+    /// EPUB's `dc:identifier` is what a reader uses to decide whether two
+    /// files are the same publication. A fresh random UUID on every export
+    /// means every export is a *different* book: re-exporting after fixing a
+    /// typo stacks up beside the old one in Apple Books instead of replacing
+    /// it, and a store that expects a stable identifier across releases —
+    /// KDP, Kobo — cannot accept the file at all. Deriving it from the title
+    /// makes the same book export to the same identifier every time, on every
+    /// platform, with nothing to store alongside the folder.
+    ///
+    /// Renaming the book does change it, which is the right answer: to a
+    /// reader's library that is a different publication.
+    static func stableIdentifier(forTitle title: String) -> String {
+        // The URL namespace from RFC 4122 §Appendix C.
+        let namespace: [UInt8] = [0x6b, 0xa7, 0xb8, 0x11, 0x9d, 0xad, 0x11, 0xd1,
+                                  0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8]
+        var input = Data(namespace)
+        input.append(Data(title.utf8))
+
+        var bytes = Array(Insecure.SHA1.hash(data: input).prefix(16))
+        bytes[6] = (bytes[6] & 0x0F) | 0x50  // version 5
+        bytes[8] = (bytes[8] & 0x3F) | 0x80  // RFC 4122 variant
+
+        let hex = bytes.map { String(format: "%02x", $0) }.joined()
+        let groups = [hex.prefix(8),
+                      hex.dropFirst(8).prefix(4),
+                      hex.dropFirst(12).prefix(4),
+                      hex.dropFirst(16).prefix(4),
+                      hex.dropFirst(20)]
+        return "urn:uuid:" + groups.joined(separator: "-")
+    }
+
+    /// The EPUB title for a single document: the front-matter `title:` field
+    /// if the author gave a non-empty one, else the file name.
+    ///
+    /// A book takes its title from its folder name; a lone document has no
+    /// folder, so the file name is the closest thing to a title it has — and
+    /// the title is also what `stableIdentifier` hashes, so two exports of the
+    /// same document (same front matter, same file name) reach the same
+    /// identifier. The key match is case-insensitive because generators write
+    /// `title:` and `Title:` alike; the first non-empty one wins, matching how
+    /// a duplicate key is otherwise resolved.
+    static func documentTitle(frontMatter: [MetadataField], fileName: String) -> String {
+        for field in frontMatter
+        where field.key.caseInsensitiveCompare("title") == .orderedSame {
+            let value = field.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !value.isEmpty { return value }
+        }
+        return fileName
+    }
+
     /// The package document: metadata, manifest (nav + stylesheet + every
     /// unit and image), and the spine in reading order.
     static func contentOPF(title: String, identifier: String, modified: String,
@@ -307,19 +361,28 @@ enum EpubBuilder {
         return String(html[open.upperBound..<close.lowerBound])
     }
 
-    // MARK: Rich blocks (math / Mermaid / PlantUML)
+    // MARK: Rich blocks (math / Mermaid / Graphviz / PlantUML)
 
     enum RichKind { case formula, diagram }
 
     /// The rich containers exactly as MarkdownHTML emits them. Their
     /// content is fully escaped text (no `<` survives escaping), so the
     /// next matching close tag really is the element's own.
+    ///
+    /// The Graphviz opener is deliberately the tag *prefix*, without its
+    /// `>`: MarkdownHTML writes the layout program into the tag
+    /// (`<div class="graphviz" data-engine="dot">`, `…"neato">`, …), so a
+    /// whole-tag literal would match only one of the nine engines and the
+    /// rest would ship to the reader as raw DOT source. Everything after
+    /// the prefix is still inside the element, so the close-tag search
+    /// below is unaffected.
     private static let richContainers: [(open: String, close: String, kind: RichKind)] = [
         ("<span class=\"md-mathi\">", "</span>", .formula),
         ("<span class=\"md-mathd\">", "</span>", .formula),
         ("<div class=\"md-mathd\">", "</div>", .formula),
         ("<pre class=\"mermaid\">", "</pre>", .diagram),
         ("<div class=\"plantuml\">", "</div>", .diagram),
+        ("<div class=\"graphviz\"", "</div>", .diagram),
     ]
 
     /// Every rich element's full range in `html`, in document order —
@@ -346,6 +409,303 @@ enum EpubBuilder {
     }
 }
 
+// MARK: - Diagram → standalone SVG (Feature 1)
+
+/// The pure pieces of "export one diagram as a real vector `.svg` file":
+/// which blocks a document offers, and the fix-up that turns a diagram's
+/// rendered root `<svg>` (read out of the offscreen DOM as outerHTML) into a
+/// self-standing SVG document. No WebKit and no I/O here — all of it is
+/// unit-testable.
+///
+/// Only the three *diagram* engines qualify — Mermaid, Graphviz and PlantUML
+/// each render to an inline `<svg>`. Math does **not**: KaTeX lays a formula
+/// out as HTML + CSS, never SVG, so a formula has no vector to export and is
+/// deliberately never offered.
+enum DiagramSVG {
+
+    /// One diagram the document offers for SVG export, in document order.
+    struct Diagram: Equatable {
+        /// 0-based position among the document's diagrams — the same order
+        /// `querySelectorAll('pre.mermaid, div.plantuml, div.graphviz')`
+        /// reports the rendered containers in, so the capture step pulls the
+        /// matching `<svg>` back out by this index. (The DOM query and this
+        /// list both walk the document in order and both see only diagrams,
+        /// so they pair up index-for-index — the same pairing the EPUB path
+        /// relies on between `richElementRanges` and `richElementFrames`,
+        /// minus the formulas neither of us can export.)
+        let ordinal: Int
+        let kind: Kind
+        /// The Graphviz layout program (`dot` / `neato` / …) for a
+        /// `.graphviz` diagram; nil for the others. Only for the menu label.
+        let engine: String?
+        /// A short label lifted from the diagram's source — its first
+        /// non-empty line — so a reader can tell two diagrams apart in the
+        /// menu. Empty when the source has no non-blank line.
+        let label: String
+
+        enum Kind: String { case mermaid, plantuml, graphviz }
+
+        /// The engine's display name, naming the Graphviz layout when it is
+        /// not the default `dot` (a `neato` graph reads quite differently).
+        var typeName: String {
+            switch kind {
+            case .mermaid: return "Mermaid"
+            case .plantuml: return "PlantUML"
+            case .graphviz:
+                if let engine, engine != "dot" { return "Graphviz (\(engine))" }
+                return "Graphviz"
+            }
+        }
+
+        /// The menu row: the type, plus the source label when there is one.
+        var menuTitle: String {
+            label.isEmpty ? typeName : "\(typeName): \(label)"
+        }
+    }
+
+    /// The diagrams a document offers, in document order.
+    ///
+    /// Mirrors exactly how `MarkdownHTML` decides what becomes a diagram, so
+    /// this list pairs index-for-index with the rendered DOM's diagram
+    /// containers:
+    ///  • a raw `.puml` / `.gv` document is one diagram — the whole file (see
+    ///    `MarkdownHTML.document`, which renders it without parsing Markdown);
+    ///  • otherwise every fenced block whose info string names Mermaid,
+    ///    PlantUML or a Graphviz layout — including one nested in a block
+    ///    quote, which `MarkdownHTML` renders by recursing into the quote, so
+    ///    the walk recurses too and the quoted diagram keeps its place.
+    /// Math fences and every other code block are skipped: a formula is not
+    /// SVG, and ordinary code is not a diagram.
+    static func diagrams(inSource source: String) -> [Diagram] {
+        if MarkdownHTML.isRawPlantUML(source) {
+            return [Diagram(ordinal: 0, kind: .plantuml, engine: nil,
+                            label: firstLine(of: source))]
+        }
+        if MarkdownHTML.isRawGraphviz(source) {
+            return [Diagram(ordinal: 0, kind: .graphviz, engine: "dot",
+                            label: firstLine(of: source))]
+        }
+        var diagrams: [Diagram] = []
+        appendDiagrams(in: MarkdownParser.parse(source), into: &diagrams)
+        return diagrams
+    }
+
+    /// Walk a block list in render order, appending each diagram; recurse into
+    /// block quotes so a quoted diagram lands in its document-order place
+    /// (MarkdownHTML renders quoted blocks in line).
+    private static func appendDiagrams(in blocks: [MarkdownBlock], into out: inout [Diagram]) {
+        for block in blocks {
+            switch block.kind {
+            case let .codeBlock(language, code):
+                guard let classified = classify(language) else { continue }
+                out.append(Diagram(ordinal: out.count, kind: classified.kind,
+                                   engine: classified.engine, label: firstLine(of: code)))
+            case let .quote(inner):
+                appendDiagrams(in: inner, into: &out)
+            default:
+                continue
+            }
+        }
+    }
+
+    /// Classify a fence info string the way `MarkdownHTML.renderBlock` does —
+    /// lower-cased, the same three families, the same Graphviz alias table —
+    /// or nil for anything that is not a diagram (math, csv, plain code).
+    /// Reusing `MarkdownHTML.graphvizEngines` keeps the two in lockstep: a
+    /// layout added there is offered here without a second edit.
+    private static func classify(_ language: String?) -> (kind: Diagram.Kind, engine: String?)? {
+        switch (language ?? "").lowercased() {
+        case "mermaid":
+            return (.mermaid, nil)
+        case "plantuml", "puml", "plant-uml":
+            return (.plantuml, nil)
+        case let lang where MarkdownHTML.graphvizEngines[lang] != nil:
+            return (.graphviz, MarkdownHTML.graphvizEngines[lang])
+        default:
+            return nil
+        }
+    }
+
+    /// The first non-empty line of `source`, trimmed and capped so one long
+    /// line can't dwarf the menu. Purely cosmetic — a human reads it, nothing
+    /// re-parses it — so ordinary `String` line splitting is fine here.
+    private static func firstLine(of source: String) -> String {
+        for line in source.split(whereSeparator: \.isNewline) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if !trimmed.isEmpty {
+                return trimmed.count > 40
+                    ? trimmed.prefix(40).trimmingCharacters(in: .whitespaces) + "…"
+                    : trimmed
+            }
+        }
+        return ""
+    }
+
+    // MARK: SVG fix-up
+
+    /// Turn a diagram's rendered root `<svg …>…</svg>` (read from the DOM as
+    /// outerHTML) into a standalone `.svg` document: guarantee the SVG
+    /// namespace, give an unsized root real pixel dimensions from its
+    /// `viewBox`, and prepend the XML prolog so the file is a well-formed
+    /// standalone document any browser or vector editor opens.
+    ///
+    /// Mermaid emits `width="100%"` and no `height` — fine inside a flowing
+    /// page (the page CSS caps it), useless in a file, where it renders at
+    /// zero or full-viewport height. Graphviz and PlantUML already write
+    /// absolute `width`/`height`, so those are left exactly as the engine drew
+    /// them.
+    ///
+    /// String scanning (not `ScalarText`) throughout, matching how the sibling
+    /// `EpubBuilder` reads this same engine-generated markup: the input is a
+    /// serializer's ASCII tag syntax, never author prose, so there is no
+    /// combining-mark hazard to guard against.
+    static func standaloneDocument(fromSVG svg: String) -> String {
+        let fixed = withResolvedSize(inNamespaced(svg))
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + fixed
+    }
+
+    /// The root `<svg …>` opening tag's range (from `<svg` to the first `>`),
+    /// or nil if there isn't one. Engine outerHTML never puts a `>` inside the
+    /// root tag's attribute values, so the first `>` really does close it.
+    private static func openingTagRange(of svg: String) -> Range<String.Index>? {
+        guard let open = svg.range(of: "<svg"),
+              let close = svg.range(of: ">", range: open.upperBound..<svg.endIndex) else { return nil }
+        return open.lowerBound..<close.upperBound
+    }
+
+    /// Ensure the root carries the default SVG namespace so the standalone
+    /// file is well-formed. Both engines already declare it, but a file must
+    /// not lean on that.
+    private static func inNamespaced(_ svg: String) -> String {
+        guard let tagRange = openingTagRange(of: svg) else { return svg }
+        if attribute("xmlns", in: String(svg[tagRange])) != nil { return svg }
+        var result = svg
+        // Right after `<svg`, before the other attributes.
+        result.insert(contentsOf: " xmlns=\"http://www.w3.org/2000/svg\"",
+                      at: svg.index(tagRange.lowerBound, offsetBy: 4))
+        return result
+    }
+
+    /// Give the root real dimensions when it lacks them. If both `width` and
+    /// `height` are already absolute lengths the engine sized it (Graphviz,
+    /// PlantUML) — leave it untouched. Otherwise, when a 4-number `viewBox` is
+    /// present, set `width`/`height` to the viewBox's own width and height,
+    /// which is what makes a Mermaid `width="100%"` file open at its true size.
+    private static func withResolvedSize(_ svg: String) -> String {
+        guard let tagRange = openingTagRange(of: svg) else { return svg }
+        let tag = String(svg[tagRange])
+        if isAbsoluteLength(attribute("width", in: tag)),
+           isAbsoluteLength(attribute("height", in: tag)) { return svg }
+        guard let box = viewBox(in: tag), box.count == 4 else { return svg }
+        var newTag = setAttribute("width", to: box[2], in: tag)
+        newTag = setAttribute("height", to: box[3], in: newTag)
+        return svg.replacingCharacters(in: tagRange, with: newTag)
+    }
+
+    /// The value range of a whole attribute `name="…"` (or `name='…'`) inside
+    /// an opening tag. The leading space is load-bearing: it matches only a
+    /// whole attribute, so `width` never captures `stroke-width`.
+    private static func attributeValueRange(_ name: String, in tag: String)
+        -> Range<String.Index>? {
+        for quote in ["\"", "'"] {
+            if let key = tag.range(of: " \(name)=\(quote)"),
+               let close = tag.range(of: quote, range: key.upperBound..<tag.endIndex) {
+                return key.upperBound..<close.lowerBound
+            }
+        }
+        return nil
+    }
+
+    private static func attribute(_ name: String, in tag: String) -> String? {
+        attributeValueRange(name, in: tag).map { String(tag[$0]) }
+    }
+
+    /// Set `name`'s value, or add `name="value"` after `<svg` when absent.
+    private static func setAttribute(_ name: String, to value: String, in tag: String) -> String {
+        if let range = attributeValueRange(name, in: tag) {
+            return tag.replacingCharacters(in: range, with: value)
+        }
+        var result = tag
+        result.insert(contentsOf: " \(name)=\"\(value)\"",
+                      at: result.index(result.startIndex, offsetBy: 4))  // past "<svg"
+        return result
+    }
+
+    /// Whether an attribute value is an absolute SVG length: present, and a
+    /// number (optionally with a unit like `pt`/`px`), but not a percentage.
+    /// A missing value and `width="100%"` are both "not absolute", which is
+    /// exactly what makes a Mermaid root get resized and a Graphviz root not.
+    private static func isAbsoluteLength(_ value: String?) -> Bool {
+        guard let value = value?.trimmingCharacters(in: .whitespaces),
+              !value.isEmpty, !value.hasSuffix("%") else { return false }
+        return value.first.map { $0 == "." || $0.isNumber } ?? false
+    }
+
+    /// The `viewBox`'s space/comma-separated tokens, or nil.
+    private static func viewBox(in tag: String) -> [String]? {
+        attribute("viewBox", in: tag)?
+            .split(whereSeparator: { $0 == " " || $0 == "," })
+            .map(String.init)
+    }
+}
+
+// MARK: - PDF page size (trim sizes)
+
+/// A named PDF page ("trim") size in PostScript points — 1 inch = 72 pt.
+///
+/// This small table is the *single source of truth* the three platforms copy
+/// verbatim (iOS feeds it to `paperRect`/`printableRect`, macOS to
+/// `NSPrintInfo.paperSize`, Android builds a custom `MediaSize` from it), so the
+/// numbers must live in exactly one place per platform and never be typed twice
+/// — a drift here would paginate the same document differently on iOS than on
+/// Android.
+///
+/// A4 keeps the historical `595.2 × 841.8` (210 × 297 mm rounded to a tenth of a
+/// point — the value the app paginated to before trim sizes existed), so
+/// choosing A4, the default, reproduces the old output exactly. The imperial
+/// sizes are exact (6 × 9" = 432 × 648 pt); A5 is 148 × 210 mm converted the
+/// same way A4 was.
+struct PageSize: Identifiable, Equatable {
+    let id: String       // stable key for @AppStorage / cross-platform parity — never localized
+    let label: String    // the menu title
+    let width: CGFloat   // points, portrait
+    let height: CGFloat
+
+    var size: CGSize { CGSize(width: width, height: height) }
+
+    static let a4           = PageSize(id: "a4",      label: "A4",           width: 595.2, height: 841.8)
+    static let a5           = PageSize(id: "a5",      label: "A5",           width: 419.5, height: 595.3)
+    static let usLetter     = PageSize(id: "letter",  label: "US Letter",    width: 612,   height: 792)
+    static let usLegal      = PageSize(id: "legal",   label: "US Legal",     width: 612,   height: 1008)
+    static let sixByNine    = PageSize(id: "6x9",     label: "6 × 9\"",      width: 432,   height: 648)
+    static let fiveByEight  = PageSize(id: "5x8",     label: "5 × 8\"",      width: 360,   height: 576)
+    static let digest       = PageSize(id: "5.5x8.5", label: "5.5 × 8.5\"",  width: 396,   height: 612)
+
+    /// Every offered size, in menu order — A4 first, since it is the default.
+    static let all: [PageSize] = [.a4, .a5, .usLetter, .usLegal, .sixByNine, .fiveByEight, .digest]
+
+    /// The size stored under `id`, falling back to A4 for an empty or unknown
+    /// key — so a first launch, or a preference written by some future version
+    /// that offered a size this build doesn't, still lands on the default.
+    static func named(_ id: String) -> PageSize {
+        all.first { $0.id == id } ?? .a4
+    }
+
+    /// The body margin (CSS `padding`) for this trim size, scaled down from
+    /// A4's `48px 56px` so a small page doesn't wear A4-sized margins — a 6 × 9"
+    /// booklet with A4 margins wastes a quarter of its width. Each axis scales
+    /// with its own dimension, so A4 reproduces `48px 56px` to the pixel (the
+    /// historical value, hence an A4 export is byte-for-byte what it always was)
+    /// and every smaller page gets a proportionate frame. Rounded to whole
+    /// pixels: sub-pixel margins are invisible, and the integer string is what
+    /// keeps the A4 case identical.
+    var cssPadding: String {
+        let vertical = Int((48 * height / PageSize.a4.height).rounded())
+        let horizontal = Int((56 * width / PageSize.a4.width).rounded())
+        return "\(vertical)px \(horizontal)px"
+    }
+}
+
 /// Loads themed HTML into an offscreen web view, then yields a PDF or a
 /// print formatter once layout has settled. Hold a strong reference for the
 /// duration of the operation — the print formatter keeps using the web view.
@@ -356,8 +716,9 @@ final class WebRenderer: NSObject, WKNavigationDelegate {
     /// measure in.
     static let pageSize = CGSize(width: 595, height: 842)
 
-    /// Real A4 in points (210 × 297 mm at 72 dpi) — the page every shared
-    /// / exported PDF paginates to (see `makeA4PDF`).
+    /// Real A4 in points (210 × 297 mm at 72 dpi) — the default page a shared
+    /// / exported PDF paginates to, and the value `PageSize.a4` carries (see
+    /// `makePDF(pageSize:)`, which takes any trim size).
     static let a4PageSize = CGSize(width: 595.2, height: 841.8)
 
     private let webView: WKWebView
@@ -387,15 +748,21 @@ final class WebRenderer: NSObject, WKNavigationDelegate {
         }
     }
 
-    /// Capture the rendered document as real A4 pages — the print
+    /// Capture the rendered document as real pages of `pageSize` — the print
     /// pipeline pointed at a PDF context, so a shared / exported PDF is
     /// exactly what printing produces. `UIPrintPageRenderer` drives the
     /// web view's print formatter — the same engine the Print… action
     /// uses — so the breaks are line-aware (no line sliced at a fold) and
     /// the export CSS's `break-after: page` (the author's `\newpage`) is
     /// honored; each page is then drawn into a PDF graphics context.
-    func makeA4PDF() throws -> Data {
-        let page = CGRect(origin: .zero, size: WebRenderer.a4PageSize)
+    ///
+    /// The formatter reflows the web content to the printable width it is
+    /// given, so a narrower trim size lays the text out narrower — the caller
+    /// pairs this with the matching scaled CSS margin (see `PageSize.cssPadding`
+    /// / `styledForExport`). `pageSize` defaults to A4 for callers that don't
+    /// offer a choice.
+    func makePDF(pageSize: CGSize = WebRenderer.a4PageSize) throws -> Data {
+        let page = CGRect(origin: .zero, size: pageSize)
         let renderer = UIPrintPageRenderer()
         renderer.addPrintFormatter(webView.viewPrintFormatter(), startingAtPageAt: 0)
         // `paperRect` / `printableRect` are read-only properties; KVC is
@@ -418,11 +785,13 @@ final class WebRenderer: NSObject, WKNavigationDelegate {
     }
 
     /// The frames of the rich rendered elements (math / Mermaid /
-    /// PlantUML) for the EPUB's snapshots, in document order and unscaled
-    /// points, after growing the view to its full content height so no
-    /// element sits outside the snapshot-able area. The selector matches
-    /// exactly the containers `EpubBuilder.richElementRanges` finds in
-    /// the source HTML, so the two lists pair up index-for-index.
+    /// Graphviz / PlantUML) for the EPUB's snapshots, in document order and
+    /// unscaled points, after growing the view to its full content height
+    /// so no element sits outside the snapshot-able area. The selector
+    /// matches exactly the containers `EpubBuilder.richElementRanges` finds
+    /// in the source HTML, so the two lists pair up index-for-index — a
+    /// class this query missed would shift every later snapshot onto the
+    /// wrong element, so the two must be changed together.
     func richElementFrames() async -> [CGRect] {
         let height = max(WebRenderer.pageSize.height, await contentHeight())
         webView.frame = CGRect(x: 0, y: 0,
@@ -433,7 +802,8 @@ final class WebRenderer: NSObject, WKNavigationDelegate {
         try? await Task.sleep(nanoseconds: 300_000_000)
         return await withCheckedContinuation { continuation in
             webView.evaluateJavaScript(
-                "Array.from(document.querySelectorAll('.md-mathi, .md-mathd, pre.mermaid, div.plantuml'))" +
+                "Array.from(document.querySelectorAll(" +
+                "'.md-mathi, .md-mathd, pre.mermaid, div.plantuml, div.graphviz'))" +
                 ".map(e => { const r = e.getBoundingClientRect();" +
                 " return [r.left + window.scrollX, r.top + window.scrollY, r.width, r.height]; })") { value, _ in
                 let rows = value as? [[NSNumber]] ?? []
@@ -475,7 +845,60 @@ final class WebRenderer: NSObject, WKNavigationDelegate {
         }
     }
 
+    /// The rendered document as one self-contained HTML file.
+    ///
+    /// Taken from the live DOM *after* `data-md-render-complete`, so what is
+    /// captured is the finished page: Mermaid, Graphviz and PlantUML have
+    /// already become inline `<svg>`, and KaTeX has already expanded its
+    /// formulas into markup. Nothing is left to run, so every `<script>` and
+    /// every stylesheet `<link>` into `rich/` is removed — the exported file
+    /// must not reach for an engine that will not be there.
+    ///
+    /// `outerHTML` does not include the doctype, and without one every
+    /// browser renders the page in quirks mode, so it is put back by hand.
+    func selfContainedHTML() async throws -> String {
+        let capture = """
+        (function () {
+          document.querySelectorAll('script, link[rel="stylesheet"]').forEach(function (el) {
+            el.remove();
+          });
+          // A stale completion flag would be misleading in a file that has
+          // nothing left to complete.
+          document.documentElement.removeAttribute('data-md-render-complete');
+          return document.documentElement.outerHTML;
+        })()
+        """
+        let captured = try await webView.evaluateJavaScript(capture)
+        guard let markup = captured as? String, !markup.isEmpty else {
+            throw PDFAssemblyError()
+        }
+        return "<!DOCTYPE html>\n" + markup
+    }
+
     func printFormatter() -> UIPrintFormatter { webView.viewPrintFormatter() }
+
+    /// Read the rendered root `<svg>` of the diagram at `index` (0-based, in
+    /// document order among `pre.mermaid`, `div.plantuml`, `div.graphviz` —
+    /// the diagram half of the selector `richElementFrames` uses) straight out
+    /// of the finished DOM as outerHTML. That is the real vector, not a
+    /// rasterised snapshot.
+    ///
+    /// Nil when that diagram has no `<svg>`: a block whose engine threw or
+    /// timed out is left showing its source text (see md-init.js), and there
+    /// is nothing vector to export.
+    func diagramSVG(at index: Int) async -> String? {
+        let script = """
+        (function () {
+          var nodes = document.querySelectorAll('pre.mermaid, div.plantuml, div.graphviz');
+          var el = nodes[\(index)];
+          if (!el) return null;
+          var svg = el.querySelector('svg');
+          return svg ? svg.outerHTML : null;
+        })()
+        """
+        let value = try? await webView.evaluateJavaScript(script)
+        return value as? String
+    }
 
     // WKNavigationDelegate
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -534,13 +957,28 @@ enum DocumentExport {
         withExtendedLifetime(renderer) {}
     }
 
+    /// Rewrite the export HTML's body margin to `pageSize`'s scaled padding, so
+    /// a small trim size doesn't carry A4-sized margins. Only the *first*
+    /// `padding: 48px 56px;` is touched — that is the body rule inside the
+    /// head's `<style>`, which always precedes any user content, so a document
+    /// that happens to quote that exact CSS in a code block is left untouched.
+    /// For A4 the replacement equals the original (see `PageSize.cssPadding`),
+    /// so an A4 export is byte-for-byte what it was before trim sizes existed.
+    private static func styledForExport(_ html: String, pageSize: PageSize) -> String {
+        guard let range = html.range(of: "padding: 48px 56px;") else { return html }
+        return html.replacingCharacters(in: range, with: "padding: \(pageSize.cssPadding);")
+    }
+
     /// Render the document to a PDF and offer it through the share sheet.
-    static func sharePDF(source: String, title: String, dark: Bool) async {
-        let html = MarkdownHTML.document(source, title: title, dark: dark, export: true)
+    static func sharePDF(source: String, title: String, dark: Bool,
+                         pageSize: PageSize = .a4) async {
+        let html = styledForExport(
+            MarkdownHTML.document(source, title: title, dark: dark, export: true),
+            pageSize: pageSize)
         let renderer = WebRenderer()
         do {
             try await renderer.load(html: html)
-            let data = try renderer.makeA4PDF()
+            let data = try renderer.makePDF(pageSize: pageSize.size)
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("\(sanitized(title)).pdf")
             try data.write(to: url, options: .atomic)
@@ -556,12 +994,15 @@ enum DocumentExport {
     /// Render the document to a PDF and save it where the user chooses, via
     /// the Files export picker. Same rendering as `sharePDF` — only the
     /// destination differs.
-    static func exportPDF(source: String, title: String, dark: Bool) async {
-        let html = MarkdownHTML.document(source, title: title, dark: dark, export: true)
+    static func exportPDF(source: String, title: String, dark: Bool,
+                          pageSize: PageSize = .a4) async {
+        let html = styledForExport(
+            MarkdownHTML.document(source, title: title, dark: dark, export: true),
+            pageSize: pageSize)
         let renderer = WebRenderer()
         do {
             try await renderer.load(html: html)
-            let data = try renderer.makeA4PDF()
+            let data = try renderer.makePDF(pageSize: pageSize.size)
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("\(sanitized(title)).pdf")
             try data.write(to: url, options: .atomic)
@@ -572,6 +1013,240 @@ enum DocumentExport {
             presentMessage(title: "Couldn't Export PDF", message: error.localizedDescription)
         }
         withExtendedLifetime(renderer) {}
+    }
+
+    // MARK: - Self-contained HTML
+
+    /// KaTeX's stylesheet with its web fonts embedded, ready to be dropped
+    /// into an exported page — or nil if the bundle is missing it.
+    ///
+    /// A formula is not glyphs alone: `katex.min.css` positions every piece of
+    /// it, so an export that dropped the stylesheet would show the right
+    /// characters in the wrong places. It cannot be linked either, since the
+    /// file has to stand on its own — so it is inlined, and each `@font-face`
+    /// keeps only its **woff2** source, rewritten as a `data:` URI. woff2 is
+    /// the one format every browser that matters reads; carrying the `woff`
+    /// and `ttf` alternates as well would quadruple the payload for nothing,
+    /// and leaving them as relative paths would leave dead links in the file.
+    /// Twenty faces, about 300 KB before encoding.
+    static func embeddedKatexCSS() -> String? {
+        guard let root = Bundle.main.resourceURL,
+              var css = try? String(contentsOf: root.appendingPathComponent("rich/katex.min.css"),
+                                    encoding: .utf8) else { return nil }
+
+        let fonts = root.appendingPathComponent("rich/fonts")
+        let pattern = #"src:url\(fonts/([A-Za-z0-9_-]+)\.woff2\) format\("woff2"\)[^;}]*"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+
+        // Back-to-front, so each replacement leaves the earlier ranges valid.
+        let ns = css as NSString
+        for match in regex.matches(in: css, range: NSRange(location: 0, length: ns.length)).reversed() {
+            let face = ns.substring(with: match.range(at: 1))
+            guard let data = try? Data(contentsOf: fonts.appendingPathComponent("\(face).woff2")) else {
+                continue  // leave the rule alone rather than emit a broken src
+            }
+            let src = "src:url(data:font/woff2;base64,\(data.base64EncodedString())) format(\"woff2\")"
+            css = (css as NSString).replacingCharacters(in: match.range, with: src)
+        }
+        return css
+    }
+
+    /// The notice that has to travel with an exported page carrying KaTeX's
+    /// stylesheet and fonts. The code is MIT; the faces are **not** — they are
+    /// SIL Open Font License 1.1 with reserved names, and the OFL requires its
+    /// notice to accompany the fonts wherever they go. Exporting is the first
+    /// thing md does that hands those files to somebody else, so this is the
+    /// first place the obligation actually bites.
+    private static let katexNotice = """
+    <!--
+      Mathematics rendered with KaTeX (https://katex.org) — MIT License,
+      Copyright (c) 2013-2020 Khan Academy and other contributors.
+      The embedded KaTeX_* fonts are licensed under the SIL Open Font
+      License 1.1 (https://scripts.sil.org/OFL); "KaTeX" is a Reserved Font
+      Name. The fonts are embedded unmodified.
+    -->
+    """
+
+    /// Mermaid writes its own theme CSS into every diagram it draws, so an
+    /// exported page carrying a Mermaid diagram is carrying several kilobytes
+    /// of Mermaid's source text — not just generated geometry, the way
+    /// Graphviz and PlantUML output is. MIT asks for its notice to go with
+    /// that, so it does.
+    private static let mermaidNotice = """
+    <!--
+      Diagrams rendered with Mermaid (https://mermaid.js.org) — MIT License,
+      Copyright (c) 2014-2022 Knut Sveidqvist. The diagram SVG carries
+      Mermaid's own theme stylesheet.
+    -->
+    """
+
+    /// Export the rendered document as a single HTML file the reader can open
+    /// anywhere — no engines, no folder of assets, no network.
+    ///
+    /// The diagrams are already inline SVG and the formulas already expanded
+    /// by the time the page is captured (see `selfContainedHTML`), so the only
+    /// thing that has to be carried across by hand is KaTeX's stylesheet, and
+    /// only for a document that actually has math in it.
+    static func exportHTML(source: String, title: String, dark: Bool) async {
+        // `export: true` gives the page its paper styling. The `\newpage`
+        // rule is the one thing not wanted here: in export CSS it becomes
+        // `break-after: page`, which is invisible on screen and only means
+        // anything on paper, so a reader scrolling the file would see the
+        // author's page breaks silently vanish. The screen styling keeps them
+        // as the dashed rule they look like in the preview.
+        let html = MarkdownHTML.document(source, title: title, dark: dark, export: true)
+            .replacingOccurrences(of: ".md-pagebreak { height: 0; margin: 0; break-after: page; }",
+                                  with: ".md-pagebreak { border-top: 2px dashed rgba(43,38,32,0.16); margin: 1.6em 0; }")
+        let renderer = WebRenderer()
+        do {
+            try await renderer.load(html: html)
+            var page = try await renderer.selfContainedHTML()
+            // Only a document with math pulled KaTeX in, and only that
+            // document needs to carry the stylesheet and its fonts.
+            if html.contains("rich/katex.min.css"), let css = embeddedKatexCSS() {
+                page = page.replacingOccurrences(
+                    of: "</head>", with: "<style>\(css)</style>\n\(katexNotice)\n</head>")
+            }
+            // Mermaid's own stylesheet travels inside every diagram it drew.
+            if page.contains("<pre class=\"mermaid\"") || page.contains("class=\"mermaid\"") {
+                page = page.replacingOccurrences(of: "</head>", with: "\(mermaidNotice)\n</head>")
+            }
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("\(sanitized(title)).html")
+            try Data(page.utf8).write(to: url, options: .atomic)
+            presentExport(url: url)
+        } catch {
+            presentMessage(title: "Couldn't Export HTML", message: error.localizedDescription)
+        }
+        withExtendedLifetime(renderer) {}
+    }
+
+    // MARK: - LaTeX export
+
+    /// Export the document as LaTeX source and save it where the user
+    /// chooses, via the Files export picker.
+    ///
+    /// Alone among the exports this one needs neither WebKit nor a theme:
+    /// `LaTeXExport` is pure string work on the same parsed blocks, and a
+    /// `.tex` file has no light or dark. It is also the only export that
+    /// keeps the author's mathematics as mathematics — everything else
+    /// either rasterises it or re-typesets it as KaTeX.
+    static func exportLaTeX(source: String, title: String) {
+        writeTeX(LaTeXExport.document(source), title: title)
+    }
+
+    /// The whole book as one `book`-class .tex, through the same picker —
+    /// the book navigator's "Export as LaTeX…".
+    static func exportBookLaTeX(book: EpubBook) {
+        writeTeX(LaTeXExport.book(book), title: book.title)
+    }
+
+    /// Write the generated source to a temporary `.tex` and hand it to the
+    /// export picker, alerting rather than dying quietly if the write fails.
+    private static func writeTeX(_ text: String, title: String) {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(sanitized(title)).tex")
+        do {
+            try Data(text.utf8).write(to: url, options: .atomic)
+            presentExport(url: url)
+        } catch {
+            presentMessage(title: "Couldn't Export LaTeX", message: error.localizedDescription)
+        }
+    }
+
+    // MARK: - Diagram → SVG export
+
+    /// A diagram produced no vector — its engine hit a syntax error or timed
+    /// out, so md-init.js left the block as source text with no `<svg>`.
+    private struct DiagramCaptureError: LocalizedError {
+        var errorDescription: String? {
+            "This diagram couldn't be captured — it may have failed to render."
+        }
+    }
+
+    /// Render the document offscreen (engines and all, waiting for
+    /// render-complete like the PDF / EPUB paths), pull the chosen diagram's
+    /// rendered `<svg>` out of the finished DOM, wrap it as a standalone
+    /// `.svg`, and save it where the user picks. `diagram` came from
+    /// `DiagramSVG.diagrams(inSource:)`, so its `ordinal` is the diagram's
+    /// document-order position — the same order the DOM reports the containers.
+    ///
+    /// `dark: false`: a `.svg` file carries no screen theme, so it is captured
+    /// from the light render (Mermaid bakes its own colours into the SVG;
+    /// Graphviz/PlantUML draw explicit ink). `export: true` only to keep the
+    /// same page the other captures use — it changes nothing in the vector.
+    static func exportDiagramSVG(source: String, title: String,
+                                 diagram: DiagramSVG.Diagram) async {
+        let html = MarkdownHTML.document(source, title: title, dark: false, export: true)
+        let renderer = WebRenderer()
+        do {
+            try await renderer.load(html: html)
+            guard let svg = await renderer.diagramSVG(at: diagram.ordinal) else {
+                throw DiagramCaptureError()
+            }
+            let document = DiagramSVG.standaloneDocument(fromSVG: svg)
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("\(sanitized(title))-\(diagram.ordinal + 1).svg")
+            try Data(document.utf8).write(to: url, options: .atomic)
+            presentExport(url: url)
+        } catch {
+            presentMessage(title: "Couldn't Export SVG", message: error.localizedDescription)
+        }
+        withExtendedLifetime(renderer) {}
+    }
+
+    // MARK: - TextBundle export
+
+    /// Export the document as a `.textbundle` and save it where the user
+    /// picks. Local images the Markdown references by relative path are copied
+    /// into `assets/` and their refs rewritten (see `TextBundle.exportRewriting`);
+    /// refs that can't be found next to the source are left exactly as written.
+    ///
+    /// Assets resolve relative to the *saved* document's folder — an unsaved,
+    /// never-written document has no such folder, so it simply exports with an
+    /// empty `assets/` and every ref left untouched. Synchronous like the
+    /// LaTeX export: no WebKit and only a handful of small file reads.
+    static func exportTextBundle(source: String, fileURL: URL?, title: String) {
+        let rewrite = TextBundle.exportRewriting(source: source) { relativePath in
+            readAsset(relativePath, besideDocumentAt: fileURL)
+        }
+        let wrapper = TextBundle.bundleWrapper(text: rewrite.text, assets: rewrite.assets)
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(sanitized(title)).textbundle")
+        do {
+            // Replace any stale temp bundle of the same name from a prior export.
+            try? FileManager.default.removeItem(at: url)
+            try wrapper.write(to: url, options: .atomic, originalContentsURL: nil)
+            presentExport(url: url)
+        } catch {
+            presentMessage(title: "Couldn't Export TextBundle",
+                           message: error.localizedDescription)
+        }
+    }
+
+    /// Read an image the document references by relative path, if it sits
+    /// beside the (saved) document. The resolved path is constrained to the
+    /// document's own folder — a `../…` ref that would climb out is treated as
+    /// not found (and so left untouched), the same containment the preview's
+    /// asset scheme handler enforces, so an export never reaches for a file
+    /// outside the document's directory.
+    ///
+    /// Symlinks are resolved before the containment check, not just `..`:
+    /// `standardizedFileURL` collapses `..` but follows no links, so a symlink
+    /// sitting beside the document and named to match an image ref could
+    /// otherwise point anywhere on disk and pass the prefix test. Resolving
+    /// both sides first means the check compares the real locations.
+    private static func readAsset(_ relativePath: String, besideDocumentAt fileURL: URL?) -> Data? {
+        guard let folder = fileURL?.deletingLastPathComponent()
+            .resolvingSymlinksInPath().standardizedFileURL else { return nil }
+        let candidate = folder.appendingPathComponent(relativePath)
+            .resolvingSymlinksInPath().standardizedFileURL
+        guard candidate.path.hasPrefix(folder.path + "/") else { return nil }
+
+        // The document's own folder may be security-scoped (opened in place).
+        let scoped = fileURL!.startAccessingSecurityScopedResource()
+        defer { if scoped { fileURL!.stopAccessingSecurityScopedResource() } }
+        return try? Data(contentsOf: candidate)
     }
 
     // MARK: - EPUB export
@@ -643,7 +1318,7 @@ enum DocumentExport {
 
         let opf = EpubBuilder.contentOPF(
             title: book.title,
-            identifier: "urn:uuid:\(UUID().uuidString)",
+            identifier: EpubBuilder.stableIdentifier(forTitle: book.title),
             modified: ISO8601DateFormatter().string(from: Date()),
             units: units.map { (id: $0.id, href: $0.href) },
             images: images.map(\.href))
@@ -667,8 +1342,106 @@ enum DocumentExport {
         return StoredZip.archive(entries)
     }
 
+    // MARK: - EPUB export (single document)
+
+    /// Build an EPUB 3 of the single open document and save it where the user
+    /// chooses, via the Files export picker — the document share menu's
+    /// "Export as EPUB…", beside Export as HTML / PDF / LaTeX.
+    ///
+    /// It reuses the book pipeline whole: the same stored-zip container, the
+    /// same package document, the same rich-block snapshotting, and the same
+    /// title-derived `dc:identifier` (so two exports of the same document land
+    /// on the same identifier in a reader's library). What a lone document is
+    /// *not* is a book — so there is no title-page unit, and the nav is the
+    /// document's own headings rather than a chapter / article tree.
+    static func exportDocumentEPUB(source: String, fileName: String) async {
+        let title = EpubBuilder.documentTitle(
+            frontMatter: MarkdownParser.frontMatter(of: source), fileName: fileName)
+        do {
+            let data = try await documentEpubData(source: source, title: title)
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("\(sanitized(title)).epub")
+            try data.write(to: url, options: .atomic)
+            presentExport(url: url)
+        } catch {
+            presentMessage(title: "Couldn't Export EPUB", message: error.localizedDescription)
+        }
+    }
+
+    /// Render the document's one content unit — the book path's very same
+    /// per-article rendering, engines and all, under a fixed `content` unit id
+    /// — then pack it with `documentEpubEntries`. Split from the presentation
+    /// so the packing is testable without WebKit.
+    private static func documentEpubData(source: String, title: String) async throws -> Data {
+        let rendered = try await renderArticleBody(
+            EpubArticle(title: title, source: source), unitID: "content")
+        return StoredZip.archive(documentEpubEntries(
+            title: title, body: rendered.body, images: rendered.images,
+            outline: MarkdownParser.outline(source),
+            modified: ISO8601DateFormatter().string(from: Date())))
+    }
+
+    /// The EPUB package entries for a single document, `mimetype` first:
+    /// container, package document, nav, the shared stylesheet, the one
+    /// content file (its already-rendered, rich-blocks-snapshotted body), and
+    /// the snapshot images.
+    ///
+    /// Pure — no WebKit, no I/O — so the container shape and, above all, the
+    /// nav / spine cursor stay unit-testable. The subtlety a book export
+    /// carries and a document must *not*: the book path makes unit `u001` a
+    /// title page and starts its nav cursor past it, so naively reusing that
+    /// path with the title page removed would leave the nav pointing one file
+    /// short. Here there is exactly one unit — `content.xhtml` — the spine
+    /// names it, and every nav entry is a heading anchor *into* it. The nav
+    /// links use the slug `MarkdownParser.outline` assigns each heading, which
+    /// is the same id `MarkdownHTML` gives that heading, so a nav tap lands on
+    /// the right section rather than on nothing.
+    static func documentEpubEntries(title: String, body: String,
+                                    images: [(href: String, data: Data)],
+                                    outline: [OutlineEntry],
+                                    modified: String) -> [(name: String, data: Data)] {
+        let contentHref = "content.xhtml"
+        let opf = EpubBuilder.contentOPF(
+            title: title,
+            identifier: EpubBuilder.stableIdentifier(forTitle: title),
+            modified: modified,
+            units: [(id: "content", href: contentHref)],
+            images: images.map(\.href))
+        // The document's outline as the nav TOC: a flat list of heading links,
+        // the way the Contents menu itself lists them, each pointing at its
+        // anchor inside the single content file. Reuses the book nav builder —
+        // root articles, no chapters — so a heading is one `<li><a>` and there
+        // is no book-tree nesting to fork.
+        //
+        // A document with no headings has an empty outline, and a toc `<nav>`
+        // whose `<ol>` holds no `<li>` is not valid EPUB 3. So a headingless
+        // document gets a single entry — the whole document, under its title,
+        // linking to the content file itself — which is both spec-valid and
+        // the sensible thing for a reader to see. (Android already guarded
+        // this; the two Apple copies did not.)
+        let navEntries = outline.isEmpty
+            ? [(title: title, href: contentHref)]
+            : outline.map { (title: $0.text, href: "\(contentHref)#\($0.slug)") }
+        let nav = EpubBuilder.navXHTML(
+            bookTitle: title,
+            rootArticles: navEntries,
+            chapters: [])
+
+        var entries: [(name: String, data: Data)] = [
+            (name: "mimetype", data: Data("application/epub+zip".utf8)),
+            (name: "META-INF/container.xml", data: Data(EpubBuilder.containerXML.utf8)),
+            (name: "OEBPS/content.opf", data: Data(opf.utf8)),
+            (name: "OEBPS/nav.xhtml", data: Data(nav.utf8)),
+            (name: "OEBPS/style.css", data: Data(epubStyle().utf8)),
+            (name: "OEBPS/\(contentHref)",
+             data: Data(EpubBuilder.page(title: title, body: body).utf8)),
+        ]
+        entries += images.map { (name: "OEBPS/\($0.href)", data: $0.data) }
+        return entries
+    }
+
     /// The XHTML body for one article: the shared per-block rendering,
-    /// with every rich block (math / Mermaid / PlantUML) rendered by the
+    /// with every rich block (math / Mermaid / Graphviz / PlantUML) rendered by the
     /// offscreen web view — engines and all, waiting for render-complete
     /// like the PDF path — snapshotted, and replaced by a PNG (readers
     /// run no scripts). Articles without rich blocks never touch WebKit.

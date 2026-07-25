@@ -36,3 +36,13 @@ A fenced block tagged `math` is perfect for aligned derivations:
 Math flows through tables, lists, and quotes too:
 
 > The golden ratio is $\varphi = \frac{1 + \sqrt{5}}{2} \approx 1.618$.
+
+## Chemistry
+
+Chemical notation rides on the same engine: wrap a formula in `\ce{…}` and
+its subscripts, charge states and reaction arrows come out the way a
+textbook sets them —
+
+$$\ce{H2SO4 + 2 OH- -> SO4^2- + 2 H2O}$$
+
+and `\pu{…}` writes a physical quantity with its units, like $\pu{123 kJ/mol}$.

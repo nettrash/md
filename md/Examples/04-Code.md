@@ -10,7 +10,8 @@ sentence with backticks.
 
 ## Fenced code blocks
 
-Three backticks open a block; a language hint after them labels it:
+Three backticks open a block; a language hint after them names the language,
+and md colours its keywords, comments and strings in the paper palette:
 
 ```swift
 struct Note {
@@ -26,7 +27,8 @@ def greet(name):
     return f"Hello, {name}!"
 ~~~
 
-And a fence with no language keeps text preformatted, exactly as typed:
+And a fence with no language keeps text preformatted, exactly as typed —
+with nothing named to colour by, it stays plain:
 
 ```
 columns   line up

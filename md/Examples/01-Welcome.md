@@ -28,12 +28,14 @@ Task lists even keep score:
 ## Explore the other examples
 
 - **Formatting** — headings, emphasis, lists, quotes, and links.
-- **Tables** — GitHub-style tables with column alignment.
+- **Tables** — GitHub-style tables with column alignment, and CSV or TSV
+  data drawn as one.
 - **Code** — inline code and fenced blocks with language hints.
 - **Images** — remote, linked, and embedded images.
 - **Math** — LaTeX formulas, typeset offline with KaTeX.
-- **Diagrams** — Mermaid and PlantUML diagrams, drawn on-device.
-- **Writer Tools** — page breaks, private notes, and in-document links.
+- **Diagrams** — Mermaid, Graphviz and PlantUML diagrams, drawn on-device.
+- **Writer Tools** — page breaks, private notes, in-document links, front
+  matter, and footnotes.
 - **Example Book** — a folder of articles that md reads as one book.
 
 Happy writing!
