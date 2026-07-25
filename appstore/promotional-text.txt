@@ -1,1 +1,1 @@
-Version 1.2 makes md a book writer: chapters in a folder, panes that scroll as one on iPad, real A4 PDFs, and EPUB export — straight from the opening screen.
+Version 1.3 adds chemistry, highlighted code, Graphviz, footnotes and front matter — plus HTML, LaTeX, EPUB and SVG exports and a choice of page size.
