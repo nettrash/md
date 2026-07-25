@@ -1,25 +1,23 @@
-Version 1.2 — write a whole book, not just a page.
+Version 1.3 — richer pages, and more ways to take them with you.
 
-WRITER MODE
-• Books arrive: a book is a folder, its subfolders are chapters, its Markdown files are articles. Tap an article to write it, tap another to move on.
-• Reach it from the opening screen — Show Book, Open Book and New Book sit beside New Document, so writer mode no longer needs a document open first.
-• Long-press or swipe a chapter or article to rename, reorder or delete it. The order is written back to the file names.
-• Compile the whole book into one PDF, or export it as a standard EPUB 3 with a table of contents — math and diagrams included as images.
+NEW ON THE PAGE
+• Chemistry. Write a reaction or a formula with the mhchem notation — \ce for equations, \pu for physical units — and it typesets with its subscripts, charges and reaction arrows the way a textbook sets them, anywhere math already works.
+• Syntax highlighting. A fenced code block that names its language reads with its keywords, comments and strings set apart — in the app's own quiet paper palette, not a bright editor theme. It covers some forty languages; a fence it doesn't recognise stays plain.
+• Graphviz diagrams. A block tagged dot, graphviz or gv is laid out by Graphviz, and each of its layout programs — neato, circo, fdp, sfdp, twopi, osage, patchwork — can be named instead. A bare .gv file opens as its diagram.
+• Front matter. A YAML block between --- lines, or TOML between +++ lines, at the very top of a file is recognised as metadata and hidden, instead of showing as a rule and stray text.
+• Footnotes. Mark a spot with [^id] and write the note on its own line. The notes gather under a rule at the foot of the page, numbered, each a link down and a way back.
+• CSV and TSV tables. Paste spreadsheet data into a csv or tsv block and md draws it as a table, so next month's figures replace the block wholesale rather than being edited cell by cell.
 
-WRITING
-• Synchronized scrolling in Split on iPad: move either pane and the other follows.
-• A live word and character count under every page.
-• A table of contents that jumps both panes to any heading, and private author notes that never leave your draft.
-• Page breaks: write \newpage on its own line to start a new page where you decide.
-
-PRINT AND PDF
-• Shared and exported PDFs are now real A4 pages from the engine that prints them: pagination is line-aware, so no line of text is sliced at a page boundary. A dedicated Export as PDF saves straight into Files.
-• Pages come out white with dark ink, whatever theme you write in.
+MORE WAYS OUT
+• Export as HTML — one self-contained file that opens anywhere, with the diagrams as drawings and the formulas as real, selectable text.
+• Export as LaTeX — a .tex file, the one export where your mathematics comes out as mathematics, ready to paste into a paper.
+• Export a single document as EPUB, not just a whole book, with its own headings as the table of contents.
+• Export a diagram as a standalone .svg vector.
+• Open and export TextBundle and TextPack, the Markdown-with-images container.
+• Choose a page size for the PDF: A4, A5, US Letter, US Legal, or the paperback trims 6 × 9, 5 × 8 and 5.5 × 8.5.
 
 MORE
-• Images render in the preview, the PDF and the printout.
-• Built-in examples, including a small sample book, to explore what the app can do.
+• The Diagrams example now shows the full range Mermaid and PlantUML can draw — charts, timelines, mind maps, wireframes and more — bundled since 1.1 and only now on show.
 
 FIXED
-• Tapping an article in a book opens it in the editor — on iPhone it did nothing at all — and you can move straight from one article to the next.
-• Legacy Cyrillic (Windows-1251) files open as the text they are, instead of mojibake.
+• An exported book keeps its identity: its identifier now comes from its title, so re-exporting updates the copy a reader already has instead of settling a second one beside it.

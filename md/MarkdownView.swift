@@ -90,6 +90,15 @@ private struct BlockView: View {
         case .note:
             // Private author notes are never rendered.
             EmptyView()
+
+        case .frontMatter:
+            // Metadata about the document, not part of it.
+            EmptyView()
+
+        case .footnoteDefinition:
+            // Footnotes are gathered at the foot of the rendered document,
+            // not drawn where they were written.
+            EmptyView()
         }
     }
 
