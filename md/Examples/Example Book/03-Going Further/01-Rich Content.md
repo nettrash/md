@@ -5,8 +5,8 @@ the app, so all of this works offline:
 
 - **Math** — LaTeX between dollars, typeset by KaTeX: the area of a
   circle is $A = \pi r^2$.
-- **Diagrams** — describe them in `mermaid` or `plantuml` code blocks
-  and md draws them.
+- **Diagrams** — describe them in `mermaid`, `dot` or `plantuml` code
+  blocks and md draws them.
 - **Images** — from the web, or embedded right in the file as `data:`
   URIs so they travel with the document.
 

@@ -54,6 +54,46 @@
         </dict>
         <dict>
             <key>CFBundleTypeName</key>
+            <string>PlantUML Diagram</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>net.sourceforge.plantuml.puml</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Graphviz DOT Graph</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.graphviz.dot</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>TextBundle</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.textbundle.package</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>TextPack</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.textbundle.pack</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
             <string>Plain Text</string>
             <key>LSHandlerRank</key>
             <string>Alternate</string>
@@ -90,6 +130,108 @@
                     <string>mdown</string>
                     <string>markdn</string>
                     <string>mdtext</string>
+                </array>
+            </dict>
+        </dict>
+        <!--
+            PlantUML source (.puml) is ordinary UTF-8 text the app opens and
+            edits exactly like Markdown. The format isn't ours and the system
+            declares no identifier for it, so we *import* one that conforms to
+            public.plain-text (and public.source-code, itself plain text).
+        -->
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>net.sourceforge.plantuml.puml</string>
+            <key>UTTypeDescription</key>
+            <string>PlantUML Diagram</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.source-code</string>
+                <string>public.plain-text</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>puml</string>
+                    <string>plantuml</string>
+                </array>
+            </dict>
+        </dict>
+        <!--
+            Graphviz DOT source (.gv) — again ordinary UTF-8 text with no
+            system identifier, so we *import* one conforming to plain text.
+
+            Only `gv` is listed. DOT's other extension, `.dot`, is already
+            system-declared as `com.microsoft.word.dot` (a Word template,
+            which does not conform to public.plain-text); claiming it here
+            would leave the extension ambiguous and could offer md as a
+            handler for genuine Word templates. Fenced ```dot blocks in a
+            Markdown document are unaffected — this is only about the
+            extension a bare DOT file carries.
+        -->
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>org.graphviz.dot</string>
+            <key>UTTypeDescription</key>
+            <string>Graphviz DOT Graph</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.source-code</string>
+                <string>public.plain-text</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>gv</string>
+                </array>
+            </dict>
+        </dict>
+        <!--
+            TextBundle / TextPack — the Markdown-with-assets container Ulysses,
+            iA Writer and Bear write. Owned by the textbundle.org spec, so we
+            *import* their identifiers.
+
+            `.textbundle` is a directory *package* (it conforms to
+            com.apple.package), which is what makes the system hand the app a
+            directory FileWrapper to read `text.md` out of. `.textpack` is that
+            bundle zipped, so it conforms to public.zip-archive and arrives as
+            ordinary file bytes the app unzips in memory. Both are read-only for
+            the app (writing one back would drop its assets/) — see
+            MarkdownDocument.writableContentTypes.
+        -->
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>org.textbundle.package</string>
+            <key>UTTypeDescription</key>
+            <string>TextBundle</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>com.apple.package</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>textbundle</string>
+                </array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>org.textbundle.pack</string>
+            <key>UTTypeDescription</key>
+            <string>TextPack</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.zip-archive</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>textpack</string>
                 </array>
             </dict>
         </dict>

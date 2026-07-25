@@ -4,8 +4,16 @@
 //
 //  Runs entirely offline from bundled assets (no network). Renders, in order:
 //    1. LaTeX math  — KaTeX auto-render ($…$, $$…$$, \(…\), \[…\]).
-//    2. Mermaid     — ```mermaid fenced blocks (<pre class="mermaid">).
-//    3. PlantUML    — ```plantuml / ```puml blocks (<div class="plantuml">),
+//                     mhchem rides KaTeX (it registers \ce{}/\pu{} onto it),
+//                     so chemistry is typeset by the same katex.render() calls.
+//    2. Highlight   — ```lang fenced code (<code class="language-…">), via
+//                     highlight.js. Diagram / math / data fences carry their
+//                     own class and are skipped; a bare fence stays plain text.
+//    3. Mermaid     — ```mermaid fenced blocks (<pre class="mermaid">).
+//    4. Graphviz    — ```dot / ```graphviz blocks (<div class="graphviz">),
+//                     via Viz.js. The layout engine comes from the block's
+//                     data-engine (dot, neato, circo, …).
+//    5. PlantUML    — ```plantuml / ```puml blocks (<div class="plantuml">),
 //                     via the TeaVM PlantUML engine. Rendered SEQUENTIALLY —
 //                     the engine keeps global state, so concurrent render()
 //                     calls clobber each other.
@@ -16,11 +24,15 @@
 //  the async diagrams are done. Identical file is bundled in md / md.macOS /
 //  md.Android — edit here, copy everywhere.
 //
-//  The heavy engines (KaTeX, Mermaid, PlantUML) are only pulled in when the
-//  document actually uses them: the host HTML includes the KaTeX / Mermaid /
-//  Viz scripts conditionally, and the 7 MB PlantUML engine is dynamically
-//  imported here only when a .plantuml block exists — so a plain document
-//  never loads any of it. This file itself is tiny and always loads.
+//  The heavy engines (KaTeX, highlight.js, Mermaid, Viz, PlantUML) are only
+//  pulled in when the document actually uses them: the host HTML includes the
+//  KaTeX / highlight.js / Mermaid / Viz scripts conditionally, and the 7 MB
+//  PlantUML engine is dynamically imported here only when a .plantuml block
+//  exists — so a plain document never loads any of it. This file itself is
+//  tiny and always loads.
+//
+//  Viz.js is the same bundled asset PlantUML already uses for its own
+//  Graphviz-backed layouts, so ```dot blocks add no payload at all.
 //
 
 const DARK = document.body.dataset.mdDark === '1';
@@ -57,6 +69,21 @@ function renderMath() {
   });
 }
 
+function highlightCode() {
+  if (typeof hljs === 'undefined') return;
+  // Highlight ONLY the fenced blocks the host tagged with a real code language
+  // (class="language-…"). Diagram / math / data fences (mermaid, dot, math,
+  // csv, …) have their own handling and never carry that class, and a bare
+  // fence with no language stays plain — so this touches exactly the code
+  // blocks meant for it. hljs reads the language from the class name; an
+  // unknown language simply leaves the block unstyled rather than throwing.
+  // (Reaches preview / print / PDF / HTML export, which use this live DOM; NOT
+  // EPUB, which is built from the source HTML before any script runs.)
+  document.querySelectorAll('code[class^="language-"]').forEach(function (el) {
+    try { hljs.highlightElement(el); } catch (e) {}
+  });
+}
+
 async function renderMermaid() {
   if (typeof mermaid === 'undefined') return;
   const blocks = document.querySelectorAll('.mermaid');
@@ -69,6 +96,35 @@ async function renderMermaid() {
     });
     await mermaid.run({ nodes: blocks });
   } catch (e) { /* mermaid annotates the block with its own error box */ }
+}
+
+async function renderGraphviz() {
+  const blocks = Array.from(document.querySelectorAll('.graphviz'));
+  if (!blocks.length || typeof Viz === 'undefined') return;
+  // One instance renders every block on the page (it is reusable, and each
+  // instance compiles the WASM afresh).
+  let viz;
+  try { viz = await Viz.instance(); }
+  catch (e) { return; } // leave the raw source visible
+  for (const el of blocks) {
+    const source = el.textContent;
+    try {
+      // `bgcolor=transparent` drops Graphviz's opaque white backing polygon so
+      // the diagram sits on the paper like every other block. Ink colours are
+      // NOT set here but in CSS (see MarkdownHTML.css): a `fontname` or colour
+      // passed to the engine would change the metrics it lays the graph out
+      // with, and the app's typewriter face doesn't exist on every platform.
+      const svg = viz.renderSVGElement(source, {
+        engine: el.dataset.engine || 'dot',
+        graphAttributes: { bgcolor: 'transparent' },
+      });
+      el.textContent = '';
+      el.appendChild(svg);
+    } catch (e) {
+      // A syntax error throws with a message; the untouched source stays
+      // on screen, matching how a failed PlantUML block behaves.
+    }
+  }
 }
 
 async function renderPlantuml() {
@@ -102,7 +158,9 @@ async function renderPlantuml() {
 
 async function run() {
   renderMath();
+  highlightCode();
   await renderMermaid();
+  await renderGraphviz();
   await renderPlantuml();
   notifyComplete();
 }
