@@ -555,6 +555,12 @@ struct BookNavigator: View {
     @Environment(\.dismiss) private var dismiss
     /// For the compiled PDF's theme, same as the document's share menu.
     @Environment(\.colorScheme) private var colorScheme
+    /// The remembered PDF trim size — the same `@AppStorage` key the document
+    /// share menu writes, so the choice is one app-wide preference. This is the
+    /// surface that needs it most: no print-on-demand service accepts an A4
+    /// book interior. Stored as the stable `PageSize.id`; `PageSize.named`
+    /// defaults it to A4.
+    @AppStorage("md.pdfPageSize") private var pdfPageSizeID = PageSize.a4.id
 
     /// One chapter: a subfolder of the book root and its articles.
     private struct Chapter: Identifiable {
@@ -651,10 +657,27 @@ struct BookNavigator: View {
                         } label: {
                             Label("Export as PDF…", systemImage: "square.and.arrow.down")
                         }
+                        // The trim size the two PDF compiles use — a booklet
+                        // (A5) or a print-on-demand paperback (6×9", …) instead
+                        // of A4. A Picker in a Menu is the inline size-picker
+                        // idiom; the choice is remembered and shared with the
+                        // document share menu.
+                        Picker(selection: $pdfPageSizeID) {
+                            ForEach(PageSize.all) { size in
+                                Text(size.label).tag(size.id)
+                            }
+                        } label: {
+                            Label("PDF Page Size", systemImage: "rectangle.portrait")
+                        }
                         Button {
                             exportBookEPUB()
                         } label: {
                             Label("Export as EPUB…", systemImage: "books.vertical")
+                        }
+                        Button {
+                            exportBookLaTeX()
+                        } label: {
+                            Label("Export as LaTeX…", systemImage: "function")
                         }
                     } label: {
                         Label("Share", systemImage: "square.and.arrow.up")
@@ -1003,7 +1026,8 @@ struct BookNavigator: View {
         guard let source = compiledBook() else { return }
         Task {
             await DocumentExport.sharePDF(source: source, title: bookTitle,
-                                          dark: colorScheme == .dark)
+                                          dark: colorScheme == .dark,
+                                          pageSize: PageSize.named(pdfPageSizeID))
         }
     }
 
@@ -1012,15 +1036,18 @@ struct BookNavigator: View {
         guard let source = compiledBook() else { return }
         Task {
             await DocumentExport.exportPDF(source: source, title: bookTitle,
-                                           dark: colorScheme == .dark)
+                                           dark: colorScheme == .dark,
+                                           pageSize: PageSize.named(pdfPageSizeID))
         }
     }
 
-    /// The book as an EPUB 3, through the Files export picker. All the
-    /// file reading happens here, inside the book's security scope and in
-    /// the displayed order; the packaging (and its rich-block snapshots)
-    /// runs in DocumentExport on the strings alone.
-    private func exportBookEPUB() {
+    /// Read the whole book — inside its security scope and in the
+    /// navigator's displayed order — as titles and sources. `nil` when a
+    /// read fails; the failure is already surfaced in the error alert.
+    ///
+    /// Nothing downstream of this touches the folder again: the EPUB
+    /// packager and the LaTeX writer both work on the strings alone.
+    private func readBook() -> EpubBook? {
         let scoped = root.startAccessingSecurityScopedResource()
         defer { if scoped { root.stopAccessingSecurityScopedResource() } }
         do {
@@ -1035,12 +1062,26 @@ struct BookNavigator: View {
                                             source: try read($0))
                             })
             }
-            let book = EpubBook(title: bookTitle,
-                                rootArticles: rootArticles, chapters: bookChapters)
-            Task { await DocumentExport.exportEPUB(book: book) }
+            return EpubBook(title: bookTitle,
+                            rootArticles: rootArticles, chapters: bookChapters)
         } catch {
             errorMessage = error.localizedDescription
+            return nil
         }
+    }
+
+    /// The book as an EPUB 3, through the Files export picker.
+    private func exportBookEPUB() {
+        guard let book = readBook() else { return }
+        Task { await DocumentExport.exportEPUB(book: book) }
+    }
+
+    /// The book as one `book`-class .tex — each chapter a `\chapter`, each
+    /// article a `\section`, in the same reading order as the PDF and the
+    /// EPUB.
+    private func exportBookLaTeX() {
+        guard let book = readBook() else { return }
+        DocumentExport.exportBookLaTeX(book: book)
     }
 
     /// Trim and reject path-breaking names — the same rule the in-app
