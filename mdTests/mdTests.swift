@@ -228,7 +228,7 @@ final class mdTests: XCTestCase {
         let md = """
         ---
         title: My Book
-        author: Ivan Alekseev
+        author: nettrash
         date: 2026-07-24
         ---
 
@@ -242,7 +242,7 @@ final class mdTests: XCTestCase {
         }
         XCTAssertEqual(fields, [
             MetadataField(key: "title", value: "My Book"),
-            MetadataField(key: "author", value: "Ivan Alekseev"),
+            MetadataField(key: "author", value: "nettrash"),
             MetadataField(key: "date", value: "2026-07-24"),
         ])
         // The opening `---` must not survive as a thematic break, and the
@@ -1358,10 +1358,10 @@ final class mdTests: XCTestCase {
 
     func testDelimitedParsingFollowsRFC4180() {
         let rows = MarkdownHTML.parseDelimited(
-            "Name,Note\n\"Alekseev, Ivan\",\"She said \"\"hi\"\"\"\nAnn,\n", separator: ",")
+            "Name,Note\n\"Doe, Jane\",\"She said \"\"hi\"\"\"\nAnn,\n", separator: ",")
         XCTAssertEqual(rows, [
             ["Name", "Note"],
-            ["Alekseev, Ivan", "She said \"hi\""],  // quoted separator, doubled quote
+            ["Doe, Jane", "She said \"hi\""],  // quoted separator, doubled quote
             ["Ann", ""],                            // an empty trailing field
         ])
 
@@ -2156,7 +2156,7 @@ final class mdTests: XCTestCase {
         let tex = LaTeXExport.document("""
         ---
         title: On Escaping
-        author: Ivan Alekseev
+        author: nettrash
         date: 24 July 2026
         slug: on-escaping
         tags: latex, md
@@ -2165,7 +2165,7 @@ final class mdTests: XCTestCase {
         Body.
         """)
         XCTAssertTrue(tex.contains("\\title{On Escaping}"))
-        XCTAssertTrue(tex.contains("\\author{Ivan Alekseev}"))
+        XCTAssertTrue(tex.contains("\\author{nettrash}"))
         XCTAssertTrue(tex.contains("\\date{24 July 2026}"))
         XCTAssertTrue(tex.contains("\\maketitle"))
         // Everything else is metadata *about* the document and has nowhere
