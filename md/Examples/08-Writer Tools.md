@@ -43,7 +43,7 @@ lines and TOML between `+++` lines:
 ```markdown
 ---
 title: My Post
-author: Ivan Alekseev
+author: nettrash
 date: 2026-07-24
 ---
 
