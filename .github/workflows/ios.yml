@@ -2,9 +2,14 @@ name: iOS Build & Test
 
 on:
   push:
-    branches: [ "main" ]
+    # The default branch here is `master` (origin/HEAD -> origin/master), but
+    # this workflow triggered only on `main` — a branch that exists and has not
+    # moved since 1.0. So every push of real work went untested and the README
+    # badge reported a 1.0-era run. Both names are listed, as md.vscode does,
+    # so the badge follows the branch the work is actually on.
+    branches: [ "master", "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "master", "main" ]
 
 jobs:
   build-test:

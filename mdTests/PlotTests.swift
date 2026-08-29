@@ -26,6 +26,17 @@
 //  byte — that file is the cross-port parity claim, and it is the same 31,647
 //  bytes in TypeScript and in Swift.
 //
+//  §1a covers the decade `niceStep` builds. `pow(10, e)` is one ULP below the
+//  decimal literal on Node 20, which is what md.vscode's CI runs, and that
+//  turned it red on the pushed v1.2.0 (`fd71a4e`). The axis of that bug is the
+//  **engine version, not the CPU**: Node 20 disagrees with the literal on 68 of
+//  the 632 integer exponents in [-323, 308] on arm64 and 69 on x86-64, while
+//  Node 26 — this Mac's — disagrees on none, which is why no Mac ever saw it.
+//  §1a pins the *contract* and not the mechanism: Darwin's `pow` is correct for
+//  all 632, so a `pow`-built decade would pass §1a here. The guard that bites on
+//  every engine is the reference's stub-`pow`-to-throw test, which md.vscode has
+//  and this suite cannot reproduce — named in §1a's own doc comment.
+//
 //  The corpus lives in `mdTests/PlotVectors/`, **not** in `mdTests/TestData/`:
 //  that directory is a four-repo mirror of *Markdown* fixtures whose roster is
 //  pinned twice in every repo (`TestDataTests.swift:17-21` and `:31-36`), and a
@@ -199,6 +210,110 @@ final class PlotTests: XCTestCase {
         XCTAssertEqual(Plot.niceStep(20), 2)
         XCTAssertEqual(Plot.niceStep(50), 5)
         XCTAssertEqual(Plot.niceStep(64), 10)
+    }
+
+    // MARK: - §1a The decade is a decimal literal, never `pow`
+
+    /// **`pow(10, e)` must never come back into `Plot.decade` or `niceStep`.**
+    ///
+    /// `pow` is not correctly rounded and is not specified to be, so its answer
+    /// depends on the **runtime version** computing it, not on the CPU running
+    /// it. Over the 632 integer exponents in [-323, 308], `pow(10, n)`
+    /// disagrees with the literal `1e<n>` 68 times on Node 20 arm64 and 69
+    /// times on Node 20 x86-64 — one engine, wrong on both architectures — 68
+    /// times on Node 22, twice on Node 24 (e = 23 and 210) and never on
+    /// Node 26. On the JVM, OpenJDK 21's `Math.pow(10.0, -5.0)` is one ULP
+    /// below the literal. That one ULP is not cosmetic: it changes
+    /// `norm = rough / mag`, which crosses a branch of the 1/2/5/10 ladder,
+    /// which changes the tick step, the tick count and every label on the axis.
+    /// md.vscode's CI runs Node 20, and it went red on the pushed v1.2.0
+    /// (`fd71a4e`) with three failures in `test/plot.test.ts` — `tiny_range`
+    /// among them, and an `xLabels` length of 9 instead of the recorded count —
+    /// while the same code passed on this Mac, whose Node is 26 and whose libm
+    /// is Darwin's.
+    ///
+    /// **What this test pins — and what it cannot.** It pins the *contract*:
+    /// `decade(n)` is the double you get by parsing the decimal literal
+    /// `1e<n>`, for all 632 exponents, which every one of the four ports'
+    /// languages does specify to parse correctly-rounded. It does **not** pin
+    /// the mechanism, and must not be read as though it did: Darwin's `pow` is
+    /// correct for all 632 exponents, so on the only platform this test ever
+    /// runs on a `pow`-built decade passes it exactly as a literal-built one
+    /// does. It cannot fail here, and it would not catch the regression coming
+    /// back.
+    ///
+    /// The guard that genuinely bites is the family's, and it lives in
+    /// md.vscode's `test/plot.test.ts`: it replaces `Math.pow` with a function
+    /// that **throws**, so any reintroduction of `pow` in the decade path fails
+    /// on every platform, and it perturbs `log10` by ±1 decade and demands all
+    /// 81 oracle rows still match. That suite's CI runs Node 20 — an affected
+    /// engine.
+    func testDecadeIsTheDecimalLiteralAndNotPow() {
+        XCTAssertEqual(bits(Plot.decade(-4)), bits(1e-4), "decade(-4) is the literal 1e-4")
+        XCTAssertEqual(bits(Plot.decade(-4)), "3f1a36e2eb1c432d",
+                       "and that literal is this exact double on every platform")
+        for exponent in -323...308 {
+            let expected = Double("1e\(exponent)")!
+            XCTAssertEqual(bits(Plot.decade(Double(exponent))), bits(expected),
+                           "decade(\(exponent)) is the literal 1e\(exponent)")
+        }
+    }
+
+    /// The `log10` half of the same hazard, on the input that caught it.
+    ///
+    /// `log10` is not correctly rounded either, so `floor(log10(rough))` cannot
+    /// be trusted at a decade boundary. Here `rough` is `3f1a36e2eb1c432c`,
+    /// strictly *below* 1e-4, yet `log10` returns exactly `-4.0` and `floor`
+    /// leaves it there — an exponent whose decade is larger than the value it is
+    /// supposed to sit under. `niceStep` pins the exponent by exact comparison
+    /// against `decade`, so the answer no longer depends on how good the
+    /// platform's `log10` is.
+    func testNiceStepPinsTheExponentAgainstAnUntrustworthyLog10() {
+        let rough = Double(bitPattern: 0x3f1a36e2eb1c432c)   // 9.999999999999999e-05
+        let range = rough * 8
+
+        // The approximation, and why it cannot be taken at face value.
+        XCTAssertEqual(floor(log10(rough)), -4, "log10 rounds this one up to a whole decade")
+        XCTAssertTrue(Plot.decade(-4) > rough, "yet 1e-4 is strictly above rough")
+
+        // The pinned exponent is -5, so mag brackets rough: mag <= rough < 10*mag.
+        XCTAssertEqual(bits(Plot.niceStep(range)), "3f1a36e2eb1c432d",
+                       "the step is the same double on every runtime version, however its log10 rounds")
+    }
+
+    /// The bracket the pin exists to guarantee, over the whole corpus and a
+    /// decade sweep: the chosen `mag` satisfies `mag <= rough < 10 * mag`.
+    func testEveryDecadeBracketsItsValue() {
+        var inputs = Self.vectors.niceStep.map { $0.input.value }
+        for exponent in -300...300 {
+            let decade = Double("1e\(exponent)")!
+            inputs.append(decade * 8)
+            inputs.append(decade.nextDown * 8)
+            inputs.append(decade.nextUp * 8)
+        }
+        for range in inputs where range.isFinite && range > 0 {
+            let rough = range / 8
+            guard rough > 0, rough.isFinite else { continue }
+            var exponent = floor(log10(rough))
+            if Plot.decade(exponent) > rough { exponent -= 1 }
+            else if Plot.decade(exponent + 1) <= rough { exponent += 1 }
+            let magnitude = Plot.decade(exponent)
+            guard magnitude > 0, magnitude.isFinite else { continue }
+            XCTAssertLessThanOrEqual(magnitude, rough, "mag <= rough for range \(range)")
+            XCTAssertLessThan(rough, Plot.decade(exponent + 1), "rough < 10*mag for range \(range)")
+        }
+    }
+
+    /// The degenerate inputs the corpus records, which the old `pow` expression
+    /// answered by accident and `decade` now answers on purpose.
+    func testDecadeReproducesPowsNonFiniteAnswers() {
+        XCTAssertTrue(Plot.decade(Double.nan).isNaN, "pow(10, nan) is nan")
+        XCTAssertEqual(Plot.decade(Double.infinity), Double.infinity, "pow(10, +inf) is +inf")
+        XCTAssertEqual(Plot.decade(-Double.infinity), 0, "pow(10, -inf) is 0")
+        XCTAssertTrue(Plot.niceStep(Double.nan).isNaN)
+        XCTAssertTrue(Plot.niceStep(-1).isNaN)
+        XCTAssertEqual(Plot.niceStep(Double.infinity), Double.infinity)
+        XCTAssertEqual(bits(Plot.niceStep(0)), "0000000000000000")
     }
 
     // MARK: - §2 format_label — ported with two corrections

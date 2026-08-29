@@ -67,6 +67,25 @@
 //  to even on the exact binary value, and emit the Rust spelling. **Do not
 //  replace them with `String(format:)`.**
 //
+//  AND SO IS `pow`
+//  ---------------
+//  `pow` and `log10` are not correctly rounded and are not specified to be, so
+//  they are one ULP apart between **engine versions** — not between CPUs, which
+//  is where an earlier draft of this comment sent people looking. Compare
+//  `pow(10, n)` against the decimal literal `1e<n>` over all 632 integer
+//  exponents in [-323, 308] and the split falls by runtime, never by machine:
+//  Node 20 disagrees 68 times on arm64 and 69 times on x86-64, Node 22 the same
+//  68, Node 24 twice (at e = 23 and 210), Node 26 not once. On this one Mac,
+//  Darwin's libm is correct for all 632 while OpenJDK 21's
+//  `Math.pow(10.0, -5.0)` is one ULP below the literal — same CPU, different
+//  answers. `niceStep` used to build its decade as
+//  `pow(10, floor(log10(rough)))`, and that one ULP moved the tick step, the
+//  tick count and every label with it — md.vscode's CI, which runs Node 20,
+//  went red on the pushed v1.2.0 while the same code passed here on Node 26 and
+//  on Darwin's libm. Decades are now parsed from decimal literals
+//  (`Plot.decade(_:)`), which every one of these languages does specify to be
+//  correctly rounded. **Do not reintroduce `pow(10, e)`.**
+//
 //  SCALARS, NOT CHARACTERS
 //  -----------------------
 //  Every scan below walks `Unicode.Scalar`s, the way `ScalarText` requires of
@@ -1438,15 +1457,70 @@ enum Plot {
 
     // MARK: - Axes
 
-    /// The site's tick spacing, ported exactly.
+    /// A decade — 10 raised to `exponent` — read from a **decimal literal**,
+    /// never from `pow`.
+    ///
+    /// `pow` is not correctly rounded and is not specified to be, so it differs
+    /// by **runtime version** — the engine's, not the CPU's. For
+    /// `rough = 9.999999999999999e-05` (bits `3f1a36e2eb1c432c`), `pow(10, -4)`
+    /// is `3f1a36e2eb1c432d` under Darwin's libm and under Node 26, and one ULP
+    /// *lower* under Node 20, which is what md.vscode's CI runs. Node 20 is
+    /// wrong on arm64 and on x86-64 alike — 68 and 69 of the 632 integer
+    /// exponents in [-323, 308] — so the architecture is not the variable; the
+    /// V8 version is. A different decade gives a different `norm`, `norm`
+    /// selects a branch of the 1/2/5/10 ladder, and a different branch is a
+    /// different tick step — so the axis draws a different number of ticks with
+    /// different labels and the figure's bytes change. This is not theoretical:
+    /// it turned md.vscode's CI red on the pushed v1.2.0 (`fd71a4e`) with three
+    /// failures in `test/plot.test.ts`, `tiny_range` among them and an
+    /// `xLabels` length of 9, while every one of them passed on this Mac's
+    /// Node 26.
+    ///
+    /// Parsing a decimal literal **is** specified to be correctly rounded, in
+    /// all four ports alike — Swift's `Double(_: String)`, JavaScript's
+    /// `Number()`, Kotlin's `toDouble()`, Rust's `parse()` — so every port reads
+    /// the same double out of `"1e<e>"`. **`pow(10, e)` must never come back
+    /// here.**
+    ///
+    /// The three non-finite answers are exactly what the old expression
+    /// produced, and the oracle records all three: `pow(10, nan)` is nan,
+    /// `pow(10, +inf)` is +inf, `pow(10, -inf)` is 0. They are also what keeps
+    /// `Int(exponent)` — which traps on a value no `Int` can hold — safe.
+    static func decade(_ exponent: Double) -> Double {
+        if exponent.isNaN { return Double.nan }
+        if exponent >= 309 { return Double.infinity }   // 1e309 overflows a Double
+        if exponent <= -324 { return 0 }                // 1e-324 underflows to zero
+        return Double("1e\(Int(exponent))") ?? Double.nan
+    }
+
+    /// The site's tick spacing, ported exactly — except that the decade comes
+    /// from `decade(_:)` rather than `pow`, and the exponent is pinned by exact
+    /// comparison rather than trusted from `log10`.
     ///
     /// ```
-    /// rough = range / 8 ; mag = 10^floor(log10 rough) ; norm = rough / mag
+    /// rough = range / 8
+    /// e     = floor(log10 rough)           // an approximation, nothing more
+    /// if 10^e > rough           { e -= 1 } // pin it against exact powers
+    /// else if 10^(e+1) <= rough { e += 1 }
+    /// mag   = 10^e ; norm = rough / mag
     /// step  = (norm<=1.5 ? 1 : norm<=3 ? 2 : norm<=7 ? 5 : 10) * mag
     /// ```
+    ///
+    /// `log10` is not correctly rounded either, so its `floor` cannot be trusted
+    /// at a decade boundary: `log10(9.999999999999999e-05)` is exactly `-4.0`
+    /// here, one decade too high for a value that is below 1e-4. The two
+    /// comparisons are what fix that, and they cost nothing — `niceStep` runs
+    /// twice per figure and figures are memoised in `PlotMemo`, so two string
+    /// parses per axis are free.
     static func niceStep(_ range: Double) -> Double {
         let rough = range / 8
-        let magnitude = pow(10, floor(log10(rough)))
+        var exponent = floor(log10(rough))
+        if decade(exponent) > rough {
+            exponent -= 1
+        } else if decade(exponent + 1) <= rough {
+            exponent += 1
+        }
+        let magnitude = decade(exponent)
         let normalised = rough / magnitude
         var step = 10.0
         if normalised <= 1.5 { step = 1 } else if normalised <= 3 { step = 2 }
