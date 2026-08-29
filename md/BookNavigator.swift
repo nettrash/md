@@ -856,6 +856,11 @@ struct BookNavigator: View {
         // (see `BookScope`), not expire on a timer.
         BookScope.hold(root)
 
+        // Tell the editor this open came from the book, so the per-file
+        // view-mode memory stays out of it: a writer stepping to the next
+        // chapter keeps the mode they are writing in, and the chapter files
+        // record nothing (see `BookArticleOpens`).
+        BookArticleOpens.mark(url)
         DocumentSceneOpener.open(url)
         dismiss()
     }

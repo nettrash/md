@@ -2,9 +2,11 @@ md is a Markdown editor and live previewer for iPhone and iPad. Write plain Mark
 
 WRITE AND SEE
 • Edit and Preview on iPhone; on iPad, a Split view puts the source and the rendered page side by side — and the two panes scroll as one, so the passage you are reading is the paragraph you are writing.
+• Every file reopens in the layout you last used for it, so a document you keep coming back to read stays a reading page and one you are writing stays a writing page.
 • The preview is the printed page: one renderer draws the preview, the printout and the PDF — the same layout, set for paper.
 • Headings, lists, task lists, tables, quotes, code, links and images — plus footnotes, and metadata front matter (YAML or TOML) recognised and kept out of the page.
 • LaTeX math and mhchem chemistry, Mermaid graphs, Graphviz and PlantUML diagrams — all drawn on your device by engines built into the app.
+• A block of formulas tagged plot becomes a chart — curves, parametric figures and your own points, with a legend and a window you set — drawn by md itself, in code, with no engine behind it.
 • Code fenced with a language reads with its keywords, comments and strings set apart, in a quiet palette that matches the page rather than a bright editor theme.
 • Paste a table straight from a spreadsheet into a csv or tsv block and md draws it — the first row the header, number columns lined up on the right.
 • Contents lists every heading and jumps the editor and the preview to it. Private author notes — an HTML comment on its own line whose text begins with the word note — are listed in the Notes menu and never appear in the preview, the PDF or the printout.
@@ -14,7 +16,7 @@ PRINT AND EXPORT
 • Print or export real A4 pages — or A5, US Letter, US Legal, or a paperback trim size for a book bound for print. Breaks fall between lines, and \newpage starts a fresh page wherever you decide.
 • Export as HTML: one self-contained file that opens anywhere, diagrams as drawings and formulas as real, selectable text.
 • Export as LaTeX: a .tex file where your mathematics stays mathematics, ready to paste into a paper.
-• Export a diagram as a standalone .svg vector, or the whole document — or a single one — as a standard EPUB 3.
+• Export a diagram or a plot as a standalone .svg vector, or the whole document — or a single one — as a standard EPUB 3.
 • Share the rendered PDF, share the Markdown source, or open and export TextBundle and TextPack, the Markdown-with-images container.
 
 WRITER MODE: BOOKS

@@ -325,6 +325,21 @@ enum MarkdownHTML {
                 // A whole-block display formula: md-init.js typesets the .md-mathd
                 // element's text with KaTeX (displayMode).
                 return "<div class=\"md-mathd\">\(escape(code))</div>"
+            case "plot":
+                // The one rich block with no engine behind it. `Plot.renderPlot`
+                // is pure and synchronous and lives in this same layer, so the
+                // finished `<svg>` is already in the string every surface
+                // receives: the preview, the self-contained HTML, print, PDF,
+                // EPUB and the SVG export all work with no script, no asset and
+                // no rasterisation step — and because the class is exactly
+                // `plot`, a plot-only document trips none of the engine probes
+                // below and loads no engine at all.
+                //
+                // The container is emitted whatever happens — a good plot, an
+                // empty block and a broken one alike — because the SVG export
+                // pairs a figure with its source block by counting `div.plot`
+                // containers in document order.
+                return Plot.renderPlot(code)
             case let lang where !lang.isEmpty:
                 // A real code language (```swift, ```js, …). The diagram / math /
                 // data languages were handled above, so anything left with a
@@ -861,11 +876,11 @@ enum MarkdownHTML {
         /* Rich blocks: diagrams and display formulas render as SVG/markup, not
            code — drop the code-block chrome, centre them, allow horizontal
            scroll. Inline math (.md-mathi) flows with the text. */
-        .mermaid, .plantuml, .graphviz, .md-mathd {
+        .mermaid, .plantuml, .graphviz, .plot, .md-mathd {
             background: none; padding: 6px 0; margin: 0 0 0.9em;
             overflow-x: auto; text-align: center;
         }
-        .mermaid svg, .plantuml svg, .graphviz svg { max-width: 100%; height: auto; }
+        .mermaid svg, .plantuml svg, .graphviz svg, .plot svg { max-width: 100%; height: auto; }
         /* Graphviz draws in plain black on a transparent ground (md-init.js
            asks for `bgcolor=transparent`). Recolor it to the page's ink here,
            in CSS, rather than passing colors to the engine: these are

@@ -233,11 +233,19 @@ enum EpubBuilder {
 
     /// The package document: metadata, manifest (nav + stylesheet + every
     /// unit and image), and the spine in reading order.
+    ///
+    /// A unit whose `svg` is true carries the reserved manifest property
+    /// `svg`. EPUB 3 requires it on any content document holding an `<svg>`
+    /// element, and EPUBCheck reports OPF-014 without it. No EPUB this app
+    /// produced before the ```plot fence ever contained one — every rich block
+    /// was replaced by a PNG on the way in — so every unit was emitted bare,
+    /// and a plot is the first thing that makes the property owed.
     static func contentOPF(title: String, identifier: String, modified: String,
-                           units: [(id: String, href: String)],
+                           units: [(id: String, href: String, svg: Bool)],
                            images: [String]) -> String {
         let manifest = units.map {
-            "<item id=\"\($0.id)\" href=\"\($0.href)\" media-type=\"application/xhtml+xml\"/>"
+            "<item id=\"\($0.id)\" href=\"\($0.href)\" media-type=\"application/xhtml+xml\""
+                + ($0.svg ? " properties=\"svg\"" : "") + "/>"
         } + images.enumerated().map { index, href in
             "<item id=\"img\(index + 1)\" href=\"\(href)\" media-type=\"image/png\"/>"
         }
@@ -376,6 +384,17 @@ enum EpubBuilder {
     /// rest would ship to the reader as raw DOT source. Everything after
     /// the prefix is still inside the element, so the close-tag search
     /// below is unaffected.
+    ///
+    /// **`<div class="plot">` is deliberately absent.** This list exists to
+    /// photograph DOM that the markup does not contain — an engine's output,
+    /// or KaTeX's — and replace it with a PNG a reader can show. A plot is
+    /// already an `<svg>` in the string `MarkdownHTML` returns, so there is
+    /// nothing to photograph: it travels into the EPUB as the vector it is
+    /// (16 KB of SVG against 169 KB of PNG), and a plot-only document never
+    /// has to start WebKit at all. Adding it here would rasterise a figure
+    /// that is already perfect. What it *does* owe the EPUB is the reserved
+    /// manifest property `svg` on the content document that carries it — see
+    /// `contentOPF`.
     private static let richContainers: [(open: String, close: String, kind: RichKind)] = [
         ("<span class=\"md-mathi\">", "</span>", .formula),
         ("<span class=\"md-mathd\">", "</span>", .formula),
@@ -417,22 +436,25 @@ enum EpubBuilder {
 /// self-standing SVG document. No WebKit and no I/O here — all of it is
 /// unit-testable.
 ///
-/// Only the three *diagram* engines qualify — Mermaid, Graphviz and PlantUML
-/// each render to an inline `<svg>`. Math does **not**: KaTeX lays a formula
-/// out as HTML + CSS, never SVG, so a formula has no vector to export and is
-/// deliberately never offered.
+/// What qualifies is anything that is an inline `<svg>` in the finished page:
+/// the three diagram engines — Mermaid, Graphviz and PlantUML — and a `plot`,
+/// which is already an `<svg>` in the markup with no engine behind it at all.
+/// The authoritative list is `classify` below, paired with `domSelector`; the
+/// two name the same set and must be edited together. Math does **not**
+/// qualify: KaTeX lays a formula out as HTML + CSS, never SVG, so a formula
+/// has no vector to export and is deliberately never offered.
 enum DiagramSVG {
 
     /// One diagram the document offers for SVG export, in document order.
     struct Diagram: Equatable {
-        /// 0-based position among the document's diagrams — the same order
-        /// `querySelectorAll('pre.mermaid, div.plantuml, div.graphviz')`
-        /// reports the rendered containers in, so the capture step pulls the
-        /// matching `<svg>` back out by this index. (The DOM query and this
-        /// list both walk the document in order and both see only diagrams,
-        /// so they pair up index-for-index — the same pairing the EPUB path
-        /// relies on between `richElementRanges` and `richElementFrames`,
-        /// minus the formulas neither of us can export.)
+        /// 0-based position among the document's figures — the same order
+        /// `querySelectorAll(DiagramSVG.domSelector)` reports the rendered
+        /// containers in, so the capture step pulls the matching `<svg>` back
+        /// out by this index. (The DOM query and this list both walk the
+        /// document in order and both see the same set, so they pair up
+        /// index-for-index — the same pairing the EPUB path relies on between
+        /// `richElementRanges` and `richElementFrames`, minus the formulas
+        /// neither of us can export.)
         let ordinal: Int
         let kind: Kind
         /// The Graphviz layout program (`dot` / `neato` / …) for a
@@ -443,7 +465,7 @@ enum DiagramSVG {
         /// menu. Empty when the source has no non-blank line.
         let label: String
 
-        enum Kind: String { case mermaid, plantuml, graphviz }
+        enum Kind: String { case mermaid, plantuml, graphviz, plot }
 
         /// The engine's display name, naming the Graphviz layout when it is
         /// not the default `dot` (a `neato` graph reads quite differently).
@@ -454,6 +476,7 @@ enum DiagramSVG {
             case .graphviz:
                 if let engine, engine != "dot" { return "Graphviz (\(engine))" }
                 return "Graphviz"
+            case .plot: return "Plot"
             }
         }
 
@@ -470,10 +493,11 @@ enum DiagramSVG {
     /// containers:
     ///  • a raw `.puml` / `.gv` document is one diagram — the whole file (see
     ///    `MarkdownHTML.document`, which renders it without parsing Markdown);
-    ///  • otherwise every fenced block whose info string names Mermaid,
-    ///    PlantUML or a Graphviz layout — including one nested in a block
-    ///    quote, which `MarkdownHTML` renders by recursing into the quote, so
-    ///    the walk recurses too and the quoted diagram keeps its place.
+    ///  • otherwise every fenced block `classify` recognises — Mermaid,
+    ///    PlantUML, a Graphviz layout or `plot` — including one nested in a
+    ///    block quote, which `MarkdownHTML` renders by recursing into the
+    ///    quote, so the walk recurses too and the quoted figure keeps its
+    ///    place.
     /// Math fences and every other code block are skipped: a formula is not
     /// SVG, and ordinary code is not a diagram.
     static func diagrams(inSource source: String) -> [Diagram] {
@@ -521,10 +545,23 @@ enum DiagramSVG {
             return (.plantuml, nil)
         case let lang where MarkdownHTML.graphvizEngines[lang] != nil:
             return (.graphviz, MarkdownHTML.graphvizEngines[lang])
+        case "plot":
+            // A plot is a diagram here even though no engine draws it: the
+            // renderer already put a finished `<svg>` in the markup, so the
+            // capture below reads a real vector out of the DOM without any
+            // engine having to run. It must be in this list, and `div.plot`
+            // must be in `domSelector`, or every later diagram exports as the
+            // wrong figure.
+            return (.plot, nil)
         default:
             return nil
         }
     }
+
+    /// The DOM query that finds the rendered containers `diagrams(inSource:)`
+    /// describes, in the same document order — the two must name the same set
+    /// or the ordinals pair a figure with another figure's source.
+    static let domSelector = "pre.mermaid, div.plantuml, div.graphviz, div.plot"
 
     /// The first non-empty line of `source`, trimmed and capped so one long
     /// line can't dwarf the menu. Purely cosmetic — a human reads it, nothing
@@ -878,10 +915,15 @@ final class WebRenderer: NSObject, WKNavigationDelegate {
     func printFormatter() -> UIPrintFormatter { webView.viewPrintFormatter() }
 
     /// Read the rendered root `<svg>` of the diagram at `index` (0-based, in
-    /// document order among `pre.mermaid`, `div.plantuml`, `div.graphviz` —
-    /// the diagram half of the selector `richElementFrames` uses) straight out
-    /// of the finished DOM as outerHTML. That is the real vector, not a
-    /// rasterised snapshot.
+    /// document order among the containers `DiagramSVG.domSelector` names)
+    /// straight out of the finished DOM as outerHTML. That is the real vector,
+    /// not a rasterised snapshot.
+    ///
+    /// The selector is `DiagramSVG`'s own, so the walk that produced `index`
+    /// and the query that resolves it can never drift apart. It is a superset
+    /// of the diagram half of `richElementFrames`': a `div.plot` is a diagram
+    /// to export but never a rich container to photograph, because its `<svg>`
+    /// is already in the markup.
     ///
     /// Nil when that diagram has no `<svg>`: a block whose engine threw or
     /// timed out is left showing its source text (see md-init.js), and there
@@ -889,7 +931,7 @@ final class WebRenderer: NSObject, WKNavigationDelegate {
     func diagramSVG(at index: Int) async -> String? {
         let script = """
         (function () {
-          var nodes = document.querySelectorAll('pre.mermaid, div.plantuml, div.graphviz');
+          var nodes = document.querySelectorAll('\(DiagramSVG.domSelector)');
           var el = nodes[\(index)];
           if (!el) return null;
           var svg = el.querySelector('svg');
@@ -1320,7 +1362,12 @@ enum DocumentExport {
             title: book.title,
             identifier: EpubBuilder.stableIdentifier(forTitle: book.title),
             modified: ISO8601DateFormatter().string(from: Date()),
-            units: units.map { (id: $0.id, href: $0.href) },
+            // `svg: true` on a unit whose body holds an inline `<svg>` — a
+            // ```plot figure, the one rich block that reaches a reader as a
+            // vector rather than as a PNG. EPUB 3 requires the property, and
+            // the body is this renderer's own markup, so a plain search for the
+            // tag is exact.
+            units: units.map { (id: $0.id, href: $0.href, svg: $0.body.contains("<svg")) },
             images: images.map(\.href))
         let nav = EpubBuilder.navXHTML(bookTitle: book.title,
                                        rootArticles: rootNav, chapters: chapterNav)
@@ -1405,7 +1452,7 @@ enum DocumentExport {
             title: title,
             identifier: EpubBuilder.stableIdentifier(forTitle: title),
             modified: modified,
-            units: [(id: "content", href: contentHref)],
+            units: [(id: "content", href: contentHref, svg: body.contains("<svg"))],
             images: images.map(\.href))
         // The document's outline as the nav TOC: a flat list of heading links,
         // the way the Contents menu itself lists them, each pointing at its

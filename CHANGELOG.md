@@ -7,6 +7,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The build number (`CFBundleVersion`) is auto-incremented on every build by
 a scheme post-action (`agvtool bump`) and is not tracked here.
 
+## [1.4] — 2026-08-29
+
+### Added
+
+- **Plots.** A fenced block tagged `plot` is now drawn as a chart:
+
+  ```
+  x: -10..10
+  y: -2..2
+  title: Damped oscillation
+  envelope = exp(-abs(x)/5)
+  sin(x) * exp(-abs(x)/5)
+  ```
+
+  Any number of curves, each `f(x)` or `label = f(x)`; a parametric curve
+  written `(cos(t), sin(t)) for t in 0..2*pi`; and measured data as
+  `points: 0,0 1,2 2,1`. `x`, `y` (or `y: auto`, which fits the window to the
+  curve), `title`, `xlabel`, `ylabel`, `legend`, `grid`, `axes`, `width`,
+  `height` and `samples` set the rest; anything else before a colon is read as
+  a label, so `f: sin(x)` plots. The expression language is the usual one —
+  `+ - * / % ^`, comparisons, `&&`, `||`, `pi`, `e`, and `sin cos tan asin
+  acos atan sinh cosh tanh asinh acosh atanh sqrt cbrt abs exp exp2 ln log2
+  log10 floor ceil round atan2 pow hypot`. `^` binds to the right, so `2^3^2`
+  is 512; `-x^2` is −(x²); every value is a real number, so `5/2` is 2.5; and
+  a comparison is 1 or 0, which makes `(x > 0) * sqrt(x)` draw exactly the
+  half of the domain it names. A curve that leaves the window or goes
+  undefined breaks there and picks up again, which is why `tan(x)` draws as
+  branches rather than as one spike across the figure.
+
+  It costs **0 KB**. There is no engine behind it and no asset to download:
+  the drawing is written straight into the page as an `<svg>`, in the same
+  pass that renders the rest of the document, before anything runs. So it
+  works everywhere at once and with nothing to wait for — the preview, print,
+  an exported PDF, an exported HTML page, "Export Diagram as SVG…" (a plot
+  appears in that menu as **Plot**), and an exported **EPUB**, where it is the
+  first figure this app has ever shipped as a true vector rather than as a
+  photograph of one. A document whose only rich blocks are plots loads no
+  engine at all. The LaTeX export keeps the fence verbatim under a comment, as
+  it does for the other diagram languages, since LaTeX has no renderer for it.
+
+  The figure is drawn in the page's own ink, so it is right in a light
+  preview, in a dark one and on paper without being redrawn — only the curves
+  themselves carry fixed colours, eight of them in turn. A fence that cannot
+  be read shows one `plot:` line saying what is wrong with your text still
+  visible under it, the way every other rich block in md behaves: never a
+  hole, never an error box.
+- **Every document opens the way you left it.** md now remembers, per file,
+  whether you were last in Edit, Split or Preview, and opens it there —
+  something you keep coming back to read stays a reading page, something you
+  are writing stays a writing page, and you stop re-tapping the same button
+  every time. It is remembered for the last 200 files, on this device only,
+  and nothing about the file itself changes; renaming or moving a document
+  outside md simply lets it start fresh. Two windows open side by side on an
+  iPad still keep their own layouts, as they always have.
+
+  Only a mode you *pick* is remembered. Jumping to a note from the Notes menu
+  still brings the editor up so the note is actually on screen, but that is a
+  move rather than a choice, and the file opens next time in the mode you
+  chose — not the one a jump happened to leave you in.
+
+  Files md has not seen before are unchanged on iPad — a document with
+  something in it still opens in Split, where both panes fit. On iPhone,
+  where there is only ever one pane, an unfamiliar document now opens in
+  Preview rather than in the editor: on a phone you are far more often
+  opening something to read it than to write it, and Edit is one tap away.
+  A brand-new document — or an empty one — opens in Edit everywhere, which
+  is the only thing you can do with an empty page.
+
+  Writer mode is deliberately left out of it: stepping from one chapter to
+  the next keeps the mode you are working in, rather than dropping you into
+  Preview on the chapter you were about to write.
+
 ## [1.3] — 2026-07-24
 
 ### Added

@@ -908,6 +908,11 @@ final class mdTests: XCTestCase {
         XCTAssertFalse(mathFence.contains("highlight.min.js"))
         let csv = MarkdownHTML.document("```csv\na,b\n1,2\n```", title: "t", dark: false)
         XCTAssertFalse(csv.contains("highlight.min.js"))
+        // A plot is drawn in this same layer, with no engine at all: its class
+        // is exactly `plot`, so it trips none of the five engine probes.
+        let plot = MarkdownHTML.document("```plot\nsin(x)\n```", title: "t", dark: false)
+        XCTAssertFalse(plot.contains("highlight.min.js"))
+        XCTAssertFalse(plot.contains("language-plot"))
     }
 
     func testHTMLPlainDocumentDoesNotLoadHighlightEngine() {
@@ -1604,7 +1609,8 @@ final class mdTests: XCTestCase {
         let opf = EpubBuilder.contentOPF(
             title: "My Book", identifier: "urn:uuid:TEST",
             modified: "2026-07-10T00:00:00Z",
-            units: [(id: "u001", href: "u001.xhtml"), (id: "u002", href: "u002.xhtml")],
+            units: [(id: "u001", href: "u001.xhtml", svg: false),
+                    (id: "u002", href: "u002.xhtml", svg: true)],
             images: ["images/u002-01.png"])
         XCTAssertTrue(opf.contains("<dc:title>My Book</dc:title>"))
         XCTAssertTrue(opf.contains("<dc:language>en</dc:language>"))
