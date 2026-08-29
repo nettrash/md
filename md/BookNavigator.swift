@@ -130,12 +130,60 @@ enum DocumentSceneOpener {
     /// documents through it — stay alive and keep working.
     private static var cachedBrowser: UIDocumentBrowserViewController?
 
+    /// Remember the browser while it is still reachable.
+    ///
+    /// `DocumentGroup` only vends a real `UIDocumentBrowserViewController`
+    /// *before* a document opens. Once one is open the scene holds
+    /// `_UIDocumentLaunchViewController` →
+    /// `_UIDocumentUnavailableBrowserContainerViewController` instead, and
+    /// there is no browser anywhere in the tree to find — measured on
+    /// iOS 26.5, where `documentBrowser()` answers `true` at launch and
+    /// `false` from inside a document.
+    ///
+    /// That matters because the fallback does not work on a phone:
+    /// `activateSceneSession` refuses with "The current device does not
+    /// support multiple scenes", so with nothing cached an open is simply
+    /// dropped — which is what made the Examples menu, and opening a book
+    /// article, do nothing at all. Priming here, from the launch screen, is
+    /// what keeps the delegate reachable for the rest of the session.
+    /// Retries, because the browser is not in the tree yet when the launch
+    /// screen's `task` first runs — measured: nil at t=0, found by t≈2s. It
+    /// stops the moment it succeeds, and gives up after ~5s rather than
+    /// looping for the life of the process.
+    static func primeBrowserCache() async {
+        for _ in 0 ..< 50 {
+            if cachedBrowser != nil { return }
+            if let browser = documentBrowser() {
+                cachedBrowser = browser
+                bookLog.notice("browser cache primed")
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        bookLog.error("browser cache could not be primed — opening a document from inside one will not work")
+    }
+
     static func open(_ url: URL) {
-        if let browser = documentBrowser() ?? cachedBrowser, let delegate = browser.delegate {
+        // `documentBrowser(_:didPickDocumentsAt:)` is an *optional* protocol
+        // method. Written as `delegate.documentBrowser?(…)` it evaluates to
+        // nothing when the delegate does not implement it — and the `return`
+        // below used to fire anyway, so the open was dropped on the floor:
+        // no document, no error, nothing in the log. Tapping an example, or a
+        // book article, simply did nothing.
+        //
+        // So the branch is taken only when the delegate really answers to the
+        // selector. Otherwise this falls through to `activateDocumentScene`,
+        // which is the path that works on a phone in the first place.
+        if let browser = documentBrowser() ?? cachedBrowser,
+           let delegate = browser.delegate,
+           delegate.responds(to: #selector(UIDocumentBrowserViewControllerDelegate
+                                               .documentBrowser(_:didPickDocumentsAt:))) {
             cachedBrowser = browser
+            bookLog.notice("handing \(url.lastPathComponent, privacy: .public) to the document-browser delegate")
             delegate.documentBrowser?(browser, didPickDocumentsAt: [url])
             return
         }
+        bookLog.notice("no document-browser delegate to hand \(url.lastPathComponent, privacy: .public) to; activating a scene instead")
         activateDocumentScene(url)
     }
 
@@ -528,6 +576,10 @@ struct BookLaunchBackdrop: View {
     var body: some View {
         Typewriter.paper
             .ignoresSafeArea()
+            // The one moment the document browser is in the view tree. See
+            // `DocumentSceneOpener.primeBrowserCache()` for why the whole
+            // Examples / book-article open path depends on catching it here.
+            .task { await DocumentSceneOpener.primeBrowserCache() }
             .sheet(item: $model.bookSheet) { presentation in
                 BookNavigator(root: presentation.url)
             }
