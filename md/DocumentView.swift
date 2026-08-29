@@ -10,7 +10,8 @@
 //  where there's room, a Split mode shows them side by side and the
 //  preview re-renders as you type. The chosen mode is remembered per
 //  window via `@SceneStorage`, so two open document windows can each keep
-//  their own layout.
+//  their own layout — and per *file* (see `ViewMode.swift`), so a document
+//  opens back in the mode it was last shown in.
 //
 //  The whole window wears the typewriter theme — warm paper behind both
 //  panes, American Typewriter type — and the toolbar carries the mode
@@ -153,7 +154,23 @@ struct DocumentView: View {
     /// Per-window mode preference (SceneStorage, not AppStorage, so each
     /// document window keeps its own layout). Falls back to a sensible
     /// per-width default in `effectiveMode` when the stored value can't apply.
+    ///
+    /// Raw and uncoerced: the per-file memory seeds it on open
+    /// (`applyOpenViewMode`) and `select(_:)` is the only thing that writes
+    /// it afterwards — the window renders from this value (narrowed for the
+    /// width, and overridden by a navigation nudge), which is what keeps two
+    /// iPad windows independent.
     @SceneStorage("md.viewMode") private var storedMode = Mode.split.rawValue
+    /// A navigation jump's transient override of the displayed mode, or nil
+    /// when the window is simply showing its preference. Set by a jump whose
+    /// destination lives in a pane the current mode doesn't show (see
+    /// `jump(to note:)`); cleared by any deliberate mode pick and by opening
+    /// another document.
+    ///
+    /// `@State`, deliberately: not `@SceneStorage`, and never written to the
+    /// per-file memory. Merely *looking* at a note must not rewrite the
+    /// layout the file is remembered in (see `ViewModeRule.displayedMode`).
+    @State private var navigationMode: Mode?
     /// Bridges the editor's undo stack to the toolbar's Undo / Redo buttons.
     @StateObject private var editor = EditorController()
     /// The latest Contents-menu jump for the preview pane; a fresh value per
@@ -183,6 +200,17 @@ struct DocumentView: View {
     /// bookmarking); shown in an alert rather than failing silently — a
     /// dead menu item reads as a broken app.
     @State private var errorMessage: String?
+    /// What the per-file open rule last ran against, in three states:
+    /// `nil` — never ran; `.some(nil)` — ran on a document with no file yet
+    /// (untitled); `.some(id)` — ran on that file's identity. The middle
+    /// state is what tells a Save / Save As ("untitled becomes a file")
+    /// apart from a genuine open, so the writer's current mode is carried
+    /// onto the new file instead of being re-decided mid-write.
+    @State private var lastIdentity: String??
+    /// True when this window's document was opened by writer mode. Book
+    /// articles are exempt from the per-file memory both ways — they
+    /// neither seed the mode nor record it (see `BookArticleOpens`).
+    @State private var isBookArticle = false
 
     enum Mode: String, CaseIterable, Identifiable {
         case edit, split, preview
@@ -206,16 +234,25 @@ struct DocumentView: View {
     /// Split is only offered when there's horizontal room (iPad / Mac).
     private var isWide: Bool { sizeClass == .regular }
 
-    private var availableModes: [Mode] {
-        isWide ? Mode.allCases : [.edit, .preview]
-    }
+    /// The window's raw mode preference — what `@SceneStorage` holds,
+    /// uncoerced, and with any navigation nudge deliberately ignored. This,
+    /// not `effectiveMode`, is what gets remembered for a file: a Split
+    /// chosen on an iPad shows as Edit on a phone, and must still be Split
+    /// when the window is wide again (see `ViewMode.swift`). The Save-As
+    /// migration in `applyOpenViewMode` reads it for the same reason — a
+    /// nudge folded in here would be immortalised as the new file's
+    /// preference.
+    private var rawMode: Mode { Mode(rawValue: storedMode) ?? .split }
 
-    /// The mode actually shown: the stored preference, coerced to one the
+    private var availableModes: [Mode] { ViewModeRule.availableModes(isWide: isWide) }
+
+    /// The mode actually shown: the navigation nudge if one is in force,
+    /// otherwise the stored preference — either way coerced to one the
     /// current width supports (e.g. Split collapses to Edit on a phone).
     private var effectiveMode: Mode {
-        let stored = Mode(rawValue: storedMode) ?? .split
-        if availableModes.contains(stored) { return stored }
-        return stored == .preview ? .preview : .edit
+        ViewModeRule.displayedMode(preferred: rawMode,
+                                   navigation: navigationMode,
+                                   isWide: isWide)
     }
 
     /// Base name used for export / print filenames and the print job.
@@ -254,6 +291,15 @@ struct DocumentView: View {
             .task(id: document.text) {
                 counts = await counts.refreshed(from: document.text)
             }
+            // Seed the window's mode from what this file was last shown in.
+            // Keyed on `fileURL` and run on appearance too (`initial: true`),
+            // so it covers both an open and the moment an untitled document
+            // becomes a file. `applyOpenViewMode` does its own bookkeeping
+            // to stay idempotent — the hook may fire more than once for the
+            // same document.
+            .onChange(of: fileURL, initial: true) { _, url in
+                applyOpenViewMode(for: url)
+            }
             .sheet(item: $bookSheet) { presentation in
                 BookNavigator(root: presentation.url)
             }
@@ -285,7 +331,7 @@ struct DocumentView: View {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 ForEach(availableModes) { mode in
                     Button {
-                        storedMode = mode.rawValue
+                        select(mode)
                     } label: {
                         Label(mode.label, systemImage: mode.symbol)
                     }
@@ -570,9 +616,103 @@ struct DocumentView: View {
         }
     }
 
-    /// Binds the segmented control to the persisted mode.
+    /// Binds the segmented control to the persisted mode: it shows what the
+    /// window displays (nudge included) and every pick it makes is
+    /// deliberate, so it reads `effectiveMode` and writes through `select`.
     private var modeBinding: Binding<Mode> {
-        Binding(get: { effectiveMode }, set: { storedMode = $0.rawValue })
+        Binding(get: { effectiveMode }, set: { select($0) })
+    }
+
+    // MARK: - View mode
+
+    /// The one path that changes the view mode *deliberately* — the wide
+    /// window's chips and the phone's menu both come through here, so there
+    /// is no second way to pick a mode and forget to remember it.
+    ///
+    /// Writes the RAW mode: to the window (`@SceneStorage`, which is what
+    /// keeps two iPad windows on separate layouts) and to this file's
+    /// memory. Never `effectiveMode`'s output — a Split the user picked on
+    /// an iPad has to survive being displayed as Edit on their phone.
+    ///
+    /// A navigation jump is **not** a deliberate pick and must not come
+    /// through here: it sets `navigationMode` instead, which changes what is
+    /// displayed and nothing else. See `jump(to note:)`.
+    private func select(_ mode: Mode) {
+        // A deliberate pick supersedes any navigation nudge: the user has
+        // said what they want the window to show, so the transient override
+        // goes and the preference below is what the file is remembered by.
+        navigationMode = nil
+        storedMode = mode.rawValue
+        // Book articles are exempt: writer mode's own layout is the
+        // writer's, not something to record against each chapter file.
+        guard !isBookArticle, let fileURL else { return }
+        ViewModeMemory.remember(mode, for: ViewModeMemory.identity(for: fileURL))
+    }
+
+    /// Seed the window's mode for the document that just opened.
+    ///
+    /// Runs from a `fileURL`-keyed `onChange(initial: true)`, which fires
+    /// on appearance, on an open into an existing window, and on the moment
+    /// an untitled document first gets a file. Those last two need telling
+    /// apart, which is what `lastIdentity`'s three states are for.
+    private func applyOpenViewMode(for url: URL?) {
+        let identity = url.map(ViewModeMemory.identity(for:))
+
+        // Writer mode steps from chapter to chapter through this same
+        // editor, so an article open has to be told from a plain one — or
+        // every step would re-run the rule and flip the writer into Preview
+        // on the chapter they were about to write.
+        //
+        // Claimed here, *before* the unchanged-identity return below: the
+        // mark belongs to this open and must not outlive it. Re-opening the
+        // article that is already the open document arrives with the
+        // identity unchanged, and a mark left pending would then be handed
+        // to the next ordinary open of that same file.
+        let cameFromBook = url.map(BookArticleOpens.claimOpen) ?? false
+
+        // Same document as last time: the hook re-fired without the file
+        // changing (SwiftUI is free to rebuild the view). Nothing to decide,
+        // and re-deciding would overrule a mode the user has since picked.
+        if case .some(let previous) = lastIdentity, previous == identity {
+            // …but if this re-fire *was* a book open of the document already
+            // on screen, the window is showing an article from here on: the
+            // exemption applies even though there is nothing to decide.
+            if cameFromBook { isBookArticle = true }
+            return
+        }
+        // Whether the *previous* run saw an untitled document, captured
+        // before the state moves on.
+        let wasUntitled = lastIdentity == .some(nil)
+        lastIdentity = .some(identity)
+
+        // A nudge belongs to the document it was made in, so a different
+        // document clears it. Save / Save As is the exception, and is not a
+        // different document: the writer is still looking at the same text,
+        // and pulling them back out of the pane they jumped to mid-write is
+        // exactly the flip this hook's bookkeeping exists to prevent.
+        if !wasUntitled { navigationMode = nil }
+
+        isBookArticle = cameFromBook
+        guard !isBookArticle else { return }
+
+        if wasUntitled, let identity {
+            // Save / Save As: an untitled document became a file. The writer
+            // is already in a mode — carry it over rather than re-deciding
+            // mid-write.
+            ViewModeMemory.remember(rawMode, for: identity)
+            return
+        }
+
+        let mode = ViewModeRule.openViewMode(
+            remembered: identity.flatMap { ViewModeMemory.lookup($0) },
+            isEmptyDocument: document.text.isEmpty,
+            hasFileIdentity: identity != nil,
+            isWide: isWide)
+        // Raw, uncoerced — `effectiveMode` narrows it for display.
+        storedMode = mode.rawValue
+        // No identity means nothing to key the memory on (a never-saved
+        // document): decide, but don't store.
+        if let identity { ViewModeMemory.remember(mode, for: identity) }
     }
 
     /// The author's counters: live words and characters, tucked under the
@@ -621,6 +761,12 @@ struct DocumentView: View {
     /// Jump to a heading — in whichever pane(s) the current mode shows:
     /// the preview scrolls to the heading's anchor, the editor moves its
     /// caret to the heading's source line, Split does both.
+    ///
+    /// No navigation nudge is needed here, and none should be added: a
+    /// heading exists in *both* panes, so whatever the window is showing,
+    /// the destination is on screen. (The Android port's Contents tap did
+    /// switch modes, which is where that port's data loss came from; this
+    /// one never has.)
     private func jump(to entry: OutlineEntry) {
         let mode = effectiveMode
         if mode != .edit {
@@ -632,12 +778,23 @@ struct DocumentView: View {
     }
 
     /// Jump to a note. Notes exist only in the source, so the jump always
-    /// lands in the editor — Preview-only mode switches to Edit first so
-    /// the destination is actually visible. (`scrollTo` holds the request
+    /// lands in the editor — a Preview-only window is nudged to Edit first
+    /// so the destination is actually visible. (`scrollTo` holds the request
     /// until the freshly created editor pane can honor it.)
+    ///
+    /// The nudge is transient — `navigationMode`, never `select(_:)`.
+    /// Reading one note is not a statement about how the file should open
+    /// next time, and routing it through the persisting setter is what used
+    /// to rewrite a Preview file's remembered mode to Edit, permanently.
+    /// Before per-file memory existed the mode was session-only and a jump
+    /// worked exactly like this; the nudge restores that.
+    ///
+    /// Assigned only when a nudge is actually called for: a second note jump
+    /// from an already-nudged window must not clear the override and drop
+    /// the reader back into Preview.
     private func jump(to note: NoteEntry) {
-        if effectiveMode == .preview {
-            storedMode = Mode.edit.rawValue
+        if let nudge = ViewModeRule.navigationNudge(displayed: effectiveMode, wants: .edit) {
+            navigationMode = nudge
         }
         editor.scrollTo(line: note.line)
     }

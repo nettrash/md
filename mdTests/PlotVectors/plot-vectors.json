@@ -1,0 +1,5594 @@
+{
+  "_meta": {
+    "purpose": "Authoritative cross-platform test vectors for the nettrash.me Plot renderer.",
+    "source": "nettrash-me/frontend/src/components/math.rs (render_plot_svg, nice_step, format_label, preprocess_math_expr)",
+    "generatedBy": "Rust harness at scratchpad/plotref, built from source text extracted VERBATIM from math.rs",
+    "verifiedAgainstMathRs": true,
+    "dependencies": {
+      "evalexpr": "12.0.3",
+      "regex": "1.12.3",
+      "rustc-target": "aarch64-apple-darwin"
+    },
+    "conventions": {
+      "nonFiniteNumbers": "NaN / +inf / -inf appear as the JSON STRINGS \"nan\", \"inf\", \"-inf\" (JSON has no literal for them).",
+      "noneResult": "The string \"none\" means the eval closure in render_plot_svg returned Option::None.",
+      "exactFields": "*Exact fields are Rust format!(\"{:.16e}\", v) = 17 significant digits. *Bits fields are the big-endian IEEE-754 f64 bit pattern as 16 lowercase hex chars - compare THESE for bit-exactness.",
+      "svgConstants": "svg_w=600, svg_h=400, margin=40, plot_w=520, plot_h=320, steps=1000 (1001 samples inclusive)."
+    },
+    "counts": {
+      "niceStep": 81,
+      "formatLabel": 100,
+      "eval": 162,
+      "parseErrors": 38,
+      "svg": 22,
+      "svgErrors": 2,
+      "notes": 27
+    }
+  },
+  "niceStep": [
+    {
+      "input": 20.0,
+      "inputExact": "2.0000000000000000e1",
+      "inputBits": "4034000000000000",
+      "output": 2.0,
+      "outputExact": "2.0000000000000000e0",
+      "outputBits": "4000000000000000",
+      "intermediates": {
+        "rough": 2.5,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 4.0,
+      "inputExact": "4.0000000000000000e0",
+      "inputBits": "4010000000000000",
+      "output": 0.5,
+      "outputExact": "5.0000000000000000e-1",
+      "outputBits": "3fe0000000000000",
+      "intermediates": {
+        "rough": 0.5,
+        "floorLog10Rough": -1.0,
+        "mag": 0.1
+      }
+    },
+    {
+      "input": 1.0,
+      "inputExact": "1.0000000000000000e0",
+      "inputBits": "3ff0000000000000",
+      "output": 0.1,
+      "outputExact": "1.0000000000000001e-1",
+      "outputBits": "3fb999999999999a",
+      "intermediates": {
+        "rough": 0.125,
+        "floorLog10Rough": -1.0,
+        "mag": 0.1
+      }
+    },
+    {
+      "input": 100.0,
+      "inputExact": "1.0000000000000000e2",
+      "inputBits": "4059000000000000",
+      "output": 10.0,
+      "outputExact": "1.0000000000000000e1",
+      "outputBits": "4024000000000000",
+      "intermediates": {
+        "rough": 12.5,
+        "floorLog10Rough": 1.0,
+        "mag": 10.0
+      }
+    },
+    {
+      "input": 0.5,
+      "inputExact": "5.0000000000000000e-1",
+      "inputBits": "3fe0000000000000",
+      "output": 0.05,
+      "outputExact": "5.0000000000000003e-2",
+      "outputBits": "3fa999999999999a",
+      "intermediates": {
+        "rough": 0.0625,
+        "floorLog10Rough": -2.0,
+        "mag": 0.01
+      }
+    },
+    {
+      "input": 3.0,
+      "inputExact": "3.0000000000000000e0",
+      "inputBits": "4008000000000000",
+      "output": 0.5,
+      "outputExact": "5.0000000000000000e-1",
+      "outputBits": "3fe0000000000000",
+      "intermediates": {
+        "rough": 0.375,
+        "floorLog10Rough": -1.0,
+        "mag": 0.1
+      }
+    },
+    {
+      "input": 7.0,
+      "inputExact": "7.0000000000000000e0",
+      "inputBits": "401c000000000000",
+      "output": 1.0,
+      "outputExact": "1.0000000000000000e0",
+      "outputBits": "3ff0000000000000",
+      "intermediates": {
+        "rough": 0.875,
+        "floorLog10Rough": -1.0,
+        "mag": 0.1
+      }
+    },
+    {
+      "input": 8.0,
+      "inputExact": "8.0000000000000000e0",
+      "inputBits": "4020000000000000",
+      "output": 1.0,
+      "outputExact": "1.0000000000000000e0",
+      "outputBits": "3ff0000000000000",
+      "intermediates": {
+        "rough": 1.0,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 12.0,
+      "inputExact": "1.2000000000000000e1",
+      "inputBits": "4028000000000000",
+      "output": 1.0,
+      "outputExact": "1.0000000000000000e0",
+      "outputBits": "3ff0000000000000",
+      "intermediates": {
+        "rough": 1.5,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 80.0,
+      "inputExact": "8.0000000000000000e1",
+      "inputBits": "4054000000000000",
+      "output": 10.0,
+      "outputExact": "1.0000000000000000e1",
+      "outputBits": "4024000000000000",
+      "intermediates": {
+        "rough": 10.0,
+        "floorLog10Rough": 1.0,
+        "mag": 10.0
+      }
+    },
+    {
+      "input": 0.08,
+      "inputExact": "8.0000000000000002e-2",
+      "inputBits": "3fb47ae147ae147b",
+      "output": 0.01,
+      "outputExact": "1.0000000000000000e-2",
+      "outputBits": "3f847ae147ae147b",
+      "intermediates": {
+        "rough": 0.01,
+        "floorLog10Rough": -2.0,
+        "mag": 0.01
+      }
+    },
+    {
+      "input": 1000.0,
+      "inputExact": "1.0000000000000000e3",
+      "inputBits": "408f400000000000",
+      "output": 100.0,
+      "outputExact": "1.0000000000000000e2",
+      "outputBits": "4059000000000000",
+      "intermediates": {
+        "rough": 125.0,
+        "floorLog10Rough": 2.0,
+        "mag": 100.0
+      }
+    },
+    {
+      "input": 6.283185307179586,
+      "inputExact": "6.2831853071795862e0",
+      "inputBits": "401921fb54442d18",
+      "output": 1.0,
+      "outputExact": "1.0000000000000000e0",
+      "outputBits": "3ff0000000000000",
+      "intermediates": {
+        "rough": 0.7853981633974483,
+        "floorLog10Rough": -1.0,
+        "mag": 0.1
+      }
+    },
+    {
+      "input": 6.283185307179586,
+      "inputExact": "6.2831853071795862e0",
+      "inputBits": "401921fb54442d18",
+      "output": 1.0,
+      "outputExact": "1.0000000000000000e0",
+      "outputBits": "3ff0000000000000",
+      "intermediates": {
+        "rough": 0.7853981633974483,
+        "floorLog10Rough": -1.0,
+        "mag": 0.1
+      }
+    },
+    {
+      "input": 0.001,
+      "inputExact": "1.0000000000000000e-3",
+      "inputBits": "3f50624dd2f1a9fc",
+      "output": 0.0001,
+      "outputExact": "1.0000000000000000e-4",
+      "outputBits": "3f1a36e2eb1c432d",
+      "intermediates": {
+        "rough": 0.000125,
+        "floorLog10Rough": -4.0,
+        "mag": 0.0001
+      }
+    },
+    {
+      "input": 1e-06,
+      "inputExact": "9.9999999999999995e-7",
+      "inputBits": "3eb0c6f7a0b5ed8d",
+      "output": 1e-07,
+      "outputExact": "9.9999999999999995e-8",
+      "outputBits": "3e7ad7f29abcaf48",
+      "intermediates": {
+        "rough": 1.25e-07,
+        "floorLog10Rough": -7.0,
+        "mag": 1e-07
+      }
+    },
+    {
+      "input": 1000000000.0,
+      "inputExact": "1.0000000000000000e9",
+      "inputBits": "41cdcd6500000000",
+      "output": 100000000.0,
+      "outputExact": "1.0000000000000000e8",
+      "outputBits": "4197d78400000000",
+      "intermediates": {
+        "rough": 125000000.0,
+        "floorLog10Rough": 8.0,
+        "mag": 100000000.0
+      }
+    },
+    {
+      "input": 0.3,
+      "inputExact": "2.9999999999999999e-1",
+      "inputBits": "3fd3333333333333",
+      "output": 0.05,
+      "outputExact": "5.0000000000000003e-2",
+      "outputBits": "3fa999999999999a",
+      "intermediates": {
+        "rough": 0.0375,
+        "floorLog10Rough": -2.0,
+        "mag": 0.01
+      }
+    },
+    {
+      "input": 0.7,
+      "inputExact": "6.9999999999999996e-1",
+      "inputBits": "3fe6666666666666",
+      "output": 0.1,
+      "outputExact": "1.0000000000000001e-1",
+      "outputBits": "3fb999999999999a",
+      "intermediates": {
+        "rough": 0.0875,
+        "floorLog10Rough": -2.0,
+        "mag": 0.01
+      }
+    },
+    {
+      "input": 1.5,
+      "inputExact": "1.5000000000000000e0",
+      "inputBits": "3ff8000000000000",
+      "output": 0.2,
+      "outputExact": "2.0000000000000001e-1",
+      "outputBits": "3fc999999999999a",
+      "intermediates": {
+        "rough": 0.1875,
+        "floorLog10Rough": -1.0,
+        "mag": 0.1
+      }
+    },
+    {
+      "input": 2.5,
+      "inputExact": "2.5000000000000000e0",
+      "inputBits": "4004000000000000",
+      "output": 0.5,
+      "outputExact": "5.0000000000000000e-1",
+      "outputBits": "3fe0000000000000",
+      "intermediates": {
+        "rough": 0.3125,
+        "floorLog10Rough": -1.0,
+        "mag": 0.1
+      }
+    },
+    {
+      "input": 15.0,
+      "inputExact": "1.5000000000000000e1",
+      "inputBits": "402e000000000000",
+      "output": 2.0,
+      "outputExact": "2.0000000000000000e0",
+      "outputBits": "4000000000000000",
+      "intermediates": {
+        "rough": 1.875,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 45.0,
+      "inputExact": "4.5000000000000000e1",
+      "inputBits": "4046800000000000",
+      "output": 5.0,
+      "outputExact": "5.0000000000000000e0",
+      "outputBits": "4014000000000000",
+      "intermediates": {
+        "rough": 5.625,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 999.0,
+      "inputExact": "9.9900000000000000e2",
+      "inputBits": "408f380000000000",
+      "output": 100.0,
+      "outputExact": "1.0000000000000000e2",
+      "outputBits": "4059000000000000",
+      "intermediates": {
+        "rough": 124.875,
+        "floorLog10Rough": 2.0,
+        "mag": 100.0
+      }
+    },
+    {
+      "input": 1001.0,
+      "inputExact": "1.0010000000000000e3",
+      "inputBits": "408f480000000000",
+      "output": 100.0,
+      "outputExact": "1.0000000000000000e2",
+      "outputBits": "4059000000000000",
+      "intermediates": {
+        "rough": 125.125,
+        "floorLog10Rough": 2.0,
+        "mag": 100.0
+      }
+    },
+    {
+      "input": 1e-06,
+      "inputExact": "9.9999999999999995e-7",
+      "inputBits": "3eb0c6f7a0b5ed8d",
+      "output": 1e-07,
+      "outputExact": "9.9999999999999995e-8",
+      "outputBits": "3e7ad7f29abcaf48",
+      "intermediates": {
+        "rough": 1.25e-07,
+        "floorLog10Rough": -7.0,
+        "mag": 1e-07
+      }
+    },
+    {
+      "input": 1e-05,
+      "inputExact": "1.0000000000000001e-5",
+      "inputBits": "3ee4f8b588e368f1",
+      "output": 1e-06,
+      "outputExact": "9.9999999999999995e-7",
+      "outputBits": "3eb0c6f7a0b5ed8d",
+      "intermediates": {
+        "rough": 1.25e-06,
+        "floorLog10Rough": -6.0,
+        "mag": 1e-06
+      }
+    },
+    {
+      "input": 0.0001,
+      "inputExact": "1.0000000000000000e-4",
+      "inputBits": "3f1a36e2eb1c432d",
+      "output": 1e-05,
+      "outputExact": "1.0000000000000001e-5",
+      "outputBits": "3ee4f8b588e368f1",
+      "intermediates": {
+        "rough": 1.25e-05,
+        "floorLog10Rough": -5.0,
+        "mag": 1e-05
+      }
+    },
+    {
+      "input": 0.001,
+      "inputExact": "1.0000000000000000e-3",
+      "inputBits": "3f50624dd2f1a9fc",
+      "output": 0.0001,
+      "outputExact": "1.0000000000000000e-4",
+      "outputBits": "3f1a36e2eb1c432d",
+      "intermediates": {
+        "rough": 0.000125,
+        "floorLog10Rough": -4.0,
+        "mag": 0.0001
+      }
+    },
+    {
+      "input": 0.01,
+      "inputExact": "1.0000000000000000e-2",
+      "inputBits": "3f847ae147ae147b",
+      "output": 0.001,
+      "outputExact": "1.0000000000000000e-3",
+      "outputBits": "3f50624dd2f1a9fc",
+      "intermediates": {
+        "rough": 0.00125,
+        "floorLog10Rough": -3.0,
+        "mag": 0.001
+      }
+    },
+    {
+      "input": 0.1,
+      "inputExact": "1.0000000000000001e-1",
+      "inputBits": "3fb999999999999a",
+      "output": 0.01,
+      "outputExact": "1.0000000000000000e-2",
+      "outputBits": "3f847ae147ae147b",
+      "intermediates": {
+        "rough": 0.0125,
+        "floorLog10Rough": -2.0,
+        "mag": 0.01
+      }
+    },
+    {
+      "input": 1.0,
+      "inputExact": "1.0000000000000000e0",
+      "inputBits": "3ff0000000000000",
+      "output": 0.1,
+      "outputExact": "1.0000000000000001e-1",
+      "outputBits": "3fb999999999999a",
+      "intermediates": {
+        "rough": 0.125,
+        "floorLog10Rough": -1.0,
+        "mag": 0.1
+      }
+    },
+    {
+      "input": 10.0,
+      "inputExact": "1.0000000000000000e1",
+      "inputBits": "4024000000000000",
+      "output": 1.0,
+      "outputExact": "1.0000000000000000e0",
+      "outputBits": "3ff0000000000000",
+      "intermediates": {
+        "rough": 1.25,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 100.0,
+      "inputExact": "1.0000000000000000e2",
+      "inputBits": "4059000000000000",
+      "output": 10.0,
+      "outputExact": "1.0000000000000000e1",
+      "outputBits": "4024000000000000",
+      "intermediates": {
+        "rough": 12.5,
+        "floorLog10Rough": 1.0,
+        "mag": 10.0
+      }
+    },
+    {
+      "input": 1000.0,
+      "inputExact": "1.0000000000000000e3",
+      "inputBits": "408f400000000000",
+      "output": 100.0,
+      "outputExact": "1.0000000000000000e2",
+      "outputBits": "4059000000000000",
+      "intermediates": {
+        "rough": 125.0,
+        "floorLog10Rough": 2.0,
+        "mag": 100.0
+      }
+    },
+    {
+      "input": 10000.0,
+      "inputExact": "1.0000000000000000e4",
+      "inputBits": "40c3880000000000",
+      "output": 1000.0,
+      "outputExact": "1.0000000000000000e3",
+      "outputBits": "408f400000000000",
+      "intermediates": {
+        "rough": 1250.0,
+        "floorLog10Rough": 3.0,
+        "mag": 1000.0
+      }
+    },
+    {
+      "input": 100000.0,
+      "inputExact": "1.0000000000000000e5",
+      "inputBits": "40f86a0000000000",
+      "output": 10000.0,
+      "outputExact": "1.0000000000000000e4",
+      "outputBits": "40c3880000000000",
+      "intermediates": {
+        "rough": 12500.0,
+        "floorLog10Rough": 4.0,
+        "mag": 10000.0
+      }
+    },
+    {
+      "input": 1000000.0,
+      "inputExact": "1.0000000000000000e6",
+      "inputBits": "412e848000000000",
+      "output": 100000.0,
+      "outputExact": "1.0000000000000000e5",
+      "outputBits": "40f86a0000000000",
+      "intermediates": {
+        "rough": 125000.0,
+        "floorLog10Rough": 5.0,
+        "mag": 100000.0
+      }
+    },
+    {
+      "input": 10000000.0,
+      "inputExact": "1.0000000000000000e7",
+      "inputBits": "416312d000000000",
+      "output": 1000000.0,
+      "outputExact": "1.0000000000000000e6",
+      "outputBits": "412e848000000000",
+      "intermediates": {
+        "rough": 1250000.0,
+        "floorLog10Rough": 6.0,
+        "mag": 1000000.0
+      }
+    },
+    {
+      "input": 100000000.0,
+      "inputExact": "1.0000000000000000e8",
+      "inputBits": "4197d78400000000",
+      "output": 10000000.0,
+      "outputExact": "1.0000000000000000e7",
+      "outputBits": "416312d000000000",
+      "intermediates": {
+        "rough": 12500000.0,
+        "floorLog10Rough": 7.0,
+        "mag": 10000000.0
+      }
+    },
+    {
+      "input": 1000000000.0,
+      "inputExact": "1.0000000000000000e9",
+      "inputBits": "41cdcd6500000000",
+      "output": 100000000.0,
+      "outputExact": "1.0000000000000000e8",
+      "outputBits": "4197d78400000000",
+      "intermediates": {
+        "rough": 125000000.0,
+        "floorLog10Rough": 8.0,
+        "mag": 100000000.0
+      }
+    },
+    {
+      "input": 12.0,
+      "inputExact": "1.2000000000000000e1",
+      "inputBits": "4028000000000000",
+      "output": 1.0,
+      "outputExact": "1.0000000000000000e0",
+      "outputBits": "3ff0000000000000",
+      "intermediates": {
+        "rough": 1.5,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 12.000000000000002,
+      "inputExact": "1.2000000000000002e1",
+      "inputBits": "4028000000000001",
+      "output": 2.0,
+      "outputExact": "2.0000000000000000e0",
+      "outputBits": "4000000000000000",
+      "intermediates": {
+        "rough": 1.5000000000000002,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 11.999999999999998,
+      "inputExact": "1.1999999999999998e1",
+      "inputBits": "4027ffffffffffff",
+      "output": 1.0,
+      "outputExact": "1.0000000000000000e0",
+      "outputBits": "3ff0000000000000",
+      "intermediates": {
+        "rough": 1.4999999999999998,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 24.0,
+      "inputExact": "2.4000000000000000e1",
+      "inputBits": "4038000000000000",
+      "output": 2.0,
+      "outputExact": "2.0000000000000000e0",
+      "outputBits": "4000000000000000",
+      "intermediates": {
+        "rough": 3.0,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 24.000000000000004,
+      "inputExact": "2.4000000000000004e1",
+      "inputBits": "4038000000000001",
+      "output": 5.0,
+      "outputExact": "5.0000000000000000e0",
+      "outputBits": "4014000000000000",
+      "intermediates": {
+        "rough": 3.0000000000000004,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 23.999999999999996,
+      "inputExact": "2.3999999999999996e1",
+      "inputBits": "4037ffffffffffff",
+      "output": 2.0,
+      "outputExact": "2.0000000000000000e0",
+      "outputBits": "4000000000000000",
+      "intermediates": {
+        "rough": 2.9999999999999996,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 56.0,
+      "inputExact": "5.6000000000000000e1",
+      "inputBits": "404c000000000000",
+      "output": 5.0,
+      "outputExact": "5.0000000000000000e0",
+      "outputBits": "4014000000000000",
+      "intermediates": {
+        "rough": 7.0,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 56.00000000000001,
+      "inputExact": "5.6000000000000007e1",
+      "inputBits": "404c000000000001",
+      "output": 10.0,
+      "outputExact": "1.0000000000000000e1",
+      "outputBits": "4024000000000000",
+      "intermediates": {
+        "rough": 7.000000000000001,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 55.99999999999999,
+      "inputExact": "5.5999999999999993e1",
+      "inputBits": "404bffffffffffff",
+      "output": 5.0,
+      "outputExact": "5.0000000000000000e0",
+      "outputBits": "4014000000000000",
+      "intermediates": {
+        "rough": 6.999999999999999,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 64.0,
+      "inputExact": "6.4000000000000000e1",
+      "inputBits": "4050000000000000",
+      "output": 10.0,
+      "outputExact": "1.0000000000000000e1",
+      "outputBits": "4024000000000000",
+      "intermediates": {
+        "rough": 8.0,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 640.0,
+      "inputExact": "6.4000000000000000e2",
+      "inputBits": "4084000000000000",
+      "output": 100.0,
+      "outputExact": "1.0000000000000000e2",
+      "outputBits": "4059000000000000",
+      "intermediates": {
+        "rough": 80.0,
+        "floorLog10Rough": 1.0,
+        "mag": 10.0
+      }
+    },
+    {
+      "input": 0.064,
+      "inputExact": "6.4000000000000001e-2",
+      "inputBits": "3fb0624dd2f1a9fc",
+      "output": 0.01,
+      "outputExact": "1.0000000000000000e-2",
+      "outputBits": "3f847ae147ae147b",
+      "intermediates": {
+        "rough": 0.008,
+        "floorLog10Rough": -3.0,
+        "mag": 0.001
+      }
+    },
+    {
+      "input": 6400.0,
+      "inputExact": "6.4000000000000000e3",
+      "inputBits": "40b9000000000000",
+      "output": 1000.0,
+      "outputExact": "1.0000000000000000e3",
+      "outputBits": "408f400000000000",
+      "intermediates": {
+        "rough": 800.0,
+        "floorLog10Rough": 2.0,
+        "mag": 100.0
+      }
+    },
+    {
+      "input": 79.99,
+      "inputExact": "7.9989999999999995e1",
+      "inputBits": "4053ff5c28f5c28f",
+      "output": 10.0,
+      "outputExact": "1.0000000000000000e1",
+      "outputBits": "4024000000000000",
+      "intermediates": {
+        "rough": 9.99875,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 6.4e-06,
+      "inputExact": "6.3999999999999997e-6",
+      "inputBits": "3edad7f29abcaf48",
+      "output": 1e-06,
+      "outputExact": "9.9999999999999995e-7",
+      "outputBits": "3eb0c6f7a0b5ed8d",
+      "intermediates": {
+        "rough": 8e-07,
+        "floorLog10Rough": -7.0,
+        "mag": 1e-07
+      }
+    },
+    {
+      "input": 2.0,
+      "inputExact": "2.0000000000000000e0",
+      "inputBits": "4000000000000000",
+      "output": 0.2,
+      "outputExact": "2.0000000000000001e-1",
+      "outputBits": "3fc999999999999a",
+      "intermediates": {
+        "rough": 0.25,
+        "floorLog10Rough": -1.0,
+        "mag": 0.1
+      }
+    },
+    {
+      "input": 5.0,
+      "inputExact": "5.0000000000000000e0",
+      "inputBits": "4014000000000000",
+      "output": 0.5,
+      "outputExact": "5.0000000000000000e-1",
+      "outputBits": "3fe0000000000000",
+      "intermediates": {
+        "rough": 0.625,
+        "floorLog10Rough": -1.0,
+        "mag": 0.1
+      }
+    },
+    {
+      "input": 9.0,
+      "inputExact": "9.0000000000000000e0",
+      "inputBits": "4022000000000000",
+      "output": 1.0,
+      "outputExact": "1.0000000000000000e0",
+      "outputBits": "3ff0000000000000",
+      "intermediates": {
+        "rough": 1.125,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 10.0,
+      "inputExact": "1.0000000000000000e1",
+      "inputBits": "4024000000000000",
+      "output": 1.0,
+      "outputExact": "1.0000000000000000e0",
+      "outputBits": "3ff0000000000000",
+      "intermediates": {
+        "rough": 1.25,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 16.0,
+      "inputExact": "1.6000000000000000e1",
+      "inputBits": "4030000000000000",
+      "output": 2.0,
+      "outputExact": "2.0000000000000000e0",
+      "outputBits": "4000000000000000",
+      "intermediates": {
+        "rough": 2.0,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 18.0,
+      "inputExact": "1.8000000000000000e1",
+      "inputBits": "4032000000000000",
+      "output": 2.0,
+      "outputExact": "2.0000000000000000e0",
+      "outputBits": "4000000000000000",
+      "intermediates": {
+        "rough": 2.25,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 19.99,
+      "inputExact": "1.9989999999999998e1",
+      "inputBits": "4033fd70a3d70a3d",
+      "output": 2.0,
+      "outputExact": "2.0000000000000000e0",
+      "outputBits": "4000000000000000",
+      "intermediates": {
+        "rough": 2.49875,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 20.000000000000004,
+      "inputExact": "2.0000000000000004e1",
+      "inputBits": "4034000000000001",
+      "output": 2.0,
+      "outputExact": "2.0000000000000000e0",
+      "outputBits": "4000000000000000",
+      "intermediates": {
+        "rough": 2.5000000000000004,
+        "floorLog10Rough": 0.0,
+        "mag": 1.0
+      }
+    },
+    {
+      "input": 0.0001,
+      "inputExact": "1.0000000000000000e-4",
+      "inputBits": "3f1a36e2eb1c432d",
+      "output": 1e-05,
+      "outputExact": "1.0000000000000001e-5",
+      "outputBits": "3ee4f8b588e368f1",
+      "intermediates": {
+        "rough": 1.25e-05,
+        "floorLog10Rough": -5.0,
+        "mag": 1e-05
+      }
+    },
+    {
+      "input": 0.00012345,
+      "inputExact": "1.2344999999999999e-4",
+      "inputBits": "3f202e4b6ce5dc68",
+      "output": 2e-05,
+      "outputExact": "2.0000000000000002e-5",
+      "outputBits": "3ef4f8b588e368f1",
+      "intermediates": {
+        "rough": 1.543125e-05,
+        "floorLog10Rough": -5.0,
+        "mag": 1e-05
+      }
+    },
+    {
+      "input": 123456.789,
+      "inputExact": "1.2345678900000000e5",
+      "inputBits": "40fe240c9fbe76c9",
+      "output": 20000.0,
+      "outputExact": "2.0000000000000000e4",
+      "outputBits": "40d3880000000000",
+      "intermediates": {
+        "rough": 15432.098625,
+        "floorLog10Rough": 4.0,
+        "mag": 10000.0
+      }
+    },
+    {
+      "input": 1e-09,
+      "inputExact": "1.0000000000000001e-9",
+      "inputBits": "3e112e0be826d695",
+      "output": 1e-10,
+      "outputExact": "1.0000000000000000e-10",
+      "outputBits": "3ddb7cdfd9d7bdbb",
+      "intermediates": {
+        "rough": 1.25e-10,
+        "floorLog10Rough": -10.0,
+        "mag": 1e-10
+      }
+    },
+    {
+      "input": 1000000000000.0,
+      "inputExact": "1.0000000000000000e12",
+      "inputBits": "426d1a94a2000000",
+      "output": 100000000000.0,
+      "outputExact": "1.0000000000000000e11",
+      "outputBits": "42374876e8000000",
+      "intermediates": {
+        "rough": 125000000000.0,
+        "floorLog10Rough": 11.0,
+        "mag": 100000000000.0
+      }
+    },
+    {
+      "input": 1000000000000000.0,
+      "inputExact": "1.0000000000000000e15",
+      "inputBits": "430c6bf526340000",
+      "output": 100000000000000.0,
+      "outputExact": "1.0000000000000000e14",
+      "outputBits": "42d6bcc41e900000",
+      "intermediates": {
+        "rough": 125000000000000.0,
+        "floorLog10Rough": 14.0,
+        "mag": 100000000000000.0
+      }
+    },
+    {
+      "input": 3.3333333333333335,
+      "inputExact": "3.3333333333333335e0",
+      "inputBits": "400aaaaaaaaaaaab",
+      "output": 0.5,
+      "outputExact": "5.0000000000000000e-1",
+      "outputBits": "3fe0000000000000",
+      "intermediates": {
+        "rough": 0.4166666666666667,
+        "floorLog10Rough": -1.0,
+        "mag": 0.1
+      }
+    },
+    {
+      "input": 99.999,
+      "inputExact": "9.9998999999999995e1",
+      "inputBits": "4058ffef9db22d0e",
+      "output": 10.0,
+      "outputExact": "1.0000000000000000e1",
+      "outputBits": "4024000000000000",
+      "intermediates": {
+        "rough": 12.499875,
+        "floorLog10Rough": 1.0,
+        "mag": 10.0
+      }
+    },
+    {
+      "input": 0.019999999999999997,
+      "inputExact": "1.9999999999999997e-2",
+      "inputBits": "3f947ae147ae147a",
+      "output": 0.002,
+      "outputExact": "2.0000000000000000e-3",
+      "outputBits": "3f60624dd2f1a9fc",
+      "intermediates": {
+        "rough": 0.0024999999999999996,
+        "floorLog10Rough": -3.0,
+        "mag": 0.001
+      }
+    },
+    {
+      "input": 1e-07,
+      "inputExact": "9.9999999999999995e-8",
+      "inputBits": "3e7ad7f29abcaf48",
+      "output": 1e-08,
+      "outputExact": "1.0000000000000000e-8",
+      "outputBits": "3e45798ee2308c3a",
+      "intermediates": {
+        "rough": 1.25e-08,
+        "floorLog10Rough": -8.0,
+        "mag": 1e-08
+      }
+    },
+    {
+      "input": 7e-08,
+      "inputExact": "7.0000000000000005e-8",
+      "inputBits": "3e72ca5d05ea7ab3",
+      "output": 1e-08,
+      "outputExact": "1.0000000000000000e-8",
+      "outputBits": "3e45798ee2308c3a",
+      "intermediates": {
+        "rough": 8.75e-09,
+        "floorLog10Rough": -9.0,
+        "mag": 1e-09
+      }
+    },
+    {
+      "input": 0.0,
+      "inputExact": "0.0000000000000000e0",
+      "inputBits": "0000000000000000",
+      "output": 0.0,
+      "outputExact": "0.0000000000000000e0",
+      "outputBits": "0000000000000000",
+      "intermediates": {
+        "rough": 0.0,
+        "floorLog10Rough": "-inf",
+        "mag": 0.0
+      }
+    },
+    {
+      "input": -1.0,
+      "inputExact": "-1.0000000000000000e0",
+      "inputBits": "bff0000000000000",
+      "output": "nan",
+      "outputExact": "nan",
+      "outputBits": "7ff8000000000000",
+      "intermediates": {
+        "rough": -0.125,
+        "floorLog10Rough": "nan",
+        "mag": "nan"
+      }
+    },
+    {
+      "input": "nan",
+      "inputExact": "nan",
+      "inputBits": "7ff8000000000000",
+      "output": "nan",
+      "outputExact": "nan",
+      "outputBits": "7ff8000000000000",
+      "intermediates": {
+        "rough": "nan",
+        "floorLog10Rough": "nan",
+        "mag": "nan"
+      }
+    },
+    {
+      "input": "inf",
+      "inputExact": "inf",
+      "inputBits": "7ff0000000000000",
+      "output": "inf",
+      "outputExact": "inf",
+      "outputBits": "7ff0000000000000",
+      "intermediates": {
+        "rough": "inf",
+        "floorLog10Rough": "inf",
+        "mag": "inf"
+      }
+    },
+    {
+      "input": 2.2250738585072014e-308,
+      "inputExact": "2.2250738585072014e-308",
+      "inputBits": "0010000000000000",
+      "output": 2.000000000000004e-309,
+      "outputExact": "2.0000000000000038e-309",
+      "outputBits": "0001702ae4d1fb5e",
+      "intermediates": {
+        "rough": 2.781342323134e-309,
+        "floorLog10Rough": -309.0,
+        "mag": 1e-309
+      }
+    },
+    {
+      "input": 5e-324,
+      "inputExact": "4.9406564584124654e-324",
+      "inputBits": "0000000000000001",
+      "output": 0.0,
+      "outputExact": "0.0000000000000000e0",
+      "outputBits": "0000000000000000",
+      "intermediates": {
+        "rough": 0.0,
+        "floorLog10Rough": "-inf",
+        "mag": 0.0
+      }
+    }
+  ],
+  "formatLabel": [
+    {
+      "input": 0.0,
+      "inputExact": "0.0000000000000000e0",
+      "inputBits": "0000000000000000",
+      "output": "0",
+      "rustPrimitives": {
+        "fmt_1e": "0.0e0",
+        "fmt_2f": "0.00",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": -0.0,
+      "inputExact": "-0.0000000000000000e0",
+      "inputBits": "8000000000000000",
+      "output": "0",
+      "rustPrimitives": {
+        "fmt_1e": "-0.0e0",
+        "fmt_2f": "-0.00",
+        "as_i64": "0",
+        "round": "-0"
+      }
+    },
+    {
+      "input": 1.0,
+      "inputExact": "1.0000000000000000e0",
+      "inputBits": "3ff0000000000000",
+      "output": "1",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e0",
+        "fmt_2f": "1.00",
+        "as_i64": "1",
+        "round": "1"
+      }
+    },
+    {
+      "input": -1.0,
+      "inputExact": "-1.0000000000000000e0",
+      "inputBits": "bff0000000000000",
+      "output": "-1",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e0",
+        "fmt_2f": "-1.00",
+        "as_i64": "-1",
+        "round": "-1"
+      }
+    },
+    {
+      "input": 2.5,
+      "inputExact": "2.5000000000000000e0",
+      "inputBits": "4004000000000000",
+      "output": "2.50",
+      "rustPrimitives": {
+        "fmt_1e": "2.5e0",
+        "fmt_2f": "2.50",
+        "as_i64": "2",
+        "round": "3"
+      }
+    },
+    {
+      "input": -2.5,
+      "inputExact": "-2.5000000000000000e0",
+      "inputBits": "c004000000000000",
+      "output": "-2.50",
+      "rustPrimitives": {
+        "fmt_1e": "-2.5e0",
+        "fmt_2f": "-2.50",
+        "as_i64": "-2",
+        "round": "-3"
+      }
+    },
+    {
+      "input": 0.005,
+      "inputExact": "5.0000000000000001e-3",
+      "inputBits": "3f747ae147ae147b",
+      "output": "5.0e-3",
+      "rustPrimitives": {
+        "fmt_1e": "5.0e-3",
+        "fmt_2f": "0.01",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": -0.005,
+      "inputExact": "-5.0000000000000001e-3",
+      "inputBits": "bf747ae147ae147b",
+      "output": "-5.0e-3",
+      "rustPrimitives": {
+        "fmt_1e": "-5.0e-3",
+        "fmt_2f": "-0.01",
+        "as_i64": "0",
+        "round": "-0"
+      }
+    },
+    {
+      "input": 1000.0,
+      "inputExact": "1.0000000000000000e3",
+      "inputBits": "408f400000000000",
+      "output": "1.0e3",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e3",
+        "fmt_2f": "1000.00",
+        "as_i64": "1000",
+        "round": "1000"
+      }
+    },
+    {
+      "input": -1000.0,
+      "inputExact": "-1.0000000000000000e3",
+      "inputBits": "c08f400000000000",
+      "output": "-1.0e3",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e3",
+        "fmt_2f": "-1000.00",
+        "as_i64": "-1000",
+        "round": "-1000"
+      }
+    },
+    {
+      "input": 999.999,
+      "inputExact": "9.9999900000000002e2",
+      "inputBits": "408f3ffdf3b645a2",
+      "output": "1000.00",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e3",
+        "fmt_2f": "1000.00",
+        "as_i64": "999",
+        "round": "1000"
+      }
+    },
+    {
+      "input": -999.999,
+      "inputExact": "-9.9999900000000002e2",
+      "inputBits": "c08f3ffdf3b645a2",
+      "output": "-1000.00",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e3",
+        "fmt_2f": "-1000.00",
+        "as_i64": "-999",
+        "round": "-1000"
+      }
+    },
+    {
+      "input": 0.01,
+      "inputExact": "1.0000000000000000e-2",
+      "inputBits": "3f847ae147ae147b",
+      "output": "0.01",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e-2",
+        "fmt_2f": "0.01",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": -0.01,
+      "inputExact": "-1.0000000000000000e-2",
+      "inputBits": "bf847ae147ae147b",
+      "output": "-0.01",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e-2",
+        "fmt_2f": "-0.01",
+        "as_i64": "0",
+        "round": "-0"
+      }
+    },
+    {
+      "input": 0.1,
+      "inputExact": "1.0000000000000001e-1",
+      "inputBits": "3fb999999999999a",
+      "output": "0.10",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e-1",
+        "fmt_2f": "0.10",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": -0.1,
+      "inputExact": "-1.0000000000000001e-1",
+      "inputBits": "bfb999999999999a",
+      "output": "-0.10",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e-1",
+        "fmt_2f": "-0.10",
+        "as_i64": "0",
+        "round": "-0"
+      }
+    },
+    {
+      "input": 1000000.0,
+      "inputExact": "1.0000000000000000e6",
+      "inputBits": "412e848000000000",
+      "output": "1.0e6",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e6",
+        "fmt_2f": "1000000.00",
+        "as_i64": "1000000",
+        "round": "1000000"
+      }
+    },
+    {
+      "input": -1000000.0,
+      "inputExact": "-1.0000000000000000e6",
+      "inputBits": "c12e848000000000",
+      "output": "-1.0e6",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e6",
+        "fmt_2f": "-1000000.00",
+        "as_i64": "-1000000",
+        "round": "-1000000"
+      }
+    },
+    {
+      "input": 1e-07,
+      "inputExact": "9.9999999999999995e-8",
+      "inputBits": "3e7ad7f29abcaf48",
+      "output": "1.0e-7",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e-7",
+        "fmt_2f": "0.00",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": -1e-07,
+      "inputExact": "-9.9999999999999995e-8",
+      "inputBits": "be7ad7f29abcaf48",
+      "output": "-1.0e-7",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e-7",
+        "fmt_2f": "-0.00",
+        "as_i64": "0",
+        "round": "-0"
+      }
+    },
+    {
+      "input": 12345.0,
+      "inputExact": "1.2345000000000000e4",
+      "inputBits": "40c81c8000000000",
+      "output": "1.2e4",
+      "rustPrimitives": {
+        "fmt_1e": "1.2e4",
+        "fmt_2f": "12345.00",
+        "as_i64": "12345",
+        "round": "12345"
+      }
+    },
+    {
+      "input": -12345.0,
+      "inputExact": "-1.2345000000000000e4",
+      "inputBits": "c0c81c8000000000",
+      "output": "-1.2e4",
+      "rustPrimitives": {
+        "fmt_1e": "-1.2e4",
+        "fmt_2f": "-12345.00",
+        "as_i64": "-12345",
+        "round": "-12345"
+      }
+    },
+    {
+      "input": 0.009999,
+      "inputExact": "9.9989999999999992e-3",
+      "inputBits": "3f847a5b0ff10ecb",
+      "output": "1.0e-2",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e-2",
+        "fmt_2f": "0.01",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": -0.009999,
+      "inputExact": "-9.9989999999999992e-3",
+      "inputBits": "bf847a5b0ff10ecb",
+      "output": "-1.0e-2",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e-2",
+        "fmt_2f": "-0.01",
+        "as_i64": "0",
+        "round": "-0"
+      }
+    },
+    {
+      "input": 0.01,
+      "inputExact": "1.0000000000000000e-2",
+      "inputBits": "3f847ae147ae147b",
+      "output": "0.01",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e-2",
+        "fmt_2f": "0.01",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": -0.01,
+      "inputExact": "-1.0000000000000000e-2",
+      "inputBits": "bf847ae147ae147b",
+      "output": "-0.01",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e-2",
+        "fmt_2f": "-0.01",
+        "as_i64": "0",
+        "round": "-0"
+      }
+    },
+    {
+      "input": 99.995,
+      "inputExact": "9.9995000000000005e1",
+      "inputBits": "4058ffae147ae148",
+      "output": "100.00",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e2",
+        "fmt_2f": "100.00",
+        "as_i64": "99",
+        "round": "100"
+      }
+    },
+    {
+      "input": -99.995,
+      "inputExact": "-9.9995000000000005e1",
+      "inputBits": "c058ffae147ae148",
+      "output": "-100.00",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e2",
+        "fmt_2f": "-100.00",
+        "as_i64": "-99",
+        "round": "-100"
+      }
+    },
+    {
+      "input": 0.5,
+      "inputExact": "5.0000000000000000e-1",
+      "inputBits": "3fe0000000000000",
+      "output": "0.50",
+      "rustPrimitives": {
+        "fmt_1e": "5.0e-1",
+        "fmt_2f": "0.50",
+        "as_i64": "0",
+        "round": "1"
+      }
+    },
+    {
+      "input": -0.5,
+      "inputExact": "-5.0000000000000000e-1",
+      "inputBits": "bfe0000000000000",
+      "output": "-0.50",
+      "rustPrimitives": {
+        "fmt_1e": "-5.0e-1",
+        "fmt_2f": "-0.50",
+        "as_i64": "0",
+        "round": "-1"
+      }
+    },
+    {
+      "input": 0.001,
+      "inputExact": "1.0000000000000000e-3",
+      "inputBits": "3f50624dd2f1a9fc",
+      "output": "1.0e-3",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e-3",
+        "fmt_2f": "0.00",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": 1234.5,
+      "inputExact": "1.2345000000000000e3",
+      "inputBits": "40934a0000000000",
+      "output": "1.2e3",
+      "rustPrimitives": {
+        "fmt_1e": "1.2e3",
+        "fmt_2f": "1234.50",
+        "as_i64": "1234",
+        "round": "1235"
+      }
+    },
+    {
+      "input": -1234.5,
+      "inputExact": "-1.2345000000000000e3",
+      "inputBits": "c0934a0000000000",
+      "output": "-1.2e3",
+      "rustPrimitives": {
+        "fmt_1e": "-1.2e3",
+        "fmt_2f": "-1234.50",
+        "as_i64": "-1234",
+        "round": "-1235"
+      }
+    },
+    {
+      "input": 1250.0,
+      "inputExact": "1.2500000000000000e3",
+      "inputBits": "4093880000000000",
+      "output": "1.2e3",
+      "rustPrimitives": {
+        "fmt_1e": "1.2e3",
+        "fmt_2f": "1250.00",
+        "as_i64": "1250",
+        "round": "1250"
+      }
+    },
+    {
+      "input": -1250.0,
+      "inputExact": "-1.2500000000000000e3",
+      "inputBits": "c093880000000000",
+      "output": "-1.2e3",
+      "rustPrimitives": {
+        "fmt_1e": "-1.2e3",
+        "fmt_2f": "-1250.00",
+        "as_i64": "-1250",
+        "round": "-1250"
+      }
+    },
+    {
+      "input": 1350.0,
+      "inputExact": "1.3500000000000000e3",
+      "inputBits": "4095180000000000",
+      "output": "1.4e3",
+      "rustPrimitives": {
+        "fmt_1e": "1.4e3",
+        "fmt_2f": "1350.00",
+        "as_i64": "1350",
+        "round": "1350"
+      }
+    },
+    {
+      "input": 0.0125,
+      "inputExact": "1.2500000000000001e-2",
+      "inputBits": "3f8999999999999a",
+      "output": "0.01",
+      "rustPrimitives": {
+        "fmt_1e": "1.3e-2",
+        "fmt_2f": "0.01",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": -0.0125,
+      "inputExact": "-1.2500000000000001e-2",
+      "inputBits": "bf8999999999999a",
+      "output": "-0.01",
+      "rustPrimitives": {
+        "fmt_1e": "-1.3e-2",
+        "fmt_2f": "-0.01",
+        "as_i64": "0",
+        "round": "-0"
+      }
+    },
+    {
+      "input": 1050.0,
+      "inputExact": "1.0500000000000000e3",
+      "inputBits": "4090680000000000",
+      "output": "1.0e3",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e3",
+        "fmt_2f": "1050.00",
+        "as_i64": "1050",
+        "round": "1050"
+      }
+    },
+    {
+      "input": 999.9999999,
+      "inputExact": "9.9999999990000003e2",
+      "inputBits": "408f3ffffff29407",
+      "output": "1000.00",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e3",
+        "fmt_2f": "1000.00",
+        "as_i64": "999",
+        "round": "1000"
+      }
+    },
+    {
+      "input": 0.125,
+      "inputExact": "1.2500000000000000e-1",
+      "inputBits": "3fc0000000000000",
+      "output": "0.12",
+      "rustPrimitives": {
+        "fmt_1e": "1.2e-1",
+        "fmt_2f": "0.12",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": -0.125,
+      "inputExact": "-1.2500000000000000e-1",
+      "inputBits": "bfc0000000000000",
+      "output": "-0.12",
+      "rustPrimitives": {
+        "fmt_1e": "-1.2e-1",
+        "fmt_2f": "-0.12",
+        "as_i64": "0",
+        "round": "-0"
+      }
+    },
+    {
+      "input": 0.135,
+      "inputExact": "1.3500000000000001e-1",
+      "inputBits": "3fc147ae147ae148",
+      "output": "0.14",
+      "rustPrimitives": {
+        "fmt_1e": "1.4e-1",
+        "fmt_2f": "0.14",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": 2.675,
+      "inputExact": "2.6749999999999998e0",
+      "inputBits": "4005666666666666",
+      "output": "2.67",
+      "rustPrimitives": {
+        "fmt_1e": "2.7e0",
+        "fmt_2f": "2.67",
+        "as_i64": "2",
+        "round": "3"
+      }
+    },
+    {
+      "input": 1.005,
+      "inputExact": "1.0049999999999999e0",
+      "inputBits": "3ff0147ae147ae14",
+      "output": "1.00",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e0",
+        "fmt_2f": "1.00",
+        "as_i64": "1",
+        "round": "1"
+      }
+    },
+    {
+      "input": 0.045,
+      "inputExact": "4.4999999999999998e-2",
+      "inputBits": "3fa70a3d70a3d70a",
+      "output": "0.04",
+      "rustPrimitives": {
+        "fmt_1e": "4.5e-2",
+        "fmt_2f": "0.04",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": 0.055,
+      "inputExact": "5.5000000000000000e-2",
+      "inputBits": "3fac28f5c28f5c29",
+      "output": "0.06",
+      "rustPrimitives": {
+        "fmt_1e": "5.5e-2",
+        "fmt_2f": "0.06",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": 8.125,
+      "inputExact": "8.1250000000000000e0",
+      "inputBits": "4020400000000000",
+      "output": "8.12",
+      "rustPrimitives": {
+        "fmt_1e": "8.1e0",
+        "fmt_2f": "8.12",
+        "as_i64": "8",
+        "round": "8"
+      }
+    },
+    {
+      "input": -8.125,
+      "inputExact": "-8.1250000000000000e0",
+      "inputBits": "c020400000000000",
+      "output": "-8.12",
+      "rustPrimitives": {
+        "fmt_1e": "-8.1e0",
+        "fmt_2f": "-8.12",
+        "as_i64": "-8",
+        "round": "-8"
+      }
+    },
+    {
+      "input": 0.9999999999,
+      "inputExact": "9.9999999989999999e-1",
+      "inputBits": "3feffffffff24190",
+      "output": "0",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e0",
+        "fmt_2f": "1.00",
+        "as_i64": "0",
+        "round": "1"
+      }
+    },
+    {
+      "input": -0.9999999999,
+      "inputExact": "-9.9999999989999999e-1",
+      "inputBits": "bfeffffffff24190",
+      "output": "0",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e0",
+        "fmt_2f": "-1.00",
+        "as_i64": "0",
+        "round": "-1"
+      }
+    },
+    {
+      "input": 2.9999999996,
+      "inputExact": "2.9999999996000000e0",
+      "inputBits": "4007fffffff24190",
+      "output": "2",
+      "rustPrimitives": {
+        "fmt_1e": "3.0e0",
+        "fmt_2f": "3.00",
+        "as_i64": "2",
+        "round": "3"
+      }
+    },
+    {
+      "input": -2.9999999996,
+      "inputExact": "-2.9999999996000000e0",
+      "inputBits": "c007fffffff24190",
+      "output": "-2",
+      "rustPrimitives": {
+        "fmt_1e": "-3.0e0",
+        "fmt_2f": "-3.00",
+        "as_i64": "-2",
+        "round": "-3"
+      }
+    },
+    {
+      "input": 1.0000000001,
+      "inputExact": "1.0000000001000000e0",
+      "inputBits": "3ff000000006df38",
+      "output": "1",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e0",
+        "fmt_2f": "1.00",
+        "as_i64": "1",
+        "round": "1"
+      }
+    },
+    {
+      "input": -1.0000000001,
+      "inputExact": "-1.0000000001000000e0",
+      "inputBits": "bff000000006df38",
+      "output": "-1",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e0",
+        "fmt_2f": "-1.00",
+        "as_i64": "-1",
+        "round": "-1"
+      }
+    },
+    {
+      "input": 999.9999999999,
+      "inputExact": "9.9999999999989996e2",
+      "inputBits": "408f3ffffffffc90",
+      "output": "999",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e3",
+        "fmt_2f": "1000.00",
+        "as_i64": "999",
+        "round": "1000"
+      }
+    },
+    {
+      "input": -999.9999999999,
+      "inputExact": "-9.9999999999989996e2",
+      "inputBits": "c08f3ffffffffc90",
+      "output": "-999",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e3",
+        "fmt_2f": "-1000.00",
+        "as_i64": "-999",
+        "round": "-1000"
+      }
+    },
+    {
+      "input": 123.99999999995,
+      "inputExact": "1.2399999999995001e2",
+      "inputBits": "405efffffffff242",
+      "output": "123",
+      "rustPrimitives": {
+        "fmt_1e": "1.2e2",
+        "fmt_2f": "124.00",
+        "as_i64": "123",
+        "round": "124"
+      }
+    },
+    {
+      "input": -123.99999999995,
+      "inputExact": "-1.2399999999995001e2",
+      "inputBits": "c05efffffffff242",
+      "output": "-123",
+      "rustPrimitives": {
+        "fmt_1e": "-1.2e2",
+        "fmt_2f": "-124.00",
+        "as_i64": "-123",
+        "round": "-124"
+      }
+    },
+    {
+      "input": 999.9999999999999,
+      "inputExact": "9.9999999999999989e2",
+      "inputBits": "408f3fffffffffff",
+      "output": "999",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e3",
+        "fmt_2f": "1000.00",
+        "as_i64": "999",
+        "round": "1000"
+      }
+    },
+    {
+      "input": 0.009999999999999998,
+      "inputExact": "9.9999999999999985e-3",
+      "inputBits": "3f847ae147ae147a",
+      "output": "1.0e-2",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e-2",
+        "fmt_2f": "0.01",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": 0.010000000000000002,
+      "inputExact": "1.0000000000000002e-2",
+      "inputBits": "3f847ae147ae147c",
+      "output": "0.01",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e-2",
+        "fmt_2f": "0.01",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": "nan",
+      "inputExact": "nan",
+      "inputBits": "7ff8000000000000",
+      "output": "NaN",
+      "rustPrimitives": {
+        "fmt_1e": "NaN",
+        "fmt_2f": "NaN",
+        "as_i64": "0",
+        "round": "NaN"
+      }
+    },
+    {
+      "input": "inf",
+      "inputExact": "inf",
+      "inputBits": "7ff0000000000000",
+      "output": "inf",
+      "rustPrimitives": {
+        "fmt_1e": "inf",
+        "fmt_2f": "inf",
+        "as_i64": "9223372036854775807",
+        "round": "inf"
+      }
+    },
+    {
+      "input": "-inf",
+      "inputExact": "-inf",
+      "inputBits": "fff0000000000000",
+      "output": "-inf",
+      "rustPrimitives": {
+        "fmt_1e": "-inf",
+        "fmt_2f": "-inf",
+        "as_i64": "-9223372036854775808",
+        "round": "-inf"
+      }
+    },
+    {
+      "input": 1e+18,
+      "inputExact": "1.0000000000000000e18",
+      "inputBits": "43abc16d674ec800",
+      "output": "1.0e18",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e18",
+        "fmt_2f": "1000000000000000000.00",
+        "as_i64": "1000000000000000000",
+        "round": "1000000000000000000"
+      }
+    },
+    {
+      "input": -1e+18,
+      "inputExact": "-1.0000000000000000e18",
+      "inputBits": "c3abc16d674ec800",
+      "output": "-1.0e18",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e18",
+        "fmt_2f": "-1000000000000000000.00",
+        "as_i64": "-1000000000000000000",
+        "round": "-1000000000000000000"
+      }
+    },
+    {
+      "input": 1e+300,
+      "inputExact": "1.0000000000000001e300",
+      "inputBits": "7e37e43c8800759c",
+      "output": "1.0e300",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e300",
+        "fmt_2f": "1000000000000000052504760255204420248704468581108159154915854115511802457988908195786371375080447864043704443832883878176942523235360430575644792184786706982848387200926575803737830233794788090059368953234970799945081119038967640880074652742780142494579258788820056842838115669472196386865459400540160.00",
+        "as_i64": "9223372036854775807",
+        "round": "1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "input": -1e+300,
+      "inputExact": "-1.0000000000000001e300",
+      "inputBits": "fe37e43c8800759c",
+      "output": "-1.0e300",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e300",
+        "fmt_2f": "-1000000000000000052504760255204420248704468581108159154915854115511802457988908195786371375080447864043704443832883878176942523235360430575644792184786706982848387200926575803737830233794788090059368953234970799945081119038967640880074652742780142494579258788820056842838115669472196386865459400540160.00",
+        "as_i64": "-9223372036854775808",
+        "round": "-1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "input": 5e-324,
+      "inputExact": "4.9406564584124654e-324",
+      "inputBits": "0000000000000001",
+      "output": "4.9e-324",
+      "rustPrimitives": {
+        "fmt_1e": "4.9e-324",
+        "fmt_2f": "0.00",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": 1e-323,
+      "inputExact": "9.8813129168249309e-324",
+      "inputBits": "0000000000000002",
+      "output": "9.9e-324",
+      "rustPrimitives": {
+        "fmt_1e": "9.9e-324",
+        "fmt_2f": "0.00",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": 1000000000000000.0,
+      "inputExact": "1.0000000000000000e15",
+      "inputBits": "430c6bf526340000",
+      "output": "1.0e15",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e15",
+        "fmt_2f": "1000000000000000.00",
+        "as_i64": "1000000000000000",
+        "round": "1000000000000000"
+      }
+    },
+    {
+      "input": 100.0,
+      "inputExact": "1.0000000000000000e2",
+      "inputBits": "4059000000000000",
+      "output": "100",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e2",
+        "fmt_2f": "100.00",
+        "as_i64": "100",
+        "round": "100"
+      }
+    },
+    {
+      "input": 0.05,
+      "inputExact": "5.0000000000000003e-2",
+      "inputBits": "3fa999999999999a",
+      "output": "0.05",
+      "rustPrimitives": {
+        "fmt_1e": "5.0e-2",
+        "fmt_2f": "0.05",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": -0.05,
+      "inputExact": "-5.0000000000000003e-2",
+      "inputBits": "bfa999999999999a",
+      "output": "-0.05",
+      "rustPrimitives": {
+        "fmt_1e": "-5.0e-2",
+        "fmt_2f": "-0.05",
+        "as_i64": "0",
+        "round": "-0"
+      }
+    },
+    {
+      "input": 3.14159,
+      "inputExact": "3.1415899999999999e0",
+      "inputBits": "400921f9f01b866e",
+      "output": "3.14",
+      "rustPrimitives": {
+        "fmt_1e": "3.1e0",
+        "fmt_2f": "3.14",
+        "as_i64": "3",
+        "round": "3"
+      }
+    },
+    {
+      "input": -3.14159,
+      "inputExact": "-3.1415899999999999e0",
+      "inputBits": "c00921f9f01b866e",
+      "output": "-3.14",
+      "rustPrimitives": {
+        "fmt_1e": "-3.1e0",
+        "fmt_2f": "-3.14",
+        "as_i64": "-3",
+        "round": "-3"
+      }
+    },
+    {
+      "input": 1.5,
+      "inputExact": "1.5000000000000000e0",
+      "inputBits": "3ff8000000000000",
+      "output": "1.50",
+      "rustPrimitives": {
+        "fmt_1e": "1.5e0",
+        "fmt_2f": "1.50",
+        "as_i64": "1",
+        "round": "2"
+      }
+    },
+    {
+      "input": 42.0,
+      "inputExact": "4.2000000000000000e1",
+      "inputBits": "4045000000000000",
+      "output": "42",
+      "rustPrimitives": {
+        "fmt_1e": "4.2e1",
+        "fmt_2f": "42.00",
+        "as_i64": "42",
+        "round": "42"
+      }
+    },
+    {
+      "input": -42.0,
+      "inputExact": "-4.2000000000000000e1",
+      "inputBits": "c045000000000000",
+      "output": "-42",
+      "rustPrimitives": {
+        "fmt_1e": "-4.2e1",
+        "fmt_2f": "-42.00",
+        "as_i64": "-42",
+        "round": "-42"
+      }
+    },
+    {
+      "input": -10.0,
+      "inputExact": "-1.0000000000000000e1",
+      "inputBits": "c024000000000000",
+      "output": "-10",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e1",
+        "fmt_2f": "-10.00",
+        "as_i64": "-10",
+        "round": "-10"
+      }
+    },
+    {
+      "input": -8.0,
+      "inputExact": "-8.0000000000000000e0",
+      "inputBits": "c020000000000000",
+      "output": "-8",
+      "rustPrimitives": {
+        "fmt_1e": "-8.0e0",
+        "fmt_2f": "-8.00",
+        "as_i64": "-8",
+        "round": "-8"
+      }
+    },
+    {
+      "input": -6.0,
+      "inputExact": "-6.0000000000000000e0",
+      "inputBits": "c018000000000000",
+      "output": "-6",
+      "rustPrimitives": {
+        "fmt_1e": "-6.0e0",
+        "fmt_2f": "-6.00",
+        "as_i64": "-6",
+        "round": "-6"
+      }
+    },
+    {
+      "input": -4.0,
+      "inputExact": "-4.0000000000000000e0",
+      "inputBits": "c010000000000000",
+      "output": "-4",
+      "rustPrimitives": {
+        "fmt_1e": "-4.0e0",
+        "fmt_2f": "-4.00",
+        "as_i64": "-4",
+        "round": "-4"
+      }
+    },
+    {
+      "input": -2.0,
+      "inputExact": "-2.0000000000000000e0",
+      "inputBits": "c000000000000000",
+      "output": "-2",
+      "rustPrimitives": {
+        "fmt_1e": "-2.0e0",
+        "fmt_2f": "-2.00",
+        "as_i64": "-2",
+        "round": "-2"
+      }
+    },
+    {
+      "input": 0.0,
+      "inputExact": "0.0000000000000000e0",
+      "inputBits": "0000000000000000",
+      "output": "0",
+      "rustPrimitives": {
+        "fmt_1e": "0.0e0",
+        "fmt_2f": "0.00",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": 2.0,
+      "inputExact": "2.0000000000000000e0",
+      "inputBits": "4000000000000000",
+      "output": "2",
+      "rustPrimitives": {
+        "fmt_1e": "2.0e0",
+        "fmt_2f": "2.00",
+        "as_i64": "2",
+        "round": "2"
+      }
+    },
+    {
+      "input": 4.0,
+      "inputExact": "4.0000000000000000e0",
+      "inputBits": "4010000000000000",
+      "output": "4",
+      "rustPrimitives": {
+        "fmt_1e": "4.0e0",
+        "fmt_2f": "4.00",
+        "as_i64": "4",
+        "round": "4"
+      }
+    },
+    {
+      "input": 6.0,
+      "inputExact": "6.0000000000000000e0",
+      "inputBits": "4018000000000000",
+      "output": "6",
+      "rustPrimitives": {
+        "fmt_1e": "6.0e0",
+        "fmt_2f": "6.00",
+        "as_i64": "6",
+        "round": "6"
+      }
+    },
+    {
+      "input": 8.0,
+      "inputExact": "8.0000000000000000e0",
+      "inputBits": "4020000000000000",
+      "output": "8",
+      "rustPrimitives": {
+        "fmt_1e": "8.0e0",
+        "fmt_2f": "8.00",
+        "as_i64": "8",
+        "round": "8"
+      }
+    },
+    {
+      "input": 10.0,
+      "inputExact": "1.0000000000000000e1",
+      "inputBits": "4024000000000000",
+      "output": "10",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e1",
+        "fmt_2f": "10.00",
+        "as_i64": "10",
+        "round": "10"
+      }
+    },
+    {
+      "input": -2.0,
+      "inputExact": "-2.0000000000000000e0",
+      "inputBits": "c000000000000000",
+      "output": "-2",
+      "rustPrimitives": {
+        "fmt_1e": "-2.0e0",
+        "fmt_2f": "-2.00",
+        "as_i64": "-2",
+        "round": "-2"
+      }
+    },
+    {
+      "input": -1.5,
+      "inputExact": "-1.5000000000000000e0",
+      "inputBits": "bff8000000000000",
+      "output": "-1.50",
+      "rustPrimitives": {
+        "fmt_1e": "-1.5e0",
+        "fmt_2f": "-1.50",
+        "as_i64": "-1",
+        "round": "-2"
+      }
+    },
+    {
+      "input": -1.0,
+      "inputExact": "-1.0000000000000000e0",
+      "inputBits": "bff0000000000000",
+      "output": "-1",
+      "rustPrimitives": {
+        "fmt_1e": "-1.0e0",
+        "fmt_2f": "-1.00",
+        "as_i64": "-1",
+        "round": "-1"
+      }
+    },
+    {
+      "input": -0.5,
+      "inputExact": "-5.0000000000000000e-1",
+      "inputBits": "bfe0000000000000",
+      "output": "-0.50",
+      "rustPrimitives": {
+        "fmt_1e": "-5.0e-1",
+        "fmt_2f": "-0.50",
+        "as_i64": "0",
+        "round": "-1"
+      }
+    },
+    {
+      "input": 0.0,
+      "inputExact": "0.0000000000000000e0",
+      "inputBits": "0000000000000000",
+      "output": "0",
+      "rustPrimitives": {
+        "fmt_1e": "0.0e0",
+        "fmt_2f": "0.00",
+        "as_i64": "0",
+        "round": "0"
+      }
+    },
+    {
+      "input": 0.5,
+      "inputExact": "5.0000000000000000e-1",
+      "inputBits": "3fe0000000000000",
+      "output": "0.50",
+      "rustPrimitives": {
+        "fmt_1e": "5.0e-1",
+        "fmt_2f": "0.50",
+        "as_i64": "0",
+        "round": "1"
+      }
+    },
+    {
+      "input": 1.0,
+      "inputExact": "1.0000000000000000e0",
+      "inputBits": "3ff0000000000000",
+      "output": "1",
+      "rustPrimitives": {
+        "fmt_1e": "1.0e0",
+        "fmt_2f": "1.00",
+        "as_i64": "1",
+        "round": "1"
+      }
+    },
+    {
+      "input": 1.5,
+      "inputExact": "1.5000000000000000e0",
+      "inputBits": "3ff8000000000000",
+      "output": "1.50",
+      "rustPrimitives": {
+        "fmt_1e": "1.5e0",
+        "fmt_2f": "1.50",
+        "as_i64": "1",
+        "round": "2"
+      }
+    },
+    {
+      "input": 2.0,
+      "inputExact": "2.0000000000000000e0",
+      "inputBits": "4000000000000000",
+      "output": "2",
+      "rustPrimitives": {
+        "fmt_1e": "2.0e0",
+        "fmt_2f": "2.00",
+        "as_i64": "2",
+        "round": "2"
+      }
+    }
+  ],
+  "eval": [
+    {
+      "expr": "asinh(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": 0.881373587019543,
+      "resultExact": "8.8137358701954305e-1",
+      "resultBits": "3fec34366179d427",
+      "processed": "math::asinh(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "asinh(x)",
+      "x": -2.0,
+      "xExact": "-2.0000000000000000e0",
+      "xBits": "c000000000000000",
+      "result": -1.4436354751788103,
+      "resultExact": "-1.4436354751788103e0",
+      "resultBits": "bff719218313d087",
+      "processed": "math::asinh(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "acosh(x)",
+      "x": 2.0,
+      "xExact": "2.0000000000000000e0",
+      "xBits": "4000000000000000",
+      "result": 1.3169578969248166,
+      "resultExact": "1.3169578969248166e0",
+      "resultBits": "3ff5124271980434",
+      "processed": "math::acosh(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "acosh(x)",
+      "x": 0.5,
+      "xExact": "5.0000000000000000e-1",
+      "xBits": "3fe0000000000000",
+      "result": "nan",
+      "resultExact": "nan",
+      "resultBits": "7ff8000000000000",
+      "processed": "math::acosh(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "atanh(x)",
+      "x": 0.5,
+      "xExact": "5.0000000000000000e-1",
+      "xBits": "3fe0000000000000",
+      "result": 0.5493061443340549,
+      "resultExact": "5.4930614433405489e-1",
+      "resultBits": "3fe193ea7aad030b",
+      "processed": "math::atanh(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "atanh(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "inf",
+      "resultExact": "inf",
+      "resultBits": "7ff0000000000000",
+      "processed": "math::atanh(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "asin(x)",
+      "x": 0.5,
+      "xExact": "5.0000000000000000e-1",
+      "xBits": "3fe0000000000000",
+      "result": 0.5235987755982988,
+      "resultExact": "5.2359877559829882e-1",
+      "resultBits": "3fe0c152382d7365",
+      "processed": "math::asin(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "asin(x)",
+      "x": 2.0,
+      "xExact": "2.0000000000000000e0",
+      "xBits": "4000000000000000",
+      "result": "nan",
+      "resultExact": "nan",
+      "resultBits": "7ff8000000000000",
+      "processed": "math::asin(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "acos(x)",
+      "x": 0.5,
+      "xExact": "5.0000000000000000e-1",
+      "xBits": "3fe0000000000000",
+      "result": 1.0471975511965976,
+      "resultExact": "1.0471975511965976e0",
+      "resultBits": "3ff0c152382d7365",
+      "processed": "math::acos(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "acos(x)",
+      "x": 2.0,
+      "xExact": "2.0000000000000000e0",
+      "xBits": "4000000000000000",
+      "result": "nan",
+      "resultExact": "nan",
+      "resultBits": "7ff8000000000000",
+      "processed": "math::acos(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "atan2(x,1)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": 0.7853981633974483,
+      "resultExact": "7.8539816339744828e-1",
+      "resultBits": "3fe921fb54442d18",
+      "processed": "math::atan2(x,1)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "atan2(x,0)",
+      "x": -1.0,
+      "xExact": "-1.0000000000000000e0",
+      "xBits": "bff0000000000000",
+      "result": -1.5707963267948966,
+      "resultExact": "-1.5707963267948966e0",
+      "resultBits": "bff921fb54442d18",
+      "processed": "math::atan2(x,0)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "atan(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": 0.7853981633974483,
+      "resultExact": "7.8539816339744828e-1",
+      "resultBits": "3fe921fb54442d18",
+      "processed": "math::atan(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "atan(x)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 0.0,
+      "resultExact": "0.0000000000000000e0",
+      "resultBits": "0000000000000000",
+      "processed": "math::atan(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "sinh(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": 1.1752011936438014,
+      "resultExact": "1.1752011936438014e0",
+      "resultBits": "3ff2cd9fc44eb982",
+      "processed": "math::sinh(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "sinh(x)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 0.0,
+      "resultExact": "0.0000000000000000e0",
+      "resultBits": "0000000000000000",
+      "processed": "math::sinh(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "cosh(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": 1.5430806348152437,
+      "resultExact": "1.5430806348152437e0",
+      "resultBits": "3ff8b07551d9f550",
+      "processed": "math::cosh(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "cosh(x)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 1.0,
+      "resultExact": "1.0000000000000000e0",
+      "resultBits": "3ff0000000000000",
+      "processed": "math::cosh(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "tanh(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": 0.7615941559557649,
+      "resultExact": "7.6159415595576485e-1",
+      "resultBits": "3fe85efab514f394",
+      "processed": "math::tanh(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "tanh(x)",
+      "x": 100.0,
+      "xExact": "1.0000000000000000e2",
+      "xBits": "4059000000000000",
+      "result": 1.0,
+      "resultExact": "1.0000000000000000e0",
+      "resultBits": "3ff0000000000000",
+      "processed": "math::tanh(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "sin(x)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 0.0,
+      "resultExact": "0.0000000000000000e0",
+      "resultBits": "0000000000000000",
+      "processed": "math::sin(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "sin(x)",
+      "x": 3.141592653589793,
+      "xExact": "3.1415926535897931e0",
+      "xBits": "400921fb54442d18",
+      "result": 1.2246467991473532e-16,
+      "resultExact": "1.2246467991473532e-16",
+      "resultBits": "3ca1a62633145c07",
+      "processed": "math::sin(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "sin(pi)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 1.2246467991473532e-16,
+      "resultExact": "1.2246467991473532e-16",
+      "resultBits": "3ca1a62633145c07",
+      "processed": "math::sin(pi)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "sin(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": 0.8414709848078965,
+      "resultExact": "8.4147098480789650e-1",
+      "resultBits": "3feaed548f090cee",
+      "processed": "math::sin(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "cos(x)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 1.0,
+      "resultExact": "1.0000000000000000e0",
+      "resultBits": "3ff0000000000000",
+      "processed": "math::cos(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "cos(x)",
+      "x": 3.141592653589793,
+      "xExact": "3.1415926535897931e0",
+      "xBits": "400921fb54442d18",
+      "result": -1.0,
+      "resultExact": "-1.0000000000000000e0",
+      "resultBits": "bff0000000000000",
+      "processed": "math::cos(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "tan(x)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 0.0,
+      "resultExact": "0.0000000000000000e0",
+      "resultBits": "0000000000000000",
+      "processed": "math::tan(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "tan(x)",
+      "x": 1.5707963267948966,
+      "xExact": "1.5707963267948966e0",
+      "xBits": "3ff921fb54442d18",
+      "result": 1.633123935319537e+16,
+      "resultExact": "1.6331239353195370e16",
+      "resultBits": "434d02967c31cdb5",
+      "processed": "math::tan(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "sqrt(x)",
+      "x": 4.0,
+      "xExact": "4.0000000000000000e0",
+      "xBits": "4010000000000000",
+      "result": 2.0,
+      "resultExact": "2.0000000000000000e0",
+      "resultBits": "4000000000000000",
+      "processed": "math::sqrt(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "sqrt(x)",
+      "x": -1.0,
+      "xExact": "-1.0000000000000000e0",
+      "xBits": "bff0000000000000",
+      "result": "nan",
+      "resultExact": "nan",
+      "resultBits": "7ff8000000000000",
+      "processed": "math::sqrt(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "sqrt(-1)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "nan",
+      "resultExact": "nan",
+      "resultBits": "7ff8000000000000",
+      "processed": "math::sqrt(-1)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "cbrt(x)",
+      "x": 8.0,
+      "xExact": "8.0000000000000000e0",
+      "xBits": "4020000000000000",
+      "result": 2.0,
+      "resultExact": "2.0000000000000000e0",
+      "resultBits": "4000000000000000",
+      "processed": "math::cbrt(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "cbrt(x)",
+      "x": -8.0,
+      "xExact": "-8.0000000000000000e0",
+      "xBits": "c020000000000000",
+      "result": -2.0,
+      "resultExact": "-2.0000000000000000e0",
+      "resultBits": "c000000000000000",
+      "processed": "math::cbrt(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "abs(x)",
+      "x": -3.5,
+      "xExact": "-3.5000000000000000e0",
+      "xBits": "c00c000000000000",
+      "result": 3.5,
+      "resultExact": "3.5000000000000000e0",
+      "resultBits": "400c000000000000",
+      "processed": "math::abs(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "abs(-3)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 3.0,
+      "resultExact": "3.0000000000000000e0",
+      "resultBits": "4008000000000000",
+      "processed": "math::abs(-3)",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "abs(x)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 0.0,
+      "resultExact": "0.0000000000000000e0",
+      "resultBits": "0000000000000000",
+      "processed": "math::abs(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "exp2(x)",
+      "x": 10.0,
+      "xExact": "1.0000000000000000e1",
+      "xBits": "4024000000000000",
+      "result": 1024.0,
+      "resultExact": "1.0240000000000000e3",
+      "resultBits": "4090000000000000",
+      "processed": "math::exp2(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "exp2(x)",
+      "x": 0.5,
+      "xExact": "5.0000000000000000e-1",
+      "xBits": "3fe0000000000000",
+      "result": 1.4142135623730951,
+      "resultExact": "1.4142135623730951e0",
+      "resultBits": "3ff6a09e667f3bcd",
+      "processed": "math::exp2(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "exp(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": 2.718281828459045,
+      "resultExact": "2.7182818284590451e0",
+      "resultBits": "4005bf0a8b145769",
+      "processed": "math::exp(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "exp(x)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 1.0,
+      "resultExact": "1.0000000000000000e0",
+      "resultBits": "3ff0000000000000",
+      "processed": "math::exp(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "exp(x)",
+      "x": 1000.0,
+      "xExact": "1.0000000000000000e3",
+      "xBits": "408f400000000000",
+      "result": "inf",
+      "resultExact": "inf",
+      "resultBits": "7ff0000000000000",
+      "processed": "math::exp(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "log10(x)",
+      "x": 1000.0,
+      "xExact": "1.0000000000000000e3",
+      "xBits": "408f400000000000",
+      "result": 3.0,
+      "resultExact": "3.0000000000000000e0",
+      "resultBits": "4008000000000000",
+      "processed": "math::log10(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "log10(x)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "-inf",
+      "resultExact": "-inf",
+      "resultBits": "fff0000000000000",
+      "processed": "math::log10(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "log2(x)",
+      "x": 8.0,
+      "xExact": "8.0000000000000000e0",
+      "xBits": "4020000000000000",
+      "result": 3.0,
+      "resultExact": "3.0000000000000000e0",
+      "resultBits": "4008000000000000",
+      "processed": "math::log2(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "log2(x)",
+      "x": -1.0,
+      "xExact": "-1.0000000000000000e0",
+      "xBits": "bff0000000000000",
+      "result": "nan",
+      "resultExact": "nan",
+      "resultBits": "7ff8000000000000",
+      "processed": "math::log2(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "ln(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": 0.0,
+      "resultExact": "0.0000000000000000e0",
+      "resultBits": "0000000000000000",
+      "processed": "math::ln(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "ln(x)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "-inf",
+      "resultExact": "-inf",
+      "resultBits": "fff0000000000000",
+      "processed": "math::ln(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "ln(0)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "-inf",
+      "resultExact": "-inf",
+      "resultBits": "fff0000000000000",
+      "processed": "math::ln(0)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "ln(x)",
+      "x": -1.0,
+      "xExact": "-1.0000000000000000e0",
+      "xBits": "bff0000000000000",
+      "result": "nan",
+      "resultExact": "nan",
+      "resultBits": "7ff8000000000000",
+      "processed": "math::ln(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "floor(x)",
+      "x": 2.7,
+      "xExact": "2.7000000000000002e0",
+      "xBits": "400599999999999a",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "math::floor(x)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"math::floor\"."
+    },
+    {
+      "expr": "floor(x)",
+      "x": -2.5,
+      "xExact": "-2.5000000000000000e0",
+      "xBits": "c004000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "math::floor(x)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"math::floor\"."
+    },
+    {
+      "expr": "ceil(x)",
+      "x": 2.1,
+      "xExact": "2.1000000000000001e0",
+      "xBits": "4000cccccccccccd",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "math::ceil(x)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"math::ceil\"."
+    },
+    {
+      "expr": "ceil(x)",
+      "x": -2.5,
+      "xExact": "-2.5000000000000000e0",
+      "xBits": "c004000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "math::ceil(x)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"math::ceil\"."
+    },
+    {
+      "expr": "round(x)",
+      "x": 2.5,
+      "xExact": "2.5000000000000000e0",
+      "xBits": "4004000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "math::round(x)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"math::round\"."
+    },
+    {
+      "expr": "round(x)",
+      "x": -2.5,
+      "xExact": "-2.5000000000000000e0",
+      "xBits": "c004000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "math::round(x)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"math::round\"."
+    },
+    {
+      "expr": "round(x)",
+      "x": 0.5,
+      "xExact": "5.0000000000000000e-1",
+      "xBits": "3fe0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "math::round(x)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"math::round\"."
+    },
+    {
+      "expr": "math::floor(x)",
+      "x": 2.7,
+      "xExact": "2.7000000000000002e0",
+      "xBits": "400599999999999a",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "math::floor(x)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"math::floor\"."
+    },
+    {
+      "expr": "pow(x,2)",
+      "x": 3.0,
+      "xExact": "3.0000000000000000e0",
+      "xBits": "4008000000000000",
+      "result": 9.0,
+      "resultExact": "9.0000000000000000e0",
+      "resultBits": "4022000000000000",
+      "processed": "math::pow(x,2)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "pow(2,x)",
+      "x": 0.5,
+      "xExact": "5.0000000000000000e-1",
+      "xBits": "3fe0000000000000",
+      "result": 1.4142135623730951,
+      "resultExact": "1.4142135623730951e0",
+      "resultBits": "3ff6a09e667f3bcd",
+      "processed": "math::pow(2,x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "pow(x,0.5)",
+      "x": -8.0,
+      "xExact": "-8.0000000000000000e0",
+      "xBits": "c020000000000000",
+      "result": "nan",
+      "resultExact": "nan",
+      "resultBits": "7ff8000000000000",
+      "processed": "math::pow(x,0.5)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "hypot(x,4)",
+      "x": 3.0,
+      "xExact": "3.0000000000000000e0",
+      "xBits": "4008000000000000",
+      "result": 5.0,
+      "resultExact": "5.0000000000000000e0",
+      "resultBits": "4014000000000000",
+      "processed": "math::hypot(x,4)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "hypot(x,0)",
+      "x": -5.0,
+      "xExact": "-5.0000000000000000e0",
+      "xBits": "c014000000000000",
+      "result": 5.0,
+      "resultExact": "5.0000000000000000e0",
+      "resultBits": "4014000000000000",
+      "processed": "math::hypot(x,0)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "pi",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 3.141592653589793,
+      "resultExact": "3.1415926535897931e0",
+      "resultBits": "400921fb54442d18",
+      "processed": "pi",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "e",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 2.718281828459045,
+      "resultExact": "2.7182818284590451e0",
+      "resultBits": "4005bf0a8b145769",
+      "processed": "e",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "pi*2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 6.283185307179586,
+      "resultExact": "6.2831853071795862e0",
+      "resultBits": "401921fb54442d18",
+      "processed": "pi*2",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "e^2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 7.3890560989306495,
+      "resultExact": "7.3890560989306495e0",
+      "resultBits": "401d8e64b8d4ddad",
+      "processed": "e^2",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "x",
+      "x": 2.5,
+      "xExact": "2.5000000000000000e0",
+      "xBits": "4004000000000000",
+      "result": 2.5,
+      "resultExact": "2.5000000000000000e0",
+      "resultBits": "4004000000000000",
+      "processed": "x",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "x",
+      "x": -0.0,
+      "xExact": "-0.0000000000000000e0",
+      "xBits": "8000000000000000",
+      "result": -0.0,
+      "resultExact": "-0.0000000000000000e0",
+      "resultBits": "8000000000000000",
+      "processed": "x",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "2+3",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 5.0,
+      "resultExact": "5.0000000000000000e0",
+      "resultBits": "4014000000000000",
+      "processed": "2+3",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "2.0+3",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 5.0,
+      "resultExact": "5.0000000000000000e0",
+      "resultBits": "4014000000000000",
+      "processed": "2.0+3",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "2-3",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": -1.0,
+      "resultExact": "-1.0000000000000000e0",
+      "resultBits": "bff0000000000000",
+      "processed": "2-3",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "2*3",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 6.0,
+      "resultExact": "6.0000000000000000e0",
+      "resultBits": "4018000000000000",
+      "processed": "2*3",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "2*3.0",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 6.0,
+      "resultExact": "6.0000000000000000e0",
+      "resultBits": "4018000000000000",
+      "processed": "2*3.0",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "5/2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 2.0,
+      "resultExact": "2.0000000000000000e0",
+      "resultBits": "4000000000000000",
+      "processed": "5/2",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "5.0/2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 2.5,
+      "resultExact": "2.5000000000000000e0",
+      "resultBits": "4004000000000000",
+      "processed": "5.0/2",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "5/2.0",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 2.5,
+      "resultExact": "2.5000000000000000e0",
+      "resultBits": "4004000000000000",
+      "processed": "5/2.0",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "4/2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 2.0,
+      "resultExact": "2.0000000000000000e0",
+      "resultBits": "4000000000000000",
+      "processed": "4/2",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "-7/2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": -3.0,
+      "resultExact": "-3.0000000000000000e0",
+      "resultBits": "c008000000000000",
+      "processed": "-7/2",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "7/2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 3.0,
+      "resultExact": "3.0000000000000000e0",
+      "resultBits": "4008000000000000",
+      "processed": "7/2",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "5%2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 1.0,
+      "resultExact": "1.0000000000000000e0",
+      "resultBits": "3ff0000000000000",
+      "processed": "5%2",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "5.5%2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 1.5,
+      "resultExact": "1.5000000000000000e0",
+      "resultBits": "3ff8000000000000",
+      "processed": "5.5%2",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "-7%3",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": -1.0,
+      "resultExact": "-1.0000000000000000e0",
+      "resultBits": "bff0000000000000",
+      "processed": "-7%3",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "7%-3",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 1.0,
+      "resultExact": "1.0000000000000000e0",
+      "resultBits": "3ff0000000000000",
+      "processed": "7%-3",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "2^3",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 8.0,
+      "resultExact": "8.0000000000000000e0",
+      "resultBits": "4020000000000000",
+      "processed": "2^3",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "2^0.5",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 1.4142135623730951,
+      "resultExact": "1.4142135623730951e0",
+      "resultBits": "3ff6a09e667f3bcd",
+      "processed": "2^0.5",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "2^-1",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 0.5,
+      "resultExact": "5.0000000000000000e-1",
+      "resultBits": "3fe0000000000000",
+      "processed": "2^-1",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "0^0",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 1.0,
+      "resultExact": "1.0000000000000000e0",
+      "resultBits": "3ff0000000000000",
+      "processed": "0^0",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "2^63",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 9.223372036854776e+18,
+      "resultExact": "9.2233720368547758e18",
+      "resultBits": "43e0000000000000",
+      "processed": "2^63",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "(-8)^0.5",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "nan",
+      "resultExact": "nan",
+      "resultBits": "7ff8000000000000",
+      "processed": "(-8)^0.5",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "-x",
+      "x": 3.0,
+      "xExact": "3.0000000000000000e0",
+      "xBits": "4008000000000000",
+      "result": -3.0,
+      "resultExact": "-3.0000000000000000e0",
+      "resultBits": "c008000000000000",
+      "processed": "-x",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "--x",
+      "x": 3.0,
+      "xExact": "3.0000000000000000e0",
+      "xBits": "4008000000000000",
+      "result": 3.0,
+      "resultExact": "3.0000000000000000e0",
+      "resultBits": "4008000000000000",
+      "processed": "--x",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "- x",
+      "x": 3.0,
+      "xExact": "3.0000000000000000e0",
+      "xBits": "4008000000000000",
+      "result": -3.0,
+      "resultExact": "-3.0000000000000000e0",
+      "resultBits": "c008000000000000",
+      "processed": "- x",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "1/0",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "1/0",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Error dividing 1 / 0"
+    },
+    {
+      "expr": "0/0",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "0/0",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Error dividing 0 / 0"
+    },
+    {
+      "expr": "1.0/0.0",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "inf",
+      "resultExact": "inf",
+      "resultBits": "7ff0000000000000",
+      "processed": "1.0/0.0",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "0.0/0.0",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "nan",
+      "resultExact": "nan",
+      "resultBits": "7ff8000000000000",
+      "processed": "0.0/0.0",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "-1.0/0.0",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "-inf",
+      "resultExact": "-inf",
+      "resultBits": "fff0000000000000",
+      "processed": "-1.0/0.0",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "1/x",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "inf",
+      "resultExact": "inf",
+      "resultBits": "7ff0000000000000",
+      "processed": "1/x",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "1/x",
+      "x": 0.5,
+      "xExact": "5.0000000000000000e-1",
+      "xBits": "3fe0000000000000",
+      "result": 2.0,
+      "resultExact": "2.0000000000000000e0",
+      "resultBits": "4000000000000000",
+      "processed": "1/x",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "x/0",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "inf",
+      "resultExact": "inf",
+      "resultBits": "7ff0000000000000",
+      "processed": "x/0",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "1%0",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "1%0",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Error modulating 1 % 0"
+    },
+    {
+      "expr": "1.0%0.0",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "nan",
+      "resultExact": "nan",
+      "resultBits": "7ff8000000000000",
+      "processed": "1.0%0.0",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "x==1",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "x==1",
+      "evalexprType": "boolean",
+      "evalexprDetail": "false"
+    },
+    {
+      "expr": "x!=1",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "x!=1",
+      "evalexprType": "boolean",
+      "evalexprDetail": "true"
+    },
+    {
+      "expr": "x<1",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "x<1",
+      "evalexprType": "boolean",
+      "evalexprDetail": "true"
+    },
+    {
+      "expr": "x<=1",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "x<=1",
+      "evalexprType": "boolean",
+      "evalexprDetail": "true"
+    },
+    {
+      "expr": "x>1",
+      "x": 2.0,
+      "xExact": "2.0000000000000000e0",
+      "xBits": "4000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "x>1",
+      "evalexprType": "boolean",
+      "evalexprDetail": "true"
+    },
+    {
+      "expr": "x>=1",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "x>=1",
+      "evalexprType": "boolean",
+      "evalexprDetail": "true"
+    },
+    {
+      "expr": "true&&false",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "true&&false",
+      "evalexprType": "boolean",
+      "evalexprDetail": "false"
+    },
+    {
+      "expr": "true||false",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "true||false",
+      "evalexprType": "boolean",
+      "evalexprDetail": "true"
+    },
+    {
+      "expr": "!true",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "!true",
+      "evalexprType": "boolean",
+      "evalexprDetail": "false"
+    },
+    {
+      "expr": "(x>0)*2",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "(x>0)*2",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Expected a Value::Float or Value::Int, but got Boolean(true)."
+    },
+    {
+      "expr": "!x",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "!x",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Expected a Value::Boolean, but got Float(1.0)."
+    },
+    {
+      "expr": "1&&1",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "1&&1",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Expected a Value::Boolean, but got Int(1)."
+    },
+    {
+      "expr": "1<2<3",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "1<2<3",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Expected a Value::Number or a Value::String, but got Boolean(true)."
+    },
+    {
+      "expr": "2^3^2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 64.0,
+      "resultExact": "6.4000000000000000e1",
+      "resultBits": "4050000000000000",
+      "processed": "2^3^2",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "2^(3^2)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 512.0,
+      "resultExact": "5.1200000000000000e2",
+      "resultBits": "4080000000000000",
+      "processed": "2^(3^2)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "(2^3)^2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 64.0,
+      "resultExact": "6.4000000000000000e1",
+      "resultBits": "4050000000000000",
+      "processed": "(2^3)^2",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "-x^2",
+      "x": 3.0,
+      "xExact": "3.0000000000000000e0",
+      "xBits": "4008000000000000",
+      "result": -9.0,
+      "resultExact": "-9.0000000000000000e0",
+      "resultBits": "c022000000000000",
+      "processed": "-x^2",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "(-x)^2",
+      "x": 3.0,
+      "xExact": "3.0000000000000000e0",
+      "xBits": "4008000000000000",
+      "result": 9.0,
+      "resultExact": "9.0000000000000000e0",
+      "resultBits": "4022000000000000",
+      "processed": "(-x)^2",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "-2^2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": -4.0,
+      "resultExact": "-4.0000000000000000e0",
+      "resultBits": "c010000000000000",
+      "processed": "-2^2",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "2+3*4",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 14.0,
+      "resultExact": "1.4000000000000000e1",
+      "resultBits": "402c000000000000",
+      "processed": "2+3*4",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "(2+3)*4",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 20.0,
+      "resultExact": "2.0000000000000000e1",
+      "resultBits": "4034000000000000",
+      "processed": "(2+3)*4",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "1+2*3^2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 19.0,
+      "resultExact": "1.9000000000000000e1",
+      "resultBits": "4033000000000000",
+      "processed": "1+2*3^2",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "10-3-2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 5.0,
+      "resultExact": "5.0000000000000000e0",
+      "resultBits": "4014000000000000",
+      "processed": "10-3-2",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "100/10/2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 5.0,
+      "resultExact": "5.0000000000000000e0",
+      "resultBits": "4014000000000000",
+      "processed": "100/10/2",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "2+3*4-5/2",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 12.0,
+      "resultExact": "1.2000000000000000e1",
+      "resultBits": "4028000000000000",
+      "processed": "2+3*4-5/2",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "2*3%4",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 2.0,
+      "resultExact": "2.0000000000000000e0",
+      "resultBits": "4000000000000000",
+      "processed": "2*3%4",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "mysin(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "mysin(x)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"mysin\"."
+    },
+    {
+      "expr": "x_sin(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "x_sin(x)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"x_sin\"."
+    },
+    {
+      "expr": "SIN(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "SIN(x)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"SIN\"."
+    },
+    {
+      "expr": "sinx",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "sinx",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Variable identifier is not bound to anything by context: \"sinx\"."
+    },
+    {
+      "expr": "sin (x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": 0.8414709848078965,
+      "resultExact": "8.4147098480789650e-1",
+      "resultBits": "3feaed548f090cee",
+      "processed": "math::sin(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "math::sin(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": 0.8414709848078965,
+      "resultExact": "8.4147098480789650e-1",
+      "resultBits": "3feaed548f090cee",
+      "processed": "math::sin(x)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "math::math::sin(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "math::math::sin(x)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"math::math::sin\"."
+    },
+    {
+      "expr": "foo(x)",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "foo(x)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"foo\"."
+    },
+    {
+      "expr": "y",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "y",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Variable identifier is not bound to anything by context: \"y\"."
+    },
+    {
+      "expr": "X",
+      "x": 1.0,
+      "xExact": "1.0000000000000000e0",
+      "xBits": "3ff0000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "X",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Variable identifier is not bound to anything by context: \"X\"."
+    },
+    {
+      "expr": "log(8,2)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "log(8,2)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Function identifier is not bound to anything by context: \"log\"."
+    },
+    {
+      "expr": "math::log(8,2)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 3.0,
+      "resultExact": "3.0000000000000000e0",
+      "resultBits": "4008000000000000",
+      "processed": "math::log(8,2)",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "min(x,0)",
+      "x": 5.0,
+      "xExact": "5.0000000000000000e0",
+      "xBits": "4014000000000000",
+      "result": 0.0,
+      "resultExact": "0.0000000000000000e0",
+      "resultBits": "0000000000000000",
+      "processed": "min(x,0)",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "max(x,0)",
+      "x": -5.0,
+      "xExact": "-5.0000000000000000e0",
+      "xBits": "c014000000000000",
+      "result": 0.0,
+      "resultExact": "0.0000000000000000e0",
+      "resultBits": "0000000000000000",
+      "processed": "max(x,0)",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "if(x>0,1,-1)",
+      "x": 5.0,
+      "xExact": "5.0000000000000000e0",
+      "xBits": "4014000000000000",
+      "result": 1.0,
+      "resultExact": "1.0000000000000000e0",
+      "resultBits": "3ff0000000000000",
+      "processed": "if(x>0,1,-1)",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "if(x>0,1,-1)",
+      "x": -5.0,
+      "xExact": "-5.0000000000000000e0",
+      "xBits": "c014000000000000",
+      "result": -1.0,
+      "resultExact": "-1.0000000000000000e0",
+      "resultBits": "bff0000000000000",
+      "processed": "if(x>0,1,-1)",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "\"abc\"",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "\"abc\"",
+      "evalexprType": "string",
+      "evalexprDetail": "abc"
+    },
+    {
+      "expr": "(1,2)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "(1,2)",
+      "evalexprType": "tuple",
+      "evalexprDetail": "[Int(1), Int(2)]"
+    },
+    {
+      "expr": "typeof(x)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "typeof(x)",
+      "evalexprType": "string",
+      "evalexprDetail": "float"
+    },
+    {
+      "expr": "x=1",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "x=1",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Cannot manipulate context"
+    },
+    {
+      "expr": "sqrt(1,2)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "math::sqrt(1,2)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Expected a Value::Float or Value::Int, but got Tuple([Int(1), Int(2)])."
+    },
+    {
+      "expr": "hypot(3)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "math::hypot(3)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Expected a Value::Tuple, but got Int(3)."
+    },
+    {
+      "expr": "atan2(1)",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "math::atan2(1)",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Expected a Value::Tuple, but got Int(1)."
+    },
+    {
+      "expr": "sin()",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "none",
+      "resultExact": "none",
+      "resultBits": null,
+      "processed": "math::sin()",
+      "evalexprType": "eval_error",
+      "evalexprDetail": "Expected a Value::Float or Value::Int, but got Empty."
+    },
+    {
+      "expr": "1e3",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 1000.0,
+      "resultExact": "1.0000000000000000e3",
+      "resultBits": "408f400000000000",
+      "processed": "1e3",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": ".5",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 0.5,
+      "resultExact": "5.0000000000000000e-1",
+      "resultBits": "3fe0000000000000",
+      "processed": ".5",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "5.",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 5.0,
+      "resultExact": "5.0000000000000000e0",
+      "resultBits": "4014000000000000",
+      "processed": "5.",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "0x10",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 16.0,
+      "resultExact": "1.6000000000000000e1",
+      "resultBits": "4030000000000000",
+      "processed": "0x10",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "9007199254740993",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 9007199254740992.0,
+      "resultExact": "9.0071992547409920e15",
+      "resultBits": "4340000000000000",
+      "processed": "9007199254740993",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "9223372036854775807",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 9.223372036854776e+18,
+      "resultExact": "9.2233720368547758e18",
+      "resultBits": "43e0000000000000",
+      "processed": "9223372036854775807",
+      "evalexprType": "int",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "9223372036854775808",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": 9.223372036854776e+18,
+      "resultExact": "9.2233720368547758e18",
+      "resultBits": "43e0000000000000",
+      "processed": "9223372036854775808",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "sqrt(x)*0",
+      "x": -1.0,
+      "xExact": "-1.0000000000000000e0",
+      "xBits": "bff0000000000000",
+      "result": "nan",
+      "resultExact": "nan",
+      "resultBits": "7ff8000000000000",
+      "processed": "math::sqrt(x)*0",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "ln(x)+1",
+      "x": 0.0,
+      "xExact": "0.0000000000000000e0",
+      "xBits": "0000000000000000",
+      "result": "-inf",
+      "resultExact": "-inf",
+      "resultBits": "fff0000000000000",
+      "processed": "math::ln(x)+1",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    },
+    {
+      "expr": "x*x",
+      "x": 1.4142135623730951,
+      "xExact": "1.4142135623730951e0",
+      "xBits": "3ff6a09e667f3bcd",
+      "result": 2.0000000000000004,
+      "resultExact": "2.0000000000000004e0",
+      "resultBits": "4000000000000001",
+      "processed": "x*x",
+      "evalexprType": "float",
+      "evalexprDetail": null
+    }
+  ],
+  "parseErrors": [
+    {
+      "expr": "sin(x",
+      "processed": "math::sin(x",
+      "stage": "parse",
+      "error": "Parse error: Found an unmatched opening parenthesis '('.",
+      "rawError": "Found an unmatched opening parenthesis '('.",
+      "evalClosureResult": "none"
+    },
+    {
+      "expr": "sin x)",
+      "processed": "sin x)",
+      "stage": "parse",
+      "error": "Parse error: Found an unmatched closing parenthesis ')'.",
+      "rawError": "Found an unmatched closing parenthesis ')'.",
+      "evalClosureResult": "none"
+    },
+    {
+      "expr": "",
+      "processed": "",
+      "stage": "eval",
+      "error": null,
+      "evalexprType": "empty",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "   ",
+      "processed": "   ",
+      "stage": "eval",
+      "error": null,
+      "evalexprType": "empty",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "x +",
+      "processed": "x +",
+      "stage": "eval",
+      "error": "An operator expected 2 arguments, but got 1.",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "+ ",
+      "processed": "+ ",
+      "stage": "eval",
+      "error": "An operator expected 2 arguments, but got 0.",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "*x",
+      "processed": "*x",
+      "stage": "eval",
+      "error": "An operator expected 2 arguments, but got 1.",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "x *",
+      "processed": "x *",
+      "stage": "eval",
+      "error": "An operator expected 2 arguments, but got 1.",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "((x)",
+      "processed": "((x)",
+      "stage": "parse",
+      "error": "Parse error: Found an unmatched opening parenthesis '('.",
+      "rawError": "Found an unmatched opening parenthesis '('.",
+      "evalClosureResult": "none"
+    },
+    {
+      "expr": "x)",
+      "processed": "x)",
+      "stage": "parse",
+      "error": "Parse error: Found an unmatched closing parenthesis ')'.",
+      "rawError": "Found an unmatched closing parenthesis ')'.",
+      "evalClosureResult": "none"
+    },
+    {
+      "expr": "(x))",
+      "processed": "(x))",
+      "stage": "parse",
+      "error": "Parse error: Found an unmatched closing parenthesis ')'.",
+      "rawError": "Found an unmatched closing parenthesis ')'.",
+      "evalClosureResult": "none"
+    },
+    {
+      "expr": "sin(x))",
+      "processed": "math::sin(x))",
+      "stage": "parse",
+      "error": "Parse error: Found an unmatched closing parenthesis ')'.",
+      "rawError": "Found an unmatched closing parenthesis ')'.",
+      "evalClosureResult": "none"
+    },
+    {
+      "expr": "1 2",
+      "processed": "1 2",
+      "stage": "parse",
+      "error": "Parse error: Tried to append a node to a leaf node.",
+      "rawError": "Tried to append a node to a leaf node.",
+      "evalClosureResult": "none"
+    },
+    {
+      "expr": "x ++ 2",
+      "processed": "x ++ 2",
+      "stage": "eval",
+      "error": "An operator expected 2 arguments, but got 1.",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "x ** 2",
+      "processed": "x ** 2",
+      "stage": "eval",
+      "error": "An operator expected 2 arguments, but got 1.",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "@x",
+      "processed": "@x",
+      "stage": "eval",
+      "error": "Variable identifier is not bound to anything by context: \"@x\".",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "x $ 2",
+      "processed": "x $ 2",
+      "stage": "eval",
+      "error": "Function identifier is not bound to anything by context: \"$\".",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "1.2.3",
+      "processed": "1.2.3",
+      "stage": "eval",
+      "error": "Variable identifier is not bound to anything by context: \"1.2.3\".",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "0b12",
+      "processed": "0b12",
+      "stage": "eval",
+      "error": "Variable identifier is not bound to anything by context: \"0b12\".",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "\"abc",
+      "processed": "\"abc",
+      "stage": "parse",
+      "error": "Parse error: Found an unmatched double quote '\"'",
+      "rawError": "Found an unmatched double quote '\"'",
+      "evalClosureResult": "none"
+    },
+    {
+      "expr": "'a'",
+      "processed": "'a'",
+      "stage": "eval",
+      "error": "Variable identifier is not bound to anything by context: \"'a'\".",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "x,",
+      "processed": "x,",
+      "stage": "eval",
+      "error": "[Float(1.0), Empty]",
+      "evalexprType": "tuple",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": ",x",
+      "processed": ",x",
+      "stage": "eval",
+      "error": "[Empty, Float(1.0)]",
+      "evalexprType": "tuple",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "x^",
+      "processed": "x^",
+      "stage": "eval",
+      "error": "An operator expected 2 arguments, but got 1.",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "^x",
+      "processed": "^x",
+      "stage": "eval",
+      "error": "An operator expected 2 arguments, but got 1.",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "()",
+      "processed": "()",
+      "stage": "eval",
+      "error": null,
+      "evalexprType": "empty",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "(,)",
+      "processed": "(,)",
+      "stage": "eval",
+      "error": "[Empty, Empty]",
+      "evalexprType": "tuple",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "sin(,)",
+      "processed": "math::sin(,)",
+      "stage": "eval",
+      "error": "Expected a Value::Float or Value::Int, but got Tuple([Empty, Empty]).",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "3 x",
+      "processed": "3 x",
+      "stage": "parse",
+      "error": "Parse error: Tried to append a node to a leaf node.",
+      "rawError": "Tried to append a node to a leaf node.",
+      "evalClosureResult": "none"
+    },
+    {
+      "expr": "x 3",
+      "processed": "x 3",
+      "stage": "eval",
+      "error": "Function identifier is not bound to anything by context: \"x\".",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "foo(x)",
+      "processed": "foo(x)",
+      "stage": "eval",
+      "error": "Function identifier is not bound to anything by context: \"foo\".",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "unknownvar",
+      "processed": "unknownvar",
+      "stage": "eval",
+      "error": "Variable identifier is not bound to anything by context: \"unknownvar\".",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "floor(x)",
+      "processed": "math::floor(x)",
+      "stage": "eval",
+      "error": "Function identifier is not bound to anything by context: \"math::floor\".",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "random()",
+      "processed": "random()",
+      "stage": "eval",
+      "error": "Function identifier is not bound to anything by context: \"random\".",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "x = 1",
+      "processed": "x = 1",
+      "stage": "eval",
+      "error": "Cannot manipulate context",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "[1,2]",
+      "processed": "[1,2]",
+      "stage": "eval",
+      "error": "Variable identifier is not bound to anything by context: \"[1\".",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "{x}",
+      "processed": "{x}",
+      "stage": "eval",
+      "error": "Variable identifier is not bound to anything by context: \"{x}\".",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    },
+    {
+      "expr": "x;y",
+      "processed": "x;y",
+      "stage": "eval",
+      "error": "Variable identifier is not bound to anything by context: \"y\".",
+      "evalexprType": "eval_error",
+      "evalClosureResult": "none",
+      "note": "build_operator_tree SUCCEEDS; render_plot_svg returns Ok(svg) with no curve"
+    }
+  ],
+  "svg": [
+    {
+      "name": "default_sin",
+      "expr": "sin(x)",
+      "xMin": -10.0,
+      "xMax": 10.0,
+      "yMin": -2.0,
+      "yMax": 2.0,
+      "bytes": 16737,
+      "md5": "0169883163ff01cf6796e5f2f7b9e9b5",
+      "sha256": "ddc3c5d9f96cac6c5ed97ef142ef72bb90c811cac942cc03df3189ec2f859a4f",
+      "firstPoint": "40.00,156.48",
+      "lastPoint": "560.00,243.52",
+      "polylineCount": 1,
+      "lineCount": 22,
+      "textCount": 20,
+      "xStep": 2.0,
+      "xStepExact": "2.0000000000000000e0",
+      "yStep": 0.5,
+      "yStepExact": "5.0000000000000000e-1",
+      "xTickLabels": [
+        "-10",
+        "-8",
+        "-6",
+        "-4",
+        "-2",
+        "0",
+        "2",
+        "4",
+        "6",
+        "8",
+        "10"
+      ],
+      "yTickLabels": [
+        "-2",
+        "-1.50",
+        "-1",
+        "-0.50",
+        "0",
+        "0.50",
+        "1",
+        "1.50",
+        "2"
+      ],
+      "goldenFile": "golden/default_sin.svg"
+    },
+    {
+      "name": "tan_many_breaks",
+      "expr": "tan(x)",
+      "xMin": -10.0,
+      "xMax": 10.0,
+      "yMin": -2.0,
+      "yMax": 2.0,
+      "bytes": 13234,
+      "md5": "07768aee8eb7a6948ba9c64576cccbb2",
+      "sha256": "07367d858e78e260864724e6a6575a8bc26fc3ffb381d0c52852f17716f4d636",
+      "firstPoint": "40.00,251.87",
+      "lastPoint": "560.00,148.13",
+      "polylineCount": 7,
+      "lineCount": 22,
+      "textCount": 20,
+      "xStep": 2.0,
+      "xStepExact": "2.0000000000000000e0",
+      "yStep": 0.5,
+      "yStepExact": "5.0000000000000000e-1",
+      "xTickLabels": [
+        "-10",
+        "-8",
+        "-6",
+        "-4",
+        "-2",
+        "0",
+        "2",
+        "4",
+        "6",
+        "8",
+        "10"
+      ],
+      "yTickLabels": [
+        "-2",
+        "-1.50",
+        "-1",
+        "-0.50",
+        "0",
+        "0.50",
+        "1",
+        "1.50",
+        "2"
+      ],
+      "goldenFile": "golden/tan_many_breaks.svg"
+    },
+    {
+      "name": "one_over_x_break_at_0",
+      "expr": "1/x",
+      "xMin": -5.0,
+      "xMax": 5.0,
+      "yMin": -5.0,
+      "yMax": 5.0,
+      "bytes": 16488,
+      "md5": "412de0166c1ea0bf78febe3671512b51",
+      "sha256": "807ba37017a582b0402ea8e8b3701dbc2aeebb8d5290ca28483310a34627e15a",
+      "firstPoint": "40.00,206.40",
+      "lastPoint": "560.00,193.60",
+      "polylineCount": 2,
+      "lineCount": 24,
+      "textCount": 22,
+      "xStep": 1.0,
+      "xStepExact": "1.0000000000000000e0",
+      "yStep": 1.0,
+      "yStepExact": "1.0000000000000000e0",
+      "xTickLabels": [
+        "-5",
+        "-4",
+        "-3",
+        "-2",
+        "-1",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "yTickLabels": [
+        "-5",
+        "-4",
+        "-3",
+        "-2",
+        "-1",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "goldenFile": "golden/one_over_x_break_at_0.svg"
+    },
+    {
+      "name": "x_squared_leaves_window",
+      "expr": "x^2",
+      "xMin": -4.0,
+      "xMax": 4.0,
+      "yMin": -1.0,
+      "yMax": 10.0,
+      "bytes": 13973,
+      "md5": "f658cfcc191a91c96b03a7ec0504fbf8",
+      "sha256": "b4f8a3b1e72f43695651b63c5b75f624bc8d9c4ac0654df976ec001385ec45ab",
+      "firstPoint": "94.60,40.42",
+      "lastPoint": "505.40,40.42",
+      "polylineCount": 1,
+      "lineCount": 23,
+      "textCount": 21,
+      "xStep": 1.0,
+      "xStepExact": "1.0000000000000000e0",
+      "yStep": 1.0,
+      "yStepExact": "1.0000000000000000e0",
+      "xTickLabels": [
+        "-4",
+        "-3",
+        "-2",
+        "-1",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "yTickLabels": [
+        "-1",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10"
+      ],
+      "goldenFile": "golden/x_squared_leaves_window.svg"
+    },
+    {
+      "name": "constant_three",
+      "expr": "3",
+      "xMin": -1.0,
+      "xMax": 1.0,
+      "yMin": 0.0,
+      "yMax": 5.0,
+      "bytes": 17021,
+      "md5": "4b2a3af17c4babfe8c2fdf17cdc8efed",
+      "sha256": "09942f83d4db09c27a46f174ef85eb4e74fb8d36411bb061edcf9ff0ef93ecab",
+      "firstPoint": "40.00,168.00",
+      "lastPoint": "560.00,168.00",
+      "polylineCount": 1,
+      "lineCount": 24,
+      "textCount": 22,
+      "xStep": 0.2,
+      "xStepExact": "2.0000000000000001e-1",
+      "yStep": 0.5,
+      "yStepExact": "5.0000000000000000e-1",
+      "xTickLabels": [
+        "-1",
+        "-0.80",
+        "-0.60",
+        "-0.40",
+        "-0.20",
+        "-5.6e-17",
+        "0.20",
+        "0.40",
+        "0.60",
+        "0.80",
+        "1"
+      ],
+      "yTickLabels": [
+        "0",
+        "0.50",
+        "1",
+        "1.50",
+        "2",
+        "2.50",
+        "3",
+        "3.50",
+        "4",
+        "4.50",
+        "5"
+      ],
+      "goldenFile": "golden/constant_three.svg"
+    },
+    {
+      "name": "flat_zero",
+      "expr": "x*0",
+      "xMin": -10.0,
+      "xMax": 10.0,
+      "yMin": -2.0,
+      "yMax": 2.0,
+      "bytes": 16737,
+      "md5": "a749ce1fb015373ed69da1ea0f1496e3",
+      "sha256": "e43deacb01aa5dd0b7f499cdfe9f4cf41589dead0bb66c410bb41149dec30429",
+      "firstPoint": "40.00,200.00",
+      "lastPoint": "560.00,200.00",
+      "polylineCount": 1,
+      "lineCount": 22,
+      "textCount": 20,
+      "xStep": 2.0,
+      "xStepExact": "2.0000000000000000e0",
+      "yStep": 0.5,
+      "yStepExact": "5.0000000000000000e-1",
+      "xTickLabels": [
+        "-10",
+        "-8",
+        "-6",
+        "-4",
+        "-2",
+        "0",
+        "2",
+        "4",
+        "6",
+        "8",
+        "10"
+      ],
+      "yTickLabels": [
+        "-2",
+        "-1.50",
+        "-1",
+        "-0.50",
+        "0",
+        "0.50",
+        "1",
+        "1.50",
+        "2"
+      ],
+      "goldenFile": "golden/flat_zero.svg"
+    },
+    {
+      "name": "no_zero_on_either_axis",
+      "expr": "x^2",
+      "xMin": 1.0,
+      "xMax": 3.0,
+      "yMin": 1.0,
+      "yMax": 9.0,
+      "bytes": 16402,
+      "md5": "248b9f573741cd7acb05cd558aa98661",
+      "sha256": "cba702f14221b55c4341b2e7396259b16d9ba8301a92383653d11a2e72325e02",
+      "firstPoint": "40.00,360.00",
+      "lastPoint": "560.00,40.00",
+      "polylineCount": 1,
+      "lineCount": 19,
+      "textCount": 19,
+      "xStep": 0.2,
+      "xStepExact": "2.0000000000000001e-1",
+      "yStep": 1.0,
+      "yStepExact": "1.0000000000000000e0",
+      "xTickLabels": [
+        "1",
+        "1.20",
+        "1.40",
+        "1.60",
+        "1.80",
+        "1",
+        "2.20",
+        "2.40",
+        "2.60",
+        "2.80"
+      ],
+      "yTickLabels": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9"
+      ],
+      "goldenFile": "golden/no_zero_on_either_axis.svg"
+    },
+    {
+      "name": "nice_step_ten_branch",
+      "expr": "sin(x)*20",
+      "xMin": -32.0,
+      "xMax": 32.0,
+      "yMin": -32.0,
+      "yMax": 32.0,
+      "bytes": 16062,
+      "md5": "53b1f544d00f8ecfe771e80b8ae818d6",
+      "sha256": "1d19eaa050ec7c76834761b4310a474b11ac5ad1455d2a204408e9d242af8108",
+      "firstPoint": "40.00,255.14",
+      "lastPoint": "560.00,144.86",
+      "polylineCount": 1,
+      "lineCount": 16,
+      "textCount": 14,
+      "xStep": 10.0,
+      "xStepExact": "1.0000000000000000e1",
+      "yStep": 10.0,
+      "yStepExact": "1.0000000000000000e1",
+      "xTickLabels": [
+        "-30",
+        "-20",
+        "-10",
+        "0",
+        "10",
+        "20",
+        "30"
+      ],
+      "yTickLabels": [
+        "-30",
+        "-20",
+        "-10",
+        "0",
+        "10",
+        "20",
+        "30"
+      ],
+      "goldenFile": "golden/nice_step_ten_branch.svg"
+    },
+    {
+      "name": "sqrt_nan_half",
+      "expr": "sqrt(x)",
+      "xMin": -4.0,
+      "xMax": 4.0,
+      "yMin": -1.0,
+      "yMax": 3.0,
+      "bytes": 9641,
+      "md5": "b57b14d67b162d0b57cbb4bbcddf143d",
+      "sha256": "49e543e9d1b213ba7997512ad4c2b8316b4b251e65e72a1c265e6b27f5c99151",
+      "firstPoint": "300.00,280.00",
+      "lastPoint": "560.00,120.00",
+      "polylineCount": 1,
+      "lineCount": 20,
+      "textCount": 18,
+      "xStep": 1.0,
+      "xStepExact": "1.0000000000000000e0",
+      "yStep": 0.5,
+      "yStepExact": "5.0000000000000000e-1",
+      "xTickLabels": [
+        "-4",
+        "-3",
+        "-2",
+        "-1",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "yTickLabels": [
+        "-1",
+        "-0.50",
+        "0",
+        "0.50",
+        "1",
+        "1.50",
+        "2",
+        "2.50",
+        "3"
+      ],
+      "goldenFile": "golden/sqrt_nan_half.svg"
+    },
+    {
+      "name": "single_point_run",
+      "expr": "x",
+      "xMin": -10.0,
+      "xMax": 10.0,
+      "yMin": -0.005,
+      "yMax": 0.005,
+      "bytes": 3148,
+      "md5": "574200eef4458a53378a99b7a93bcd04",
+      "sha256": "75556298d29be3ab0e2f10e9b121ce7954fe663ba4f43410673b583b57ad97d9",
+      "firstPoint": "300.00,200.00",
+      "lastPoint": "300.00,200.00",
+      "polylineCount": 1,
+      "lineCount": 24,
+      "textCount": 22,
+      "xStep": 2.0,
+      "xStepExact": "2.0000000000000000e0",
+      "yStep": 0.001,
+      "yStepExact": "1.0000000000000000e-3",
+      "xTickLabels": [
+        "-10",
+        "-8",
+        "-6",
+        "-4",
+        "-2",
+        "0",
+        "2",
+        "4",
+        "6",
+        "8",
+        "10"
+      ],
+      "yTickLabels": [
+        "-5.0e-3",
+        "-4.0e-3",
+        "-3.0e-3",
+        "-2.0e-3",
+        "-1.0e-3",
+        "0",
+        "1.0e-3",
+        "2.0e-3",
+        "3.0e-3",
+        "4.0e-3",
+        "5.0e-3"
+      ],
+      "goldenFile": "golden/single_point_run.svg"
+    },
+    {
+      "name": "broken_floor_no_curve",
+      "expr": "floor(x)",
+      "xMin": -10.0,
+      "xMax": 10.0,
+      "yMin": -2.0,
+      "yMax": 2.0,
+      "bytes": 2773,
+      "md5": "682952b716756b41ebafab7376f3ecf0",
+      "sha256": "edd4718ba716a328ea64e2bac6b62e9598e9556f75ee1fa7640764974846e30f",
+      "firstPoint": null,
+      "lastPoint": null,
+      "polylineCount": 0,
+      "lineCount": 22,
+      "textCount": 20,
+      "xStep": 2.0,
+      "xStepExact": "2.0000000000000000e0",
+      "yStep": 0.5,
+      "yStepExact": "5.0000000000000000e-1",
+      "xTickLabels": [
+        "-10",
+        "-8",
+        "-6",
+        "-4",
+        "-2",
+        "0",
+        "2",
+        "4",
+        "6",
+        "8",
+        "10"
+      ],
+      "yTickLabels": [
+        "-2",
+        "-1.50",
+        "-1",
+        "-0.50",
+        "0",
+        "0.50",
+        "1",
+        "1.50",
+        "2"
+      ],
+      "goldenFile": "golden/broken_floor_no_curve.svg"
+    },
+    {
+      "name": "boolean_no_curve",
+      "expr": "x>0",
+      "xMin": -10.0,
+      "xMax": 10.0,
+      "yMin": -2.0,
+      "yMax": 2.0,
+      "bytes": 2773,
+      "md5": "682952b716756b41ebafab7376f3ecf0",
+      "sha256": "edd4718ba716a328ea64e2bac6b62e9598e9556f75ee1fa7640764974846e30f",
+      "firstPoint": null,
+      "lastPoint": null,
+      "polylineCount": 0,
+      "lineCount": 22,
+      "textCount": 20,
+      "xStep": 2.0,
+      "xStepExact": "2.0000000000000000e0",
+      "yStep": 0.5,
+      "yStepExact": "5.0000000000000000e-1",
+      "xTickLabels": [
+        "-10",
+        "-8",
+        "-6",
+        "-4",
+        "-2",
+        "0",
+        "2",
+        "4",
+        "6",
+        "8",
+        "10"
+      ],
+      "yTickLabels": [
+        "-2",
+        "-1.50",
+        "-1",
+        "-0.50",
+        "0",
+        "0.50",
+        "1",
+        "1.50",
+        "2"
+      ],
+      "goldenFile": "golden/boolean_no_curve.svg"
+    },
+    {
+      "name": "ln_positive_domain",
+      "expr": "ln(x)",
+      "xMin": 0.001,
+      "xMax": 100.0,
+      "yMin": -10.0,
+      "yMax": 5.0,
+      "bytes": 15543,
+      "md5": "d3970c24b35dd335425c9c2c3008eb87",
+      "sha256": "88b96590554a14cb2268f3bd0ad75141094533f38d7e82c3244c8d7bf6e5d7be",
+      "firstPoint": "40.00,294.03",
+      "lastPoint": "560.00,48.42",
+      "polylineCount": 1,
+      "lineCount": 19,
+      "textCount": 18,
+      "xStep": 10.0,
+      "xStepExact": "1.0000000000000000e1",
+      "yStep": 2.0,
+      "yStepExact": "2.0000000000000000e0",
+      "xTickLabels": [
+        "10",
+        "20",
+        "30",
+        "40",
+        "50",
+        "60",
+        "70",
+        "80",
+        "90",
+        "100"
+      ],
+      "yTickLabels": [
+        "-10",
+        "-8",
+        "-6",
+        "-4",
+        "-2",
+        "0",
+        "2",
+        "4"
+      ],
+      "goldenFile": "golden/ln_positive_domain.svg"
+    },
+    {
+      "name": "int_division_trunc",
+      "expr": "5/2",
+      "xMin": -1.0,
+      "xMax": 1.0,
+      "yMin": 0.0,
+      "yMax": 5.0,
+      "bytes": 17021,
+      "md5": "96367404c0325477cb30c6ec818500c3",
+      "sha256": "60ccf84323c82bfe14213d0acf34575985f55f00dca67ef40922f1d721fb74ab",
+      "firstPoint": "40.00,232.00",
+      "lastPoint": "560.00,232.00",
+      "polylineCount": 1,
+      "lineCount": 24,
+      "textCount": 22,
+      "xStep": 0.2,
+      "xStepExact": "2.0000000000000001e-1",
+      "yStep": 0.5,
+      "yStepExact": "5.0000000000000000e-1",
+      "xTickLabels": [
+        "-1",
+        "-0.80",
+        "-0.60",
+        "-0.40",
+        "-0.20",
+        "-5.6e-17",
+        "0.20",
+        "0.40",
+        "0.60",
+        "0.80",
+        "1"
+      ],
+      "yTickLabels": [
+        "0",
+        "0.50",
+        "1",
+        "1.50",
+        "2",
+        "2.50",
+        "3",
+        "3.50",
+        "4",
+        "4.50",
+        "5"
+      ],
+      "goldenFile": "golden/int_division_trunc.svg"
+    },
+    {
+      "name": "tiny_range",
+      "expr": "x",
+      "xMin": 0.0001,
+      "xMax": 0.0009,
+      "yMin": 0.0001,
+      "yMax": 0.0009,
+      "bytes": 16069,
+      "md5": "b270e4b3547c31abcf8d793664431ac4",
+      "sha256": "7e823c181290e8c114768608d32da9024112c539754942fafffeaa73d21e788f",
+      "firstPoint": "40.00,360.00",
+      "lastPoint": "560.00,40.00",
+      "polylineCount": 1,
+      "lineCount": 16,
+      "textCount": 16,
+      "xStep": 0.0001,
+      "xStepExact": "1.0000000000000000e-4",
+      "yStep": 0.0001,
+      "yStepExact": "1.0000000000000000e-4",
+      "xTickLabels": [
+        "1.0e-4",
+        "2.0e-4",
+        "3.0e-4",
+        "4.0e-4",
+        "5.0e-4",
+        "6.0e-4",
+        "7.0e-4",
+        "8.0e-4"
+      ],
+      "yTickLabels": [
+        "1.0e-4",
+        "2.0e-4",
+        "3.0e-4",
+        "4.0e-4",
+        "5.0e-4",
+        "6.0e-4",
+        "7.0e-4",
+        "8.0e-4"
+      ],
+      "goldenFile": "golden/tiny_range.svg"
+    },
+    {
+      "name": "big_range",
+      "expr": "x",
+      "xMin": -1000000.0,
+      "xMax": 1000000.0,
+      "yMin": -1000000.0,
+      "yMax": 1000000.0,
+      "bytes": 16872,
+      "md5": "179411af6ae728c30100b549fbdb039c",
+      "sha256": "44219bf2a7bde276055f66edbd8f79b59ef1af0507ed8c988b509ba92d3b7896",
+      "firstPoint": "40.00,360.00",
+      "lastPoint": "560.00,40.00",
+      "polylineCount": 1,
+      "lineCount": 24,
+      "textCount": 22,
+      "xStep": 200000.0,
+      "xStepExact": "2.0000000000000000e5",
+      "yStep": 200000.0,
+      "yStepExact": "2.0000000000000000e5",
+      "xTickLabels": [
+        "-1.0e6",
+        "-8.0e5",
+        "-6.0e5",
+        "-4.0e5",
+        "-2.0e5",
+        "0",
+        "2.0e5",
+        "4.0e5",
+        "6.0e5",
+        "8.0e5",
+        "1.0e6"
+      ],
+      "yTickLabels": [
+        "-1.0e6",
+        "-8.0e5",
+        "-6.0e5",
+        "-4.0e5",
+        "-2.0e5",
+        "0",
+        "2.0e5",
+        "4.0e5",
+        "6.0e5",
+        "8.0e5",
+        "1.0e6"
+      ],
+      "goldenFile": "golden/big_range.svg"
+    },
+    {
+      "name": "pi_e_constants",
+      "expr": "sin(pi*x)+e*0",
+      "xMin": -2.0,
+      "xMax": 2.0,
+      "yMin": -2.0,
+      "yMax": 2.0,
+      "bytes": 16539,
+      "md5": "f86a2287a0a5a4de5d5cc970053d51bd",
+      "sha256": "7beb55a662eb1bb3113bb5fbf77424f1c5f91d4dfaee3c0cd38ec9e7eb44877c",
+      "firstPoint": "40.00,200.00",
+      "lastPoint": "560.00,200.00",
+      "polylineCount": 1,
+      "lineCount": 20,
+      "textCount": 18,
+      "xStep": 0.5,
+      "xStepExact": "5.0000000000000000e-1",
+      "yStep": 0.5,
+      "yStepExact": "5.0000000000000000e-1",
+      "xTickLabels": [
+        "-2",
+        "-1.50",
+        "-1",
+        "-0.50",
+        "0",
+        "0.50",
+        "1",
+        "1.50",
+        "2"
+      ],
+      "yTickLabels": [
+        "-2",
+        "-1.50",
+        "-1",
+        "-0.50",
+        "0",
+        "0.50",
+        "1",
+        "1.50",
+        "2"
+      ],
+      "goldenFile": "golden/pi_e_constants.svg"
+    },
+    {
+      "name": "asymmetric_offset",
+      "expr": "cos(x)+3",
+      "xMin": 0.5,
+      "xMax": 12.5,
+      "yMin": 1.5,
+      "yMax": 4.5,
+      "bytes": 16397,
+      "md5": "1b3042313a10523f086cd692305c7c50",
+      "sha256": "6dd28c4c0aaa4dc79f5067b75c63468884cba5a2ac8389bfed97813e6cdb30ad",
+      "firstPoint": "40.00,106.39",
+      "lastPoint": "560.00,93.57",
+      "polylineCount": 1,
+      "lineCount": 19,
+      "textCount": 19,
+      "xStep": 1.0,
+      "xStepExact": "1.0000000000000000e0",
+      "yStep": 0.5,
+      "yStepExact": "5.0000000000000000e-1",
+      "xTickLabels": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12"
+      ],
+      "yTickLabels": [
+        "1.50",
+        "2",
+        "2.50",
+        "3",
+        "3.50",
+        "4",
+        "4.50"
+      ],
+      "goldenFile": "golden/asymmetric_offset.svg"
+    },
+    {
+      "name": "tick_drift_zero_label",
+      "expr": "x",
+      "xMin": -1.0,
+      "xMax": 1.0,
+      "yMin": -1.0,
+      "yMax": 1.0,
+      "bytes": 16854,
+      "md5": "291fd3f13b8a38efa14f42c134aa4fc0",
+      "sha256": "d46b612b03cb0b94cab3c83dacea2e9de493c2b2e36c43c87d7f06db4b221f03",
+      "firstPoint": "40.00,360.00",
+      "lastPoint": "560.00,40.00",
+      "polylineCount": 1,
+      "lineCount": 24,
+      "textCount": 22,
+      "xStep": 0.2,
+      "xStepExact": "2.0000000000000001e-1",
+      "yStep": 0.2,
+      "yStepExact": "2.0000000000000001e-1",
+      "xTickLabels": [
+        "-1",
+        "-0.80",
+        "-0.60",
+        "-0.40",
+        "-0.20",
+        "-5.6e-17",
+        "0.20",
+        "0.40",
+        "0.60",
+        "0.80",
+        "1"
+      ],
+      "yTickLabels": [
+        "-1",
+        "-0.80",
+        "-0.60",
+        "-0.40",
+        "-0.20",
+        "-5.6e-17",
+        "0.20",
+        "0.40",
+        "0.60",
+        "0.80",
+        "1"
+      ],
+      "goldenFile": "golden/tick_drift_zero_label.svg"
+    },
+    {
+      "name": "tick_label_truncation",
+      "expr": "x",
+      "xMin": -5.0,
+      "xMax": -3.0,
+      "yMin": -5.0,
+      "yMax": -3.0,
+      "bytes": 16520,
+      "md5": "0129b86063d18a39973c5d1971fae609",
+      "sha256": "eded21238d063c86868458a5d3f8e92d65a58f43e81027fedd6c93599dc4b343",
+      "firstPoint": "40.00,360.00",
+      "lastPoint": "560.00,40.00",
+      "polylineCount": 1,
+      "lineCount": 20,
+      "textCount": 20,
+      "xStep": 0.2,
+      "xStepExact": "2.0000000000000001e-1",
+      "yStep": 0.2,
+      "yStepExact": "2.0000000000000001e-1",
+      "xTickLabels": [
+        "-5",
+        "-4.80",
+        "-4.60",
+        "-4.40",
+        "-4.20",
+        "-3",
+        "-3.80",
+        "-3.60",
+        "-3.40",
+        "-3.20"
+      ],
+      "yTickLabels": [
+        "-5",
+        "-4.80",
+        "-4.60",
+        "-4.40",
+        "-4.20",
+        "-3",
+        "-3.80",
+        "-3.60",
+        "-3.40",
+        "-3.20"
+      ],
+      "goldenFile": "golden/tick_label_truncation.svg"
+    },
+    {
+      "name": "tick_drift_extra_tick",
+      "expr": "x",
+      "xMin": -0.9,
+      "xMax": 0.3,
+      "yMin": -0.9,
+      "yMax": 0.3,
+      "bytes": 17349,
+      "md5": "c5e9d5eca7bcd9c6ef8f5de5df9643ef",
+      "sha256": "1f726924341f98a65da2bcbb3266dfd2aece06a055b6a3a074c03636a2ed7b72",
+      "firstPoint": "40.00,360.00",
+      "lastPoint": "560.00,40.00",
+      "polylineCount": 1,
+      "lineCount": 28,
+      "textCount": 26,
+      "xStep": 0.1,
+      "xStepExact": "1.0000000000000001e-1",
+      "yStep": 0.1,
+      "yStepExact": "1.0000000000000001e-1",
+      "xTickLabels": [
+        "-0.90",
+        "-0.80",
+        "-0.70",
+        "-0.60",
+        "-0.50",
+        "-0.40",
+        "-0.30",
+        "-0.20",
+        "-0.10",
+        "-1.4e-16",
+        "0.10",
+        "0.20",
+        "0.30"
+      ],
+      "yTickLabels": [
+        "-0.90",
+        "-0.80",
+        "-0.70",
+        "-0.60",
+        "-0.50",
+        "-0.40",
+        "-0.30",
+        "-0.20",
+        "-0.10",
+        "-1.4e-16",
+        "0.10",
+        "0.20",
+        "0.30"
+      ],
+      "goldenFile": "golden/tick_drift_extra_tick.svg"
+    },
+    {
+      "name": "sampling_formula_sensitive",
+      "expr": "x",
+      "xMin": -6.3,
+      "xMax": 0.7999999999999998,
+      "yMin": -3.3,
+      "yMax": 3.1,
+      "bytes": 10244,
+      "md5": "eee7cce58f848c0a4594de378531f613",
+      "sha256": "017a92f7160d95cc8e8488f841b7272ee6b1f175585f4967a0daa14d9a0a0ee5",
+      "firstPoint": "259.96,359.83",
+      "lastPoint": "560.00,155.00",
+      "polylineCount": 1,
+      "lineCount": 16,
+      "textCount": 14,
+      "xStep": 1.0,
+      "xStepExact": "1.0000000000000000e0",
+      "yStep": 1.0,
+      "yStepExact": "1.0000000000000000e0",
+      "xTickLabels": [
+        "-6",
+        "-5",
+        "-4",
+        "-3",
+        "-2",
+        "-1",
+        "0"
+      ],
+      "yTickLabels": [
+        "-3",
+        "-2",
+        "-1",
+        "0",
+        "1",
+        "2",
+        "3"
+      ],
+      "goldenFile": "golden/sampling_formula_sensitive.svg"
+    }
+  ],
+  "svgErrors": [
+    {
+      "name": "err_x_range_zero",
+      "expr": "x",
+      "error": "Invalid range: max must be greater than min"
+    },
+    {
+      "name": "err_y_range_neg",
+      "expr": "x",
+      "error": "Invalid range: max must be greater than min"
+    }
+  ],
+  "notes": [
+    "BUG, NOT A QUIRK - floor(), ceil() and round() ARE BROKEN ON THE LIVE SITE AND YOUR PORT MUST REPRODUCE THAT. preprocess_math_expr rewrites every bare function name to math::<name>, but evalexpr 12.0.3 binds floor/round/ceil at the TOP LEVEL, not under math:: (see evalexpr-12.0.3/src/function/builtin.rs lines 86-88, alongside 'math::ln', 'math::sin', ...). So 'floor(x)' becomes 'math::floor(x)', which fails at eval time with `Function identifier is not bound to anything by context: \"math::floor\".` for EVERY sample. render_plot_svg still returns Ok(svg): you get axes, grid and labels but ZERO polylines. Golden: golden/broken_floor_no_curve.svg, 2773 bytes, polylineCount 0. Typing 'math::floor(x)' does not help either - the strip pass turns it back into 'floor' and the add pass re-prefixes it. If your port wires floor/ceil/round to the platform's real floor/ceil/round, it will draw a staircase where the site draws nothing, and every screenshot diff will fail.",
+    "format_label's integer branch TRUNCATES, it does not round. The test is `(val - val.round()).abs() < 1e-9` but the print is `format!(\"{}\", val as i64)`, and `as i64` truncates toward zero. So any tick that lands a hair BELOW an integer prints the integer below it: 0.9999999999 -> \"0\" (not \"1\"), 2.9999999996 -> \"2\", -2.9999999996 -> \"-2\", 999.9999999999 -> \"999\", 123.99999999995 -> \"123\". This is not hypothetical: golden/tick_label_truncation.svg (x and y both [-5,-3]) has the tick sequence -5, -4.80, -4.60, -4.40, -4.20, \"-3\", -3.80, -3.60, -3.40, -3.20 - the accumulated -4.0 arrives as -3.9999999999999996 and prints as \"-3\", out of order, in the middle of the axis. Do NOT 'fix' this to Int(val.rounded()).",
+    "The grid/tick loops ACCUMULATE (`gx += x_step`) and you must accumulate too. Computing tick i as `start + i*step` is a different number. Evidence: for x in [-1,1], step 0.2, the accumulated sixth tick is -5.551115123125783e-17, which format_label renders as \"-5.6e-17\" - see golden/tick_drift_zero_label.svg, where BOTH axes are labelled -1, -0.80, -0.60, -0.40, -0.20, -5.6e-17, 0.20, ... A port that index-computes gets a clean \"0\" there and fails. Worse, drift can change the tick COUNT: golden/tick_drift_extra_tick.svg ([-0.9, 0.3], step 0.1) emits 13 ticks per axis; index-computing gives 12. The loop guard is `while gx <= x_max` on the accumulated value, so the last tick's presence is decided by accumulated error.",
+    "Rust's `{:.1e}` exponent format is NOT what any of your three target platforms produce by default. Rust prints the exponent bare - no sign, no zero padding: 1000 -> \"1.0e3\", 0.005 -> \"5.0e-3\", 1.0 -> \"1.0e0\", 1e300 -> \"1.0e300\". Measured on this machine: Swift String(format:\"%.1e\", 1000) = \"1.0e+03\"; Java/Kotlin String.format(\"%.1e\", 1000.0) = \"1.0e+03\"; JS (1000).toExponential(1) = \"1.0e+3\". All three are wrong for this renderer. Build the string by hand: mantissa at 1 decimal place, the literal 'e', then the exponent as a plain signed integer with no padding and no leading '+'.",
+    "Rust's `{:.1e}` and `{:.2}` round half-to-EVEN on the exact binary value; Java/Kotlin's Formatter rounds half-UP and JavaScript's toFixed/toExponential round half-away-from-zero ('pick the larger n'). Measured divergences on this machine: 1250 -> Rust \"1.2e3\", Swift \"1.2e+03\", Java \"1.3e+03\", JS \"1.3e+3\". 0.125 -> Rust `{:.2}` \"0.12\", Swift \"%.2f\" \"0.12\", Java \"0.13\", JS toFixed(2) \"0.13\"; and Rust `{:.1e}` \"1.2e-1\" vs Java \"1.3e-01\" vs JS \"1.3e-1\". Swift goes through C printf and therefore MATCHES Rust's rounding (it only differs on exponent format); Kotlin and TypeScript need their own correctly-rounded formatter, not String.format / toFixed. Note that 1350 -> \"1.4e3\" on every platform, because 1350 is not a tie in binary (1.35 is stored as 1.350000000000000088...) - only exact ties expose the difference, which is why this bug survives casual testing. Compare against rustPrimitives.fmt_1e / rustPrimitives.fmt_2f in every formatLabel row, not just the final label.",
+    "EVERY comparison and boolean operator makes the plot EMPTY. The eval closure matches only `Ok(Value::Float)` and `Ok(Value::Int)`; `_ => None`. `x > 0` evaluates fine, to Value::Boolean(true) - and the closure throws it away and returns None, so nothing is drawn. Golden: golden/boolean_no_curve.svg, polylineCount 0. Using a boolean arithmetically is a different failure with the same result: `(x>0)*2` raises `Expected a Value::Float or Value::Int, but got Boolean(true).` -> None. There is NO boolean-to-number coercion anywhere. Same for strings ('\"abc\"'), tuples ('(1,2)') and Empty.",
+    "evalexpr has an integer type and integer division truncates. Literals without a decimal point are Value::Int: '5/2' is 2, not 2.5; '7/2' is 3; '-7/2' is -3 (truncation toward zero, not floor); '100/10/2' is 5 (left-associative). One float anywhere promotes the whole subexpression: '5.0/2' and '5/2.0' are both 2.5. Because x, pi and e are always bound as Value::Float, anything touching x is float - the Int path only bites on constant subexpressions. Golden golden/int_division_trunc.svg plots the constant '5/2' as a flat line at y=2. '%' is Rust's remainder, so -7%3 is -1 and 7%-3 is 1, NOT Python-style modulo.",
+    "Integer division and integer modulo BY ZERO are errors (-> None), but float division by zero is not. '1/0' raises `Error dividing 1 / 0` and '1%0' raises `Error modulating 1 % 0`, both giving None. But '1.0/0.0' is +inf, '0.0/0.0' is NaN, '-1.0/0.0' is -inf, '1.0%0.0' is NaN, and '1/x' at x=0.0 is +inf (x is a Float, so this is float division). The plot loop then discards inf and NaN via `y.is_finite()`, so both paths look the same on screen - but they are different code paths and the eval contract distinguishes them.",
+    "'^' is exponentiation, it is LEFT-associative, and it always returns Float. '2^3^2' is 64, NOT 512 - it parses as (2^3)^2. Every other calculator and most languages (Python, Ruby, Julia, math notation) make ** / ^ right-associative; if you reuse an off-the-shelf Pratt parser with the usual right-associative power rule your port will silently return 512. '^' also binds TIGHTER than unary minus: '-x^2' at x=3 is -9, and '-2^2' is -4. And '2^3' is Float(8.0), not Int(8), so '1+2*3^2' is Float(19.0) while '2+3*4' is Int(14).",
+    "preprocess_math_expr is a regex rewrite with three behaviours a naive string-replace will miss. (1) It DELETES whitespace between a function name and its '(' : 'sin (x)' becomes 'math::sin(x)' because the replacement template is 'math::$1$2' where $2 captured only the paren. (2) It is guarded by \\b, so 'mysin(x)', 'x_sin(x)' and 'sinx' are left completely alone (and then fail as unbound identifiers). It is case-sensitive: 'SIN(x)' is untouched. (3) Alternation order is load-bearing and leftmost-first: 'asinh' precedes 'asin' precedes 'sin', 'atan2' precedes 'atan', 'exp2' precedes 'exp', 'log10' and 'log2' precede 'ln'. Reorder that list and 'asinh(x)' becomes 'math::asin' + 'h(x)'. Also: 'math::math::sin(x)' survives as a double prefix and fails, and the built-ins that are NOT in the fns list (min, max, if, len, typeof, math::log, math::is_nan, bitand, ...) pass through untouched - so 'min(x,0)' WORKS while 'log(8,2)' does not (only 'math::log(8,2)' does).",
+    "An EMPTY or whitespace-only expression is NOT a parse error. build_operator_tree(\"\") succeeds and evaluates to Value::Empty, so the closure returns None and render_plot_svg returns Ok(...) - the user gets a clean, curveless chart, not the red 'Parse error:' message. Same for '()'. Do not add an is-empty guard that returns an error.",
+    "render_plot_svg wraps parse failures as `format!(\"Parse error: {}\", e)` - the string your UI shows is 'Parse error: ' + evalexpr's own Display text, e.g. 'Parse error: Found an unmatched opening parenthesis '('.' (note the trailing period and the quoted paren). Only a handful of malformed inputs actually fail at PARSE time: unmatched parens, an unmatched double quote, and adjacent literals ('1 2' -> 'Tried to append a node to a leaf node.'). Almost everything else - 'x +', '@x', '1.2.3', 'foo(x)', 'x = 1', '[1,2]' - PARSES and fails at EVAL time, which the closure swallows into None. So a bad expression usually yields a silent empty plot, not an error message. Match the stage, not just the text.",
+    "The polyline break logic is asymmetric and easy to get subtly wrong. `first` starts true, so out-of-window samples BEFORE the curve enters the window emit nothing. A break only flushes when `!first`, so a run of consecutive out-of-window samples produces exactly ONE polyline, not one per sample. A run of length 1 DOES produce a polyline with a single point and no space: golden/single_point_run.svg contains `<polyline points=\"300.00,200.00\" .../>`. NaN is handled by the same branch as out-of-range (`y.is_finite()` is false), and None (eval failure) by a separate but identical branch. Trailing points are flushed after the loop only `if !points.is_empty()`.",
+    "Window membership is tested on the RAW y with `y >= y_min && y <= y_max` - inclusive on both ends, and evaluated BEFORE any scaling. NaN fails both comparisons, so it breaks the run. Do not reorder this to test the scaled screen coordinate, and do not use an epsilon.",
+    "The SVG header numbers come from Rust's `{}` Display for f64, which prints 600.0 as \"600\", not \"600.0\": `viewBox=\"0 0 600 400\" width=\"600\" height=\"400\"`. Swift's \"\\(600.0)\" and Kotlin's 600.0.toString() both give \"600.0\"; JS String(600.0) gives \"600\". Hard-code the literal strings. Everything else is fixed-precision: grid/axis/rect coordinates use `{:.1}` (\"40.0\", \"360.0\") and polyline points use `{:.2}` (\"40.00,156.48\"), comma-separated within a point and space-separated between points, with no trailing space.",
+    "The empty axis group is ALWAYS emitted. When neither axis line is visible (y_min > 0 or y_max < 0, and likewise for x) the output still contains the literal `<g stroke=\"#999\" stroke-width=\"1\"></g>`. Golden: golden/no_zero_on_either_axis.svg ([1,3] x [1,9]). Do not skip the group when it has no children. The same is true of the grid group and the label group, which are never empty in practice but are unconditionally opened and closed.",
+    "nice_step computes the decade with `10f64.powf(rough.log10().floor())` - a floating-point pow with a Double exponent. Verified safe: libm pow(10,n) on Darwin, Java Math.pow and JS Math.pow are all correctly rounded for every integer n in [-323,308], so Foundation pow / kotlin.math.pow / Math.pow / Math.pow all match Rust's powf here. What is NOT safe is building the decade yourself. A port that loops `r *= 10` / `r /= 10` gets a different double for 25 of the 61 exponents in [-30,30]: at n=-16 repeated division yields 1.00000000000000010e-16 while pow yields 9.99999999999999979e-17 - a different double, which then shifts `norm = rough / mag` and can cross a branch threshold. Same hazard for a hand-typed decade table. Call pow. Every niceStep row carries intermediates.rough, intermediates.floorLog10Rough and intermediates.mag so you can bisect exactly which of the four steps diverges. Note also that `rough.log10().floor()` is computed on the ALREADY-divided rough (range/8.0), not on range.",
+    "nice_step's branch thresholds are inclusive `<=` and sit on exact ties, so one ULP flips the answer. norm <= 1.5 -> 1.0; <= 3.0 -> 2.0; <= 7.0 -> 5.0; else 10.0. Range 12.0 gives rough exactly 1.5 and step 1.0, but 12.000000000000002 gives step 2.0. Range 24.0 -> 2.0, 24.000000000000004 -> 5.0. Range 56.0 -> 5.0, 56.00000000000001 -> 10.0. The final `else` branch (10.0) is reachable only when norm is in (7,10), e.g. range 64 -> step 10, range 640 -> step 100, range 0.064 -> step 0.01; golden/nice_step_ten_branch.svg exercises it on both axes. nice_step is also NOT guarded: nice_step(0.0) is 0.0, nice_step(-1.0) is NaN, nice_step(inf) is inf. render_plot_svg rejects those ranges earlier with `Invalid range: max must be greater than min`, so a port that guards inside nice_step instead will emit the wrong error.",
+    "Samples are computed as `x = x_min + (i as f64) / (steps as f64) * x_range` with steps = 1000, giving 1001 inclusive samples. The 'obvious' optimisation `x_min + i*dx` (dx = x_range/1000) is a DIFFERENT number for 221 of the 1001 samples on the default [-10,10] plot, and it does change rendered output: golden/sampling_formula_sensitive.svg ('x' over [-6.3, 0.7999999999999998] x [-3.3, 3.1]) contains the coordinate 348.47, which the i*dx formula turns into 348.48. Divide first, then multiply.",
+    "format_label's dispatch order is `val == 0.0` first, then `abs >= 1000 || abs < 0.01` (scientific), then near-integer, then `{:.2}`. Two consequences catch everyone. 999.999 has abs < 1000, so it does NOT go scientific - it goes to `{:.2}` and prints \"1000.00\", a four-digit label in the branch that is supposed to keep labels short. And 0.009999 has abs < 0.01, so it DOES go scientific and prints \"1.0e-2\", which reads as 0.01 - a value the non-scientific branch would have printed as \"0.01\" anyway. Also `val == 0.0` is true for -0.0, so negative zero prints \"0\" and never reaches the sign-preserving branches.",
+    "Non-finite values reaching format_label print Rust's spellings, and all three target platforms disagree with Rust somewhere. Rust: NaN -> \"NaN\" (via `{:.2}`, because NaN fails every earlier test including the near-integer one), +inf -> \"inf\" and -inf -> \"-inf\" (via `{:.1e}`, because inf.abs() >= 1000.0). Measured on this machine: Swift String(format:\"%.2f\", .nan) = \"nan\" (lowercase - WRONG) and \"%.1e\" of infinity = \"inf\" (right). Java/Kotlin String.format(\"%.2f\", NaN) = \"NaN\" (right) but \"%.1e\" of infinity = \"Infinity\" (WRONG). JS gives \"NaN\" and \"Infinity\". These are unreachable through the tick loops on a valid range, but the formatLabel vectors pin them, so implement them literally. Relatedly, `val as i64` in Rust is a SATURATING cast (inf -> i64::MAX = 9223372036854775807, -inf -> i64::MIN, NaN -> 0); Swift's Int(Double) TRAPS at runtime on inf/NaN and Kotlin's .toLong() saturates like Rust - guard the cast even though the guarded path is unreachable.",
+    "x, pi and e are re-bound into a FRESH HashMapContext on every one of the 1001 samples, and they are plain variables, not reserved words. 'pi' is std::f64::consts::PI (0x400921fb54442d18) and 'e' is std::f64::consts::E (0x4005bf0a8b145769). Any other identifier is unbound: 'y' fails with `Variable identifier is not bound to anything by context: \"y\".`, and note that capital 'X' is NOT x. Assignment is rejected: 'x=1' fails with `Cannot manipulate context` because the tree is evaluated with an immutable context.",
+    "Arity is not checked at parse time and the error messages are type errors, not arity errors, because evalexpr passes a Tuple for multi-argument calls. 'sqrt(1,2)' -> `Expected a Value::Float or Value::Int, but got Tuple([Int(1), Int(2)]).`; 'sin()' -> `... but got Empty.`; 'hypot(3)' and 'atan2(1)' -> `Expected a Value::Tuple, but got Int(3).` All of them yield None from the closure. If your port validates arity up front you will produce different error text for the same input.",
+    "Comparison chaining is an error, not a fold: '1<2<3' fails with `Expected a Value::Number or a Value::String, but got Boolean(true).` The '!' operator requires a Boolean: '!x' fails with `Expected a Value::Boolean, but got Float(1.0).` and '!1' with `... but got Int(1).` '&&' and '||' likewise reject numbers. There is no truthiness anywhere in this language.",
+    "Numeric literal syntax is evalexpr's, not your platform's. '1e3' and '1E3' are Float(1000.0). '.5' and '5.' are valid Floats. '0x10' is Int(16). Integer literals are i64 and lose precision on the way to f64: '9007199254740993' becomes 9007199254740992.0. A literal that overflows i64 falls back to Float: '9223372036854775807' is Int, '9223372036854775808' is Float. '**' is not an operator ('x ** 2' parses as two multiplications and fails with `An operator expected 2 arguments, but got 1.`).",
+    "'x,' , ',x' and '(,)' all parse and evaluate to a Tuple containing Empty, so they are silent no-curve plots, not errors. So is 'x;y' - it parses, and fails at eval on the unbound 'y'. Treat the comma as a tuple constructor, not as an argument separator that only exists inside a call.",
+    "render_plot_svg's only Err path is the range check: `if x_range <= 0.0 || y_range <= 0.0` -> `Invalid range: max must be greater than min`. It fires BEFORE the expression is even parsed, so an invalid range beats a syntax error. Equal min and max is an error, not a degenerate one-pixel plot. See the svgErrors array."
+  ]
+}

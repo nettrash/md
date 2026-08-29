@@ -775,6 +775,14 @@ enum LaTeXExport {
                 // The author's mathematics, untouched — the point of the
                 // whole export.
                 return display("\n\(code)\n")
+            case "plot":
+                // A plot is an `<svg>` everywhere else, with no engine behind
+                // it — but LaTeX has no SVG either, and pgfplots would be a
+                // second renderer to keep in step with this one. So the fence
+                // travels the way the other figures do: verbatim, under a
+                // comment naming it, for the author to draw with whatever
+                // package their document already loads.
+                return diagram(language: name, code: code)
             default:
                 return verbatim(code)
             }

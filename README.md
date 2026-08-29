@@ -58,9 +58,22 @@ chemistry extension, Mermaid, Graphviz, PlantUML, and highlight.js for code).
   **PlantUML** (` ```plantuml `), all drawn on-device by bundled engines and
   carried through to print and PDF. A raw `.puml` or `.gv` file opens and
   renders as the diagram it describes, source still editable.
+- **Plots** (` ```plot `). A block of directives and formulas drawn as a
+  chart — `x: -10..10`, `y: -2..2` (or `y: auto`), `title`, `xlabel`,
+  `ylabel`, `legend`, `grid`, `axes`, `width`, `height`, `samples`, then a
+  line per curve: `sin(x) * exp(-abs(x)/5)`, `envelope = exp(-abs(x)/5)`, a
+  parametric `(cos(t), sin(t)) for t in 0..2*pi`, or measured data as
+  `points: 0,0 1,2 2,1`. The expression language is the usual one —
+  arithmetic, comparisons, `pi`, `e` and the thirty-odd functions from `sin`
+  to `hypot` — with `^` binding to the right and every value a real number.
+  There is no engine and no asset behind it: the chart is an `<svg>` in the
+  markup before any script runs, so it costs nothing to load and comes out
+  the same in the preview, print, PDF, the self-contained `.html`, the EPUB
+  and a saved `.svg`.
 - **Three layouts.** *Edit*, *Preview*, and — on iPad, where there's
   room — a side-by-side *Split* that re-renders as you type. The chosen
-  layout is remembered.
+  layout is remembered per file, so a document opens back in the layout you
+  left it in; two windows side by side on an iPad still keep their own.
 - **Typewriter feel.** Warm paper background (light "fresh paper" / dark
   "carbon paper") and the American Typewriter face throughout, with
   Courier New for code — a native iOS 26 Liquid Glass toolbar on top.
@@ -75,11 +88,11 @@ chemistry extension, Mermaid, Graphviz, PlantUML, and highlight.js for code).
   selectable text), export it as an **EPUB** e-book with the document's
   own headings as its table of contents, export it as LaTeX `.tex` source
   (formulas as the `$…$` you typed rather than a picture of them, ready to
-  paste into a paper), export a single **diagram** (Mermaid, Graphviz or
-  PlantUML — math is HTML text, not a drawing, so it isn't offered) as a
-  standalone `.svg` vector file, export the document as a **TextBundle** with
-  any local images it references gathered into the bundle's `assets/`, or
-  share the raw Markdown source.
+  paste into a paper), export a single **figure** (Mermaid, Graphviz,
+  PlantUML or a plot — math is HTML text, not a drawing, so it isn't
+  offered) as a standalone `.svg` vector file, export the document as a
+  **TextBundle** with any local images it references gathered into the
+  bundle's `assets/`, or share the raw Markdown source.
 - **Dynamic Type, light/dark, text selection** throughout.
 
 ## Platforms

@@ -3,10 +3,16 @@
 //  mdTests
 //
 //  Fixture-driven tests over the shared TestData corpus (mirrored in the
-//  iOS / macOS / Android repos). Every fixture must parse and render, and
-//  each per-feature file must carry the construct its name promises, so a
-//  fixture edit that loses a feature fails here rather than silently
-//  weakening the corpus.
+//  iOS / macOS / Android / VS Code repos). Every fixture must parse and
+//  render, and each per-feature file must carry the construct its name
+//  promises, so a fixture edit that loses a feature fails here rather than
+//  silently weakening the corpus.
+//
+//  Fifteen of the sixteen fixtures are byte-identical in all four repos, and
+//  a difference in one of them is drift to be fixed. `test.md` is the
+//  deliberate exception: being the kitchen-sink document, it names the
+//  platform it runs on and the command that builds it, so those few lines
+//  differ per repo on purpose. Do not unify them.
 //
 
 import XCTest
@@ -135,7 +141,8 @@ final class TestDataTests: XCTestCase {
         XCTAssertEqual(
             roots.map { $0.deletingPathExtension().lastPathComponent }.sorted(),
             ["01-Welcome", "02-Formatting", "03-Tables", "04-Code",
-             "05-Images", "06-Math", "07-Diagrams", "08-Writer Tools"])
+             "05-Images", "06-Math", "07-Diagrams", "08-Plots",
+             "09-Writer Tools"])
 
         // The example book's tree, at the exact relative paths the
         // "Example Book…" copy reproduces.

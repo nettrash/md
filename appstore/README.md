@@ -7,11 +7,11 @@ listings are written separately, because the apps differ.)
 
 | File | App Store Connect field | Limit | Current |
 | --- | --- | --- | --- |
-| `promotional-text.txt` | Promotional Text | 170 | 157 |
-| `description.txt` | Description | 4000 | 2718 |
-| `keywords.txt` | Keywords | 100 | 96 |
-| `whats-new.txt` | What's New in This Version | 4000 | 1645 |
-| `review-notes.txt` | App Review Information ▸ Notes | 4000 | 3850 |
+| `promotional-text.txt` | Promotional Text | 170 | 167 |
+| `description.txt` | Description | 4000 | 3939 |
+| `keywords.txt` | Keywords | 100 | 99 |
+| `whats-new.txt` | What's New in This Version | 4000 | 2520 |
+| `review-notes.txt` | App Review Information ▸ Notes | 4000 | 3854 |
 
 Promotional Text can be changed at any time without submitting a new build;
 the Description, Keywords and What's New ship with a version.
