@@ -1627,10 +1627,26 @@ enum DocumentExport {
         return nil
     }
 
+    /// The base name a document shows once `renameInPlace` has renamed it to
+    /// `typed`: the same trimming, and the extension the move keeps taken
+    /// off again when the writer typed it.
+    nonisolated static func baseName(afterRenaming fileURL: URL, to typed: String) -> String {
+        let trimmed = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ext = fileURL.pathExtension
+        guard !ext.isEmpty,
+              (trimmed as NSString).pathExtension.caseInsensitiveCompare(ext) == .orderedSame else {
+            return trimmed
+        }
+        return (trimmed as NSString).deletingPathExtension
+    }
+
     /// Prompt for a new name and perform the rename. Uses a UIKit
     /// `UIAlertController` text field, reading `textField.text` in the action
-    /// handler — reliable across iPhone and iPad.
-    static func promptRename(fileURL: URL, currentBaseName: String) {
+    /// handler — reliable across iPhone and iPad. `perform` does the rename
+    /// (`DocumentView.rename(to:)`, which also names the title bar) and
+    /// returns the failure to show, or nil.
+    static func promptRename(fileURL: URL, currentBaseName: String,
+                             perform: @escaping @MainActor (String) async -> String?) {
         guard let presenter = topViewController() else {
             renameLog.error("promptRename: no presenter")
             return
@@ -1658,7 +1674,7 @@ enum DocumentExport {
             // time this resumes the rename alert has fully dismissed, so the
             // result alert presents reliably (no fragile fixed delay).
             Task { @MainActor in
-                let result = await rename(fileURL: fileURL, to: typed)
+                let result = await perform(typed)
                 let title = result == nil ? "Renamed" : "Couldn’t Rename"
                 let message = result ?? "Renamed to “\(typed)”."
                 presentMessage(title: title, message: message)

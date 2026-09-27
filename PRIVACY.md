@@ -30,14 +30,16 @@ you choose — locally, in the Files app, or in iCloud Drive. We never see
 them. If you store a document in iCloud Drive, it syncs through *your*
 Apple account under Apple's privacy terms, not ours.
 
-The app stores two small settings on-device, through the standard system
-preferences store: your last-used Edit / Split / Preview layout, and — if
-you use writer mode — a security-scoped bookmark to the book folder you
-chose, so the book reopens without asking you to find it again. A
-security-scoped bookmark is simply how a sandboxed app is permitted to
-reopen a folder you picked; it points at a place on your own device and
-never leaves it. Closing the book discards it. Neither setting leaves your
-device, and neither contains personal information.
+The app stores a few small settings on-device, through the standard system
+preferences store: your last-used Edit / Split / Preview layout (and the
+layout each file was last shown in), your PDF page size, the two Typing
+toggles — whether Return continues lists and tables, and whether sentences
+are capitalized — and, if you use writer mode, a security-scoped bookmark
+to the book folder you chose, so the book reopens without asking you to
+find it again. A security-scoped bookmark is simply how a sandboxed app is
+permitted to reopen a folder you picked; it points at a place on your own
+device and never leaves it. Closing the book discards it. None of these
+settings leaves your device, and none contains personal information.
 
 ## Permissions
 

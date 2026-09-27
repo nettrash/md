@@ -1,16 +1,33 @@
-Version 1.4 — plot a function in a fence, and every document opens the way you left it.
+Version 1.5: find and replace, typing that carries on for you, and every Markdown extension opens.
 
-PLOTS
-• A fenced block tagged plot is now drawn as a chart. Write one line per curve — sin(x), or envelope = exp(-abs(x)/5) to give it a name for the legend — and any number of them share the figure, each in its own colour.
-• Functions of x, parametric curves written (cos(t), sin(t)) for t in 0..2*pi, and points you type in yourself with points: 0,0 1,2 2,1.
-• x: and y: set the window, and y fits itself to the curve unless you say otherwise. title, xlabel, ylabel, legend, grid, axes, width, height and samples set the rest.
-• The usual arithmetic and comparisons, the constants pi and e, and the functions you would expect: sin cos tan asin acos atan sinh cosh tanh asinh acosh atanh sqrt cbrt abs exp exp2 ln log2 log10 floor ceil round atan2 pow hypot.
-• md draws the figure itself, in code. No engine sits behind it and there is nothing to fetch or wait for: it added nothing at all to what the app carries, where each of the diagram languages beside it — Mermaid, Graphviz and PlantUML — is an engine of several megabytes built in.
-• The drawing is a real vector, and it goes wherever the page goes — the preview, print, an exported PDF, an exported HTML page, Export Diagram as SVG, and an exported EPUB, where a plot stays a vector rather than becoming a picture of one, as the other figures still do. A LaTeX export keeps the block's source under a comment, the same treatment the other diagram languages get, so there is no chart in the .tex file.
-• A block that cannot be read never leaves a hole in the page: one plot: line says what is wrong, with your own text still under it.
+FIND AND REPLACE
+• The system find panel now opens over the editor, from the new Find button in the toolbar or with Command-F on a hardware keyboard.
+• It carries a Replace field, Replace and Replace All, on iPhone as well as on iPad.
+• Matching is plain text, case-insensitive, and wraps round the end of the document. There are no regular expressions.
+• The panel searches the text you are editing rather than the rendered preview, so Find is offered while you are editing and not in Preview.
+• Replace All undoes in a single step, and a replaced document is saved like any other edit.
 
-OPENS THE WAY YOU LEFT IT
-• md now remembers, for each file, which layout you last used for it — Edit, Preview, or Split on iPad — and opens it there next time. Something you keep coming back to read stays a reading page; something you are writing stays a writing page.
-• The last 200 documents you opened are remembered, on this device. Nothing is sent anywhere, and nothing in the file itself changes: rename or move it outside md and it simply starts fresh.
-• A new document, or an empty one, opens in Edit. A document md has not seen before opens in Split on iPad, exactly as before; on iPhone, where there is only ever one pane, it now opens in Preview, and Edit is one tap away.
-• Books are left out of this on purpose: a book keeps one layout throughout, so stepping from one chapter to the next never changes the view under you.
+TYPING
+• Return carries on what you were writing. A bullet, numbered or task item continues with the next marker, a quote keeps its own, and a table gets a fresh row.
+• Return on an empty item ends the list instead of leaving a stray marker behind. In a nested list it steps out one level first.
+• The first letter of every line and of every sentence is capitalized as you type, and md reads the Markdown around it: never inside a code fence, a code span, math, a table cell, a web address, front matter or a comment, and not after an abbreviation, an initial or an ellipsis.
+• Did not want that capital? Delete it and type the letter again, and it stays lowercase. A capital is also its own Undo step, so Undo straight after one puts the small letter back.
+• Both rules are switches in the new Typing menu in the toolbar: Continue Lists and Tables, and Capitalize Sentences. With a hardware keyboard, Shift-Return inserts a plain line break.
+
+EVERY MARKDOWN EXTENSION OPENS
+• Besides .md and .markdown, md now opens and saves .mdown, .markdn, .mdtext, .mdtxt, .mkd, .mkdn, .mdwn and .mkdown. A file keeps whichever extension it came with, and a new document is still a .md.
+• This closes a real gap. Those spellings were listed by the app but never actually associated with it, so md was not offered for them in Files or the document browser. On iOS 26, where the system knows Markdown only as .md, that was true of .markdown too.
+• PlantUML files now open under .iuml and .pu as well as .puml and .plantuml.
+
+KEYBOARD SHORTCUTS ON IPAD
+• With a hardware keyboard: Command-1, Command-2 and Command-3 for Edit, Split and Preview, Command-F for Find, Command-P to print, Shift-Command-B to show the book, and Control-Command-Up or Control-Command-Down to step to the previous or next article of the open book, in the book's own reading order.
+• A shortcut for a layout the window is too narrow to show is never installed, so it does nothing rather than picking a pane that cannot appear.
+• Command-Z, Command-X, Command-C, Command-V and Command-A stay the text view's own, as they should.
+
+A PREVIEW THAT COMES BACK
+• The preview's page runs in a process of its own, and the system can take that process away: memory pressure with several documents open, or a diagram layout that runs itself out of room. The pane used to go blank, with nothing to say why.
+• It now loads the document again when that happens. If it fails twice in a row md stops retrying and puts one quiet line where the page would be, and the next edit brings the preview back.
+
+FIXES
+• Opening an example no longer doubles every toolbar menu, and Find and Print act on the document on screen rather than the one it replaced.
+• On iOS 27 the title bar keeps naming the open document.

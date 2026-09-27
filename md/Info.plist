@@ -39,6 +39,11 @@
         an alternate. `LSSupportsOpeningDocumentsInPlace` lets the editor
         modify the original file (in Files / Finder / iCloud Drive) rather
         than an imported copy — the right behaviour for an editor.
+
+        Markdown is claimed twice on purpose: once under the system's own
+        identifier (.md) and once under our alias identifier, which carries
+        every other Markdown extension, .markdown included — see the type
+        declarations below for why the two cannot be one.
     -->
     <key>CFBundleDocumentTypes</key>
     <array>
@@ -50,6 +55,16 @@
             <key>LSItemContentTypes</key>
             <array>
                 <string>net.daringfireball.markdown</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Markdown Document (other extensions)</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>me.nettrash.md.markdown-alias</string>
             </array>
         </dict>
         <dict>
@@ -105,10 +120,89 @@
     </array>
 
     <!--
+        The Markdown extensions the app does not get to attach to Markdown's
+        own identifier — every spelling except .md, .markdown included.
+
+        Why a second identifier: `net.daringfireball.markdown` is declared by
+        the system itself, and a declaration the system already owns beats
+        any app's copy of it: Launch Services registers the app's copy as
+        *inactive* (`lsregister -dump` shows `flags: inactive imported`) and
+        every tag on the copy that the live declaration lacks is dropped. So
+        listing `mdown`, `mkd`, … on `net.daringfireball.markdown` below did
+        nothing — those files resolved to dynamic `dyn.*` types and md was
+        never offered for them.
+
+        Which tags the live declaration carries depends on the OS release,
+        and that is why .markdown is here too. On macOS and on iOS 27
+        CoreTypes exports the identifier with `md`, `markdown` and
+        `text/markdown` (the 27 SDK surfaces it as `UTTypeMarkdown`). On
+        iOS 26 — the iOS app's deployment target — CoreTypes does not
+        declare it at all; the built-in Shortcuts app *imports* it with the
+        single extension `md`, and a built-in app's copy is registered
+        before ours and wins the same way. So on iOS 26 `.markdown`, which
+        existed only on md's copy, was dropped and never associated with md
+        either.
+
+        Tags only take effect on an identifier nobody above us declares, so
+        every extension but `md` lives here, on an identifier in our own
+        namespace, *exported* because we own it (`UTType(exportedAs:)` in
+        MarkdownDocument.swift). It conforms to `net.daringfireball.markdown`,
+        so anything that asks "is this Markdown?" — including the document
+        types above and readableContentTypes — still says yes, and to
+        public.plain-text so the bytes are read and written as ordinary
+        text. Where the system's own declaration also lists `markdown`
+        (macOS, iOS 27) a .markdown file resolves to the system's type;
+        where it does not (iOS 26) it resolves to this one. Both are md's,
+        and both open and save in place. `markdown` is listed first so that
+        it is this type's preferred extension. Do not fold these extensions
+        back into the declaration below: they would be silently discarded
+        again.
+    -->
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>me.nettrash.md.markdown-alias</string>
+            <key>UTTypeDescription</key>
+            <string>Markdown Text</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>net.daringfireball.markdown</string>
+                <string>public.plain-text</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>markdown</string>
+                    <string>mdown</string>
+                    <string>markdn</string>
+                    <string>mdtext</string>
+                    <string>mdtxt</string>
+                    <string>mkd</string>
+                    <string>mkdn</string>
+                    <string>mdwn</string>
+                    <string>mkdown</string>
+                </array>
+            </dict>
+        </dict>
+    </array>
+
+    <!--
         Markdown is owned by Daring Fireball, so we *import* (not export)
-        its identifier and pin the common file extensions to it. It
-        conforms to public.plain-text, so the files we read and write are
-        ordinary UTF-8 text.
+        its identifier. It conforms to public.plain-text, so the files we
+        read and write are ordinary UTF-8 text.
+
+        Only `md` is listed: the one tag every system declaration of this
+        identifier carries (macOS and iOS 27 list `md` and `markdown`, iOS 26
+        only `md` — see the exported declaration above). The system owns the
+        identifier wherever it declares it, so this copy is inactive there
+        and only its agreement with the original matters; on a system with
+        no declaration of its own this copy is live and .md resolves to it.
+        Anything more here would be discarded, and listing the same
+        extension in two of our declarations would leave it ambiguous; every
+        other Markdown extension, .markdown included, belongs to
+        me.nettrash.md.markdown-alias, where it is honoured on every release.
     -->
     <key>UTImportedTypeDeclarations</key>
     <array>
@@ -126,10 +220,6 @@
                 <key>public.filename-extension</key>
                 <array>
                     <string>md</string>
-                    <string>markdown</string>
-                    <string>mdown</string>
-                    <string>markdn</string>
-                    <string>mdtext</string>
                 </array>
             </dict>
         </dict>
@@ -138,6 +228,9 @@
             edits exactly like Markdown. The format isn't ours and the system
             declares no identifier for it, so we *import* one that conforms to
             public.plain-text (and public.source-code, itself plain text).
+            Because no system declaration exists for this identifier, the
+            tags here do take effect — unlike Markdown's, above — so every
+            extension PlantUML files are found under is listed on it.
         -->
         <dict>
             <key>UTTypeIdentifier</key>
@@ -155,6 +248,8 @@
                 <array>
                     <string>puml</string>
                     <string>plantuml</string>
+                    <string>iuml</string>
+                    <string>pu</string>
                 </array>
             </dict>
         </dict>

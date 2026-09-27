@@ -19,14 +19,41 @@ extension UTType {
     /// canonical identifier declared by the system on Apple platforms
     /// (and re-declared as an *imported* type in our Info.plist, since
     /// the type is owned by Daring Fireball, not us). It conforms to
-    /// `public.plain-text`, so files we save are ordinary text.
+    /// `public.plain-text`, so files we save are ordinary text. Its
+    /// preferred extension is `md` on every release — the one tag every
+    /// system declaration of it carries, and the only one our copy lists.
     static let markdown = UTType(importedAs: "net.daringfireball.markdown")
 
-    /// PlantUML source (`.puml`). The format is owned by the PlantUML
-    /// project and the system declares no identifier for it, so we import
-    /// one in Info.plist that conforms to `public.plain-text` — a `.puml`
-    /// file is ordinary UTF-8 text and opens in the editor just like a
-    /// `.md` file, with no special handling.
+    /// Markdown under any of its other extensions — `.markdown`, `.mdown`,
+    /// `.markdn`, `.mdtext`, `.mdtxt`, `.mkd`, `.mkdn`, `.mdwn`, `.mkdown`.
+    ///
+    /// These cannot ride on `.markdown` above: the system declares
+    /// `net.daringfireball.markdown` itself, and a system declaration wins
+    /// over an app's copy — the copy is registered *inactive* and every
+    /// extension the live declaration lacks is dropped, so for years
+    /// `.mdown` and friends resolved to dynamic types that md was never
+    /// offered for. What the live declaration carries varies by release:
+    /// macOS and iOS 27 list `md` and `markdown`, but iOS 26 knows only `md`
+    /// (the built-in Shortcuts app's copy is the live one there), so on
+    /// iOS 26 even `.markdown` was dropped. Tags only take effect on an
+    /// identifier nobody above us declares, hence this one in our own
+    /// namespace, *exported* because we own it (see the Info.plist comment).
+    /// It conforms to `.markdown`, so a document of this type is still
+    /// Markdown everywhere the app asks; it is in `writableContentTypes`
+    /// too, so a `.mkd` saves back in place as `.mkd` rather than opening
+    /// read-only. A `.markdown` file resolves to the system's type where that
+    /// lists the extension and to this one where it does not — both are
+    /// md's.
+    static let markdownAlias = UTType(exportedAs: "me.nettrash.md.markdown-alias",
+                                      conformingTo: .markdown)
+
+    /// PlantUML source (`.puml`, `.plantuml`, `.iuml`, `.pu`). The format is
+    /// owned by the PlantUML project and the system declares no identifier
+    /// for it, so we import one in Info.plist that conforms to
+    /// `public.plain-text` — a `.puml` file is ordinary UTF-8 text and opens
+    /// in the editor just like a `.md` file, with no special handling. With
+    /// no system declaration to defer to, the extensions listed on it are
+    /// honoured, unlike Markdown's.
     static let plantUML = UTType(importedAs: "net.sourceforge.plantuml.puml")
 
     /// Graphviz DOT source (`.gv`). Like PlantUML it is ordinary UTF-8 text
@@ -71,7 +98,10 @@ struct MarkdownDocument: FileDocument {
 
     /// Markdown is the document type we own, but we also read and write
     /// plain text so the app can open and round-trip a `.txt` the user
-    /// drops on it without silently rewriting its extension.
+    /// drops on it without silently rewriting its extension. The Markdown
+    /// alias type (`.mkd` and the other spellings) is writable for the same
+    /// reason: a type that is only readable opens read-only, and a `.mkd`
+    /// the user edits must save back as the `.mkd` it was.
     ///
     /// TextBundle / TextPack are readable but deliberately **not** writable:
     /// they can carry an `assets/` folder of images, and this document is only
@@ -79,10 +109,16 @@ struct MarkdownDocument: FileDocument {
     /// rule forbids. Opening a bundle imports its `text.md` for reading /
     /// editing; producing one is the explicit "Export as TextBundle…" action
     /// (see `DocumentExport`), which preserves the assets it can find.
+    ///
+    /// `.markdown` (net.daringfireball.markdown) stays first in both lists:
+    /// the first writable type is what a new document is created as, and its
+    /// preferred extension is `md` on every release, so a new file is a `.md`.
     static var readableContentTypes: [UTType] {
-        [.markdown, .plainText, .plantUML, .graphvizDOT, .textBundle, .textPack]
+        [.markdown, .markdownAlias, .plainText, .plantUML, .graphvizDOT, .textBundle, .textPack]
     }
-    static var writableContentTypes: [UTType] { [.markdown, .plainText, .plantUML, .graphvizDOT] }
+    static var writableContentTypes: [UTType] {
+        [.markdown, .markdownAlias, .plainText, .plantUML, .graphvizDOT]
+    }
 
     init(configuration: ReadConfiguration) throws {
         // A `.textbundle` is a directory package: read its `text.md` out of the

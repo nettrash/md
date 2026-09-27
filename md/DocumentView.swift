@@ -173,6 +173,11 @@ struct DocumentView: View {
     @State private var navigationMode: Mode?
     /// Bridges the editor's undo stack to the toolbar's Undo / Redo buttons.
     @StateObject private var editor = EditorController()
+    /// The preview's recovery state for this document — its retry policy,
+    /// its "stopped twice" notice, the document it last showed. Owned here,
+    /// not by the pane, because the pane leaves the hierarchy in Edit and is
+    /// rebuilt between Split and Preview (see `PreviewStatus`).
+    @StateObject private var previewStatus = PreviewStatus()
     /// The latest Contents-menu jump for the preview pane; a fresh value per
     /// tap (see `PreviewNavigation`) so repeated taps re-scroll.
     @State private var previewNavigation: PreviewNavigation?
@@ -185,6 +190,12 @@ struct DocumentView: View {
     /// the author picked should outlive the window. Stored as the stable
     /// `PageSize.id`; `PageSize.named` maps it back and defaults to A4.
     @AppStorage("md.pdfPageSize") private var pdfPageSizeID = PageSize.a4.id
+    /// The Typing menu's two toggles, shared by every window and read live
+    /// by the editor pane (see `SmartTextView`): whether Return continues
+    /// lists, quotes and tables, and whether md capitalizes the first
+    /// letter of a line and of a sentence. Both default to on.
+    @AppStorage("md.continueLists") private var continueLists = true
+    @AppStorage("md.capitalizeSentences") private var capitalizeSentences = true
     /// Links the panes' scrolling in Split (identity-stable across
     /// renders; the panes register themselves on it).
     @State private var scrollSync = ScrollSync()
@@ -211,6 +222,71 @@ struct DocumentView: View {
     /// articles are exempt from the per-file memory both ways — they
     /// neither seed the mode nor record it (see `BookArticleOpens`).
     @State private var isBookArticle = false
+    /// How many documents this scene has shown, and which of them this view
+    /// is — the guard that keeps one set of toolbar menus in the bar.
+    ///
+    /// Opening a document into a scene that is already showing one (the
+    /// Examples menu, a book article — see `DocumentSceneOpener.open`)
+    /// leaves the document view that was on screen *alive*: SwiftUI parents
+    /// a second `DocumentHostingController` beside the first rather than
+    /// replacing it. Both then apply `.toolbar` to the scene's one
+    /// navigation bar, so after a second open every menu in it — and in the
+    /// system's "…" overflow — appeared twice, after a third, three times.
+    /// (Measured on iOS 26.5 and 27.0: 6 trailing item groups after the
+    /// first open, 12 after the second, 18 after the third.)
+    ///
+    /// So each document view stamps itself with the scene's next generation
+    /// as it appears, and only the newest stamp contributes toolbar content.
+    /// `@SceneStorage`, not a global: a second iPad window has its own
+    /// counter, and its document must not be silenced by an open in this one.
+    @SceneStorage("md.documentGeneration") private var sceneGeneration = 0
+    @State private var generation = 0
+    /// The name the scene's title bar shows — published by the document
+    /// view that is current, applied by every document view alive in the
+    /// scene. See `DocumentTitle` for why the bar is not left to the system.
+    @SceneStorage("md.documentTitle") private var sceneTitle = ""
+    /// The scene's own token, minted by the first document view it shows —
+    /// what `DocumentChords` keys the current document's chord actions by,
+    /// so a second iPad window keeps its own current document.
+    @SceneStorage("md.sceneToken") private var sceneToken = ""
+
+    /// Whether this view is the document the scene is showing.
+    private var isCurrentDocument: Bool {
+        DocumentGeneration.isCurrent(view: generation, scene: sceneGeneration)
+    }
+
+    /// Claim this scene's next generation. Run from `onAppear`: every
+    /// document view appears exactly once, and the newest claim is what
+    /// retires the toolbar of the view it replaced.
+    private func claimGeneration() {
+        guard generation == DocumentGeneration.unstamped else { return }
+        let next = DocumentGeneration.next(after: sceneGeneration)
+        sceneGeneration = next
+        generation = next
+        sceneTitle = baseName
+        if sceneToken.isEmpty { sceneToken = UUID().uuidString }
+        DocumentChords.register(ownChordActions, scene: sceneToken)
+    }
+
+    /// This document's chord actions, for `DocumentChords`: what ⌘P,
+    /// ⇧⌘B and ⌃⌘↑ / ⌃⌘↓ do when *this* is the document on screen.
+    /// `document` is a binding and reads live; the appearance is the
+    /// firing view's, passed in, because that view is in the same window.
+    private var ownChordActions: DocumentChords.Actions {
+        DocumentChords.Actions(
+            print: { dark in
+                await DocumentExport.print(source: document.text, title: baseName, dark: dark)
+            },
+            showBook: { showBook() },
+            stepArticle: { stepArticle(by: $0) })
+    }
+
+    /// The actions a chord runs: the scene's current document's, whichever
+    /// document view's hidden button the key command reached (see
+    /// `DocumentChords`), or this view's own outside a scene.
+    private var chordActions: DocumentChords.Actions {
+        DocumentChords.actions(scene: sceneToken) ?? ownChordActions
+    }
 
     enum Mode: String, CaseIterable, Identifiable {
         case edit, split, preview
@@ -227,6 +303,15 @@ struct DocumentView: View {
             case .edit: return "square.and.pencil"
             case .split: return "rectangle.split.2x1"
             case .preview: return "eye"
+            }
+        }
+        /// The chord that picks this layout — ⌘1 / ⌘2 / ⌘3, off the one
+        /// shared table (see `EditorShortcuts`).
+        var shortcutAction: EditorShortcuts.Action {
+            switch self {
+            case .edit: return .viewEdit
+            case .split: return .viewSplit
+            case .preview: return .viewPreview
             }
         }
     }
@@ -284,8 +369,20 @@ struct DocumentView: View {
             footer
         }
             .background(Typewriter.paper.ignoresSafeArea())
+            // The chords that have no toolbar button of their own to hang
+            // on. Behind the panes, and zero-sized: nothing to see, and
+            // nothing to hit — the buttons exist so their key commands do.
+            .background { keyboardShortcuts }
             .toolbar { toolbarContent }
+            // The scene's one title, written by every document view alive
+            // in it — see `DocumentTitle`.
+            .navigationTitle(DocumentTitle.displayed(scene: sceneTitle, own: baseName))
             .navigationBarTitleDisplayMode(.inline)
+            // Claim this scene's newest-document stamp; see `generation`.
+            .onAppear { claimGeneration() }
+            // DEBUG-only diagnostic harness (see `LaunchDiagnostics`); a
+            // no-op in Release and for a launch with no harness arguments.
+            .task { runLaunchDiagnostics() }
             // Recompute the footer's counters once per typing pause — the
             // task restarts (cancelling the sleeping one) on every change.
             .task(id: document.text) {
@@ -299,6 +396,15 @@ struct DocumentView: View {
             // same document.
             .onChange(of: fileURL, initial: true) { _, url in
                 applyOpenViewMode(for: url)
+                if isCurrentDocument {
+                    sceneTitle = baseName
+                    // An untitled document that just became a file: its
+                    // registered step action must know the file.
+                    if !sceneToken.isEmpty { DocumentChords.register(ownChordActions, scene: sceneToken) }
+                }
+                #if DEBUG
+                LaunchDiagnostics.fileURLChanged(to: url, editor: editor)
+                #endif
             }
             .sheet(item: $bookSheet) { presentation in
                 BookNavigator(root: presentation.url)
@@ -319,10 +425,125 @@ struct DocumentView: View {
             }
     }
 
+    /// Hands this window's editor controller to the DEBUG launch harness,
+    /// which is how `-mdPresentFind` invokes the very row the toolbar's
+    /// Find button invokes. Compiled away entirely in Release.
+    private func runLaunchDiagnostics() {
+        #if DEBUG
+        // Every closure is this view's own method or property — the harness
+        // re-implements nothing, it only reaches the same code a tap does.
+        LaunchDiagnostics.documentAppeared(hooks: LaunchDiagnostics.DocumentHooks(
+            editor: editor,
+            fileURL: fileURL,
+            baseName: baseName,
+            dark: colorScheme == .dark,
+            pageSize: PageSize.named(pdfPageSizeID),
+            select: { select($0) },
+            effectiveMode: { effectiveMode },
+            rawMode: { rawMode },
+            isWide: { isWide },
+            text: { document.text },
+            outline: { outline },
+            notes: { noteEntries },
+            jumpContents: { index in
+                let entries = outline
+                if entries.indices.contains(index) { jump(to: entries[index]) }
+            },
+            jumpNote: { index in
+                let entries = noteEntries
+                if entries.indices.contains(index) { jump(to: entries[index]) }
+            },
+            showBook: { showBook() },
+            stepArticle: { stepArticle(by: $0) },
+            rename: { await rename(to: $0) },
+            scrollSync: scrollSync,
+            diagrams: { diagrams }))
+        #endif
+    }
+
+    // MARK: - Hardware keyboard
+
+    /// The chords an iPad with a keyboard answers to, minus the ones a
+    /// real toolbar button already carries (the mode chips on a wide
+    /// window, and Find). Every value comes from `EditorShortcuts`, which
+    /// is md.win's `CommandTable` in Swift — so the iPad, the Mac and
+    /// Windows cannot drift apart without a test noticing.
+    ///
+    /// Which document the sink's actions run on is a separate question,
+    /// answered by `DocumentChords`: every document view alive in the
+    /// scene installs these buttons, and the one key command a chord
+    /// resolves to reaches whichever view's SwiftUI registered — so the
+    /// buttons ask the registry for the current document's actions.
+    ///
+    /// Why a sink instead of `.keyboardShortcut` on the menu rows: Print
+    /// and Show Book live *inside* toolbar menus, whose contents are built
+    /// only when the menu is opened, so a chord on one of those rows is
+    /// not installed while the menu is shut — which is every moment the
+    /// chord would be typed. A zero-sized button in the background is,
+    /// and only one of the two spellings may exist or they race.
+    ///
+    /// The iPadOS menu bar (a `.commands` modifier on the `DocumentGroup`)
+    /// is deliberately *not* here: this app's scene is a `DocumentGroup`
+    /// plus a `DocumentGroupLaunchScene`, and the launch scene's browser
+    /// plumbing is delicate enough (see `DocumentSceneOpener`) that it is
+    /// not worth disturbing for a second copy of chords that already work.
+    private var keyboardShortcuts: some View {
+        Group {
+            // On a wide window the three layouts are real toolbar chips and
+            // carry their own chords. On a narrow one they collapse into a
+            // Picker, which carries none — so they are installed here
+            // instead, and only for the modes this width actually offers:
+            // ⌘2 on a phone has no Split to select, and so selects nothing.
+            if !isWide {
+                ForEach(availableModes) { mode in
+                    Button(mode.label) { select(mode) }
+                        .keyboardShortcut(mode.shortcutAction)
+                }
+            }
+
+            // Every action below is the *current* document's, not
+            // necessarily this view's — see `DocumentChords`: the button
+            // that carries the key command may belong to a document view
+            // an open into this scene left behind.
+            Button("Print…") {
+                let dark = colorScheme == .dark
+                Task { await chordActions.print(dark) }
+            }
+            .keyboardShortcut(.print)
+
+            Button("Show Book") { chordActions.showBook() }
+                .keyboardShortcut(.showBook)
+                .disabled(bookBookmark.isEmpty)
+
+            // Walking the book without leaving the keyboard. Both are
+            // no-ops unless the open document really is an article of the
+            // remembered book and there is one to step to — see
+            // `stepArticle(by:)`.
+            Button("Previous Article") { chordActions.stepArticle(-1) }
+                .keyboardShortcut(.previousArticle)
+            Button("Next Article") { chordActions.stepArticle(+1) }
+                .keyboardShortcut(.nextArticle)
+        }
+        .frame(width: 0, height: 0)
+        .clipped()
+        .accessibilityHidden(true)
+    }
+
     // MARK: - Toolbar
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        // Only the document the scene is actually showing fills the bar. A
+        // view left behind by an open into this same scene is still alive
+        // and still rendering; without this guard its menus pile up in the
+        // one navigation bar beside the live document's. See `generation`.
+        if isCurrentDocument {
+            documentToolbar
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var documentToolbar: some ToolbarContent {
         // Mode switch. On a wide window the modes are inline glass chips
         // (the selected one tinted); on a phone they collapse to a single
         // menu so the bar stays uncluttered. Either way there's no nested
@@ -337,6 +558,10 @@ struct DocumentView: View {
                     }
                     .labelStyle(.iconOnly)
                     .tint(effectiveMode == mode ? .accentColor : .secondary)
+                    // ⌘1 / ⌘2 / ⌘3. Only over `availableModes`, so a chord
+                    // for a layout this width doesn't offer is never
+                    // installed in the first place.
+                    .keyboardShortcut(mode.shortcutAction)
                 }
             }
         } else {
@@ -353,10 +578,21 @@ struct DocumentView: View {
             }
         }
 
-        // Undo / Redo — only while a pane is being edited; they reflect and
-        // drive the editor's own undo stack.
+        // Undo / Redo and the Typing menu — only while a pane is being
+        // edited; the buttons reflect and drive the editor's own undo stack,
+        // the menu holds the two SmartTyping toggles (see `SmartTextView`).
         if effectiveMode != .preview {
             ToolbarItemGroup(placement: .topBarTrailing) {
+                // Find and Replace — the system panel over the editor pane
+                // (see `EditorController.presentFind`). First of the
+                // editing affordances, and gone in Preview: the panel
+                // searches the *source*, and a pane that isn't on screen
+                // has nothing to search.
+                Button { editor.presentFind() } label: {
+                    Label("Find…", systemImage: "magnifyingglass")
+                }
+                .keyboardShortcut(.find)
+
                 Button { editor.undo() } label: {
                     Label("Undo", systemImage: "arrow.uturn.backward")
                 }
@@ -366,6 +602,13 @@ struct DocumentView: View {
                     Label("Redo", systemImage: "arrow.uturn.forward")
                 }
                 .disabled(!editor.canRedo)
+
+                Menu {
+                    Toggle("Continue Lists and Tables", isOn: $continueLists)
+                    Toggle("Capitalize Sentences", isOn: $capitalizeSentences)
+                } label: {
+                    Label("Typing", systemImage: "keyboard")
+                }
             }
         }
 
@@ -479,7 +722,9 @@ struct DocumentView: View {
             Menu {
                 Button {
                     if let fileURL {
-                        DocumentExport.promptRename(fileURL: fileURL, currentBaseName: baseName)
+                        DocumentExport.promptRename(fileURL: fileURL, currentBaseName: baseName) {
+                            await rename(to: $0)
+                        }
                     }
                 } label: {
                     Label("Rename…", systemImage: "pencil")
@@ -623,6 +868,23 @@ struct DocumentView: View {
         Binding(get: { effectiveMode }, set: { select($0) })
     }
 
+    // MARK: - Rename
+
+    /// Rename the open file to what the writer typed, and name the title
+    /// bar after it. `fileURL` does not change after a coordinated move —
+    /// measured on iOS 26.5 and 27.0 — so the bar would otherwise keep the
+    /// old name on a release where md names the bar itself (see
+    /// `DocumentTitle`). The move is `DocumentExport.rename`'s; only the
+    /// title is this view's. Returns the failure to show, or nil.
+    private func rename(to typed: String) async -> String? {
+        guard let fileURL else { return nil }
+        let failure = await DocumentExport.rename(fileURL: fileURL, to: typed)
+        if failure == nil {
+            sceneTitle = DocumentExport.baseName(afterRenaming: fileURL, to: typed)
+        }
+        return failure
+    }
+
     // MARK: - View mode
 
     /// The one path that changes the view mode *deliberately* — the wide
@@ -731,7 +993,8 @@ struct DocumentView: View {
     }
 
     private var editorPane: some View {
-        MarkdownEditor(text: $document.text, controller: editor, scrollSync: scrollSync)
+        MarkdownEditor(text: $document.text, controller: editor, scrollSync: scrollSync,
+                       continueLists: continueLists, capitalizeSentences: capitalizeSentences)
             .overlay(alignment: .topLeading) {
                 if document.text.isEmpty {
                     // The text view has no native placeholder; mimic one,
@@ -752,7 +1015,7 @@ struct DocumentView: View {
         // print / share, so LaTeX math, Mermaid and PlantUML render (offline).
         // It scrolls and lays out internally (see the CSS in MarkdownHTML).
         MarkdownWebView(text: document.text, title: baseName, navigation: previewNavigation,
-                        scrollSync: scrollSync)
+                        scrollSync: scrollSync, status: previewStatus)
             .ignoresSafeArea(.container, edges: .bottom)
     }
 
@@ -880,6 +1143,38 @@ struct DocumentView: View {
         bookSheet = BookPresentation(url: resolved.url)
     }
 
+    /// Previous / Next Article (⌃⌘↑ / ⌃⌘↓): step one place along the
+    /// remembered book's reading order and open what is there.
+    ///
+    /// Everything about it is a no-op unless it applies — no book, an
+    /// untitled document, a document that isn't in the book, the first
+    /// article stepping back or the last stepping on. A chord that has
+    /// nowhere to go does nothing, which is what a chord on an iPad is
+    /// expected to do; there is no alert to dismiss and nothing moves.
+    ///
+    /// The book is read from disk on the keystroke rather than kept in
+    /// view state: two shallow directory reads (`BookTree.read`), and the
+    /// alternative is a stale order after a rename or a reorder in the
+    /// navigator. The open itself is the navigator's own — hold the book's
+    /// security scope for as long as the article may stay open, and mark
+    /// the open as a book open so the per-file view-mode memory stays out
+    /// of it (a writer stepping to the next chapter keeps the mode they
+    /// are writing in).
+    private func stepArticle(by offset: Int) {
+        guard let fileURL, !bookBookmark.isEmpty,
+              let resolved = BookStore.resolve(bookmark: bookBookmark) else { return }
+        if let refreshed = resolved.refreshed {
+            bookBookmark = refreshed
+        }
+        let root = resolved.url
+        let order = BookTree.readingOrder(BookTree.read(root: root))
+        guard let destination = BookTree.step(from: fileURL, by: offset, in: order) else { return }
+
+        BookScope.hold(root)
+        BookArticleOpens.mark(destination)
+        DocumentSceneOpener.open(destination)
+    }
+
     // MARK: - Examples
 
     /// The bundled example documents — the root files of the `Examples/`
@@ -887,7 +1182,9 @@ struct DocumentView: View {
     /// the intended reading order). The "Example Book" subfolder is not
     /// listed here; it ships behind the menu's own "Example Book…" item.
     /// Static: the bundle can't change mid-run.
-    private static let exampleURLs: [URL] = {
+    /// (Internal, not private: the DEBUG launch harness opens an example
+    /// through this same list — see `LaunchDiagnostics`.)
+    static let exampleURLs: [URL] = {
         let urls = Bundle.main.urls(forResourcesWithExtension: "md",
                                     subdirectory: "Examples") ?? []
         return urls
@@ -915,24 +1212,31 @@ struct DocumentView: View {
     /// made to an earlier one.
     private func openExample(_ source: URL) {
         do {
-            let text = try String(contentsOf: source, encoding: .utf8)
-            let documents = try FileManager.default.url(
-                for: .documentDirectory, in: .userDomainMask,
-                appropriateFor: nil, create: true)
-            let title = Self.exampleTitle(source)
-            var destination = documents.appendingPathComponent(title)
-                .appendingPathExtension("md")
-            var counter = 2
-            while FileManager.default.fileExists(atPath: destination.path) {
-                destination = documents.appendingPathComponent("\(title) \(counter)")
-                    .appendingPathExtension("md")
-                counter += 1
-            }
-            try Data(text.utf8).write(to: destination, options: .atomic)
-            DocumentSceneOpener.open(destination)
+            DocumentSceneOpener.open(try Self.copyExample(source))
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// The copy half of `openExample`, on its own so the naming rule can be
+    /// tested and so the DEBUG launch harness drives the very same path the
+    /// menu row does (see `LaunchDiagnostics`).
+    static func copyExample(_ source: URL) throws -> URL {
+        let text = try String(contentsOf: source, encoding: .utf8)
+        let documents = try FileManager.default.url(
+            for: .documentDirectory, in: .userDomainMask,
+            appropriateFor: nil, create: true)
+        let title = exampleTitle(source)
+        var destination = documents.appendingPathComponent(title)
+            .appendingPathExtension("md")
+        var counter = 2
+        while FileManager.default.fileExists(atPath: destination.path) {
+            destination = documents.appendingPathComponent("\(title) \(counter)")
+                .appendingPathExtension("md")
+            counter += 1
+        }
+        try Data(text.utf8).write(to: destination, options: .atomic)
+        return destination
     }
 
     /// Install the bundled example book: ask where to keep it (the same
@@ -982,5 +1286,153 @@ struct DocumentView: View {
             bookBookmark = encoded
             bookSheet = BookPresentation(url: bookURL)
         }
+    }
+}
+
+// MARK: - Which document view owns the scene's toolbar
+
+/// The rule that keeps one set of toolbar menus in a scene's navigation bar.
+///
+/// Opening a document into a scene that is already showing one — the
+/// Examples menu, a book article, anything through
+/// `DocumentSceneOpener.open` — leaves the document view that was on screen
+/// alive: SwiftUI parents a second `DocumentHostingController` beside the
+/// first instead of replacing it. Both then apply `.toolbar` to the one
+/// navigation item the scene has, so a second open showed every menu twice
+/// and a third showed it three times (measured on iOS 26.5 and 27.0: 6
+/// trailing item groups, then 12, then 18). The Find row is the same story
+/// with teeth: the row that stayed *visible* in the bar was the first
+/// view's, so tapping it searched a document that was no longer on screen.
+///
+/// So each document view stamps itself with the scene's next generation as
+/// it appears, and only the newest stamp fills the bar. Counting, rather
+/// than "is my view visible", because a replaced view is not told anything:
+/// it is never asked to disappear, and its panes stay laid out.
+///
+/// A plain `Int` per scene (`@SceneStorage`), not a global: a second iPad
+/// window keeps its own count, and its document must not be silenced by an
+/// open in this one.
+enum DocumentGeneration {
+
+    /// A document view that has not stamped itself yet. It is the one that
+    /// just appeared, so it is current by construction — the alternative
+    /// (treating it as stale) would blank the bar for the frame between
+    /// first render and `onAppear`.
+    static let unstamped = 0
+
+    /// The stamp the document view appearing now should take.
+    static func next(after scene: Int) -> Int {
+        // Saturating, so a scene restored with a wild counter cannot wrap
+        // into `unstamped` and hand two views the bar at once.
+        scene >= Int.max - 1 ? Int.max : scene + 1
+    }
+
+    /// Whether the view holding `view` is the one the scene is showing:
+    /// nothing newer has claimed the bar since it did.
+    ///
+    /// `>=`, not `==`, and that is the load-bearing part. `@SceneStorage`
+    /// only round-trips inside a real scene — host a `DocumentView` in a
+    /// plain window (as `EditorShortcutsTests` does) and the write is
+    /// dropped, so the counter reads 0 for ever while each view holds 1. An
+    /// `==` rule calls *every* view stale then and the toolbar disappears
+    /// altogether, chords and all: a worse bug than the doubled menus this
+    /// exists to stop. With `>=` the same failure degrades to the old
+    /// behaviour instead, which is the direction to fail in.
+    static func isCurrent(view: Int, scene: Int) -> Bool {
+        view == unstamped || view >= scene
+    }
+}
+
+// MARK: - Which document a chord acts on
+
+/// The rule that keeps ⌘P, ⇧⌘B and ⌃⌘↑ / ⌃⌘↓ acting on the document on
+/// screen.
+///
+/// The chords with no toolbar button of their own are carried by hidden
+/// buttons behind the panes (`DocumentView.keyboardShortcuts`), and every
+/// document view alive in a scene — the retired ones an open into the same
+/// scene leaves behind (see `DocumentGeneration`) included — installs its
+/// own. SwiftUI registers one key command per chord for the scene and hands
+/// it to one of those views, not reliably the newest: measured on iOS 26.5
+/// and 27.0, with Welcome replaced by Formatting, ⌘P's print job was named
+/// *Welcome*, and ⌃⌘↓ on a book article stepped from Welcome — which is
+/// not in the book — and so did nothing. Hiding the retired views' buttons
+/// does not help: the key command then goes with them, and no chord is
+/// installed at all after the second open (measured the same way).
+///
+/// So the buttons stay where SwiftUI finds them and *ask* which document is
+/// current: the view that claims the scene's newest generation registers
+/// its actions here under the scene's own token (`@SceneStorage`, so a
+/// second iPad window is a second entry), and whichever view's button the
+/// key command reaches runs the registered actions. A view outside any
+/// scene — a hosted test — has no token and runs its own.
+@MainActor
+enum DocumentChords {
+
+    /// What the three chords do for one document.
+    struct Actions {
+        /// ⌘P, with the firing view's appearance (same window, same
+        /// appearance).
+        let print: (Bool) async -> Void
+        /// ⇧⌘B.
+        let showBook: () -> Void
+        /// ⌃⌘↑ / ⌃⌘↓, by −1 / +1.
+        let stepArticle: (Int) -> Void
+    }
+
+    private static var byScene: [String: Actions] = [:]
+
+    /// The document that just became current in the scene `token` names
+    /// registers its actions; the previous entry for that scene is replaced.
+    static func register(_ actions: Actions, scene token: String) {
+        guard !token.isEmpty else { return }
+        byScene[token] = actions
+    }
+
+    /// The current document's actions for the scene `token` names, or nil
+    /// when the scene has none — or no token, which is a view outside any
+    /// scene.
+    static func actions(scene token: String) -> Actions? {
+        guard !token.isEmpty else { return nil }
+        return byScene[token]
+    }
+
+    /// Forget a scene's entry. For the tests.
+    static func forget(scene token: String) {
+        byScene[token] = nil
+    }
+}
+
+// MARK: - Which name the scene's title bar shows
+
+/// The rule that keeps the navigation bar naming the document on screen.
+///
+/// Every document view alive in a scene — the one on screen and the ones an
+/// open into the same scene left behind (see `DocumentGeneration`) — writes
+/// its navigation title into the *one* navigation item the scene has, and
+/// the bar shows whichever write came last. On iOS 26 the system keeps that
+/// item's title in step with the document itself. On iOS 27 it stops after
+/// the second document a scene shows — measured on 27.0: Welcome, then
+/// Formatting, then Plots opened, and the bar still read "Formatting" with
+/// `UIDocumentViewController.document` correctly Plots.md; a rename after
+/// that was ignored the same way. Stepping through a book's articles is the
+/// same open three times over, so from the third chapter on the bar named
+/// the wrong file.
+///
+/// So md names the bar itself. The current view publishes its name to the
+/// scene (`@SceneStorage`, so a second iPad window keeps its own), and
+/// *every* view applies the scene's name — which is what makes the write
+/// order irrelevant: a retired view re-rendering after the newest one, the
+/// very order the toolbar guard produces, writes the newest name too. An
+/// in-app Rename publishes the new name the moment the file has moved,
+/// because `fileURL` does not follow a coordinated move on either release.
+enum DocumentTitle {
+
+    /// The title a document view applies: the scene's published name, or
+    /// its own when nothing has been published yet — a view hosted outside
+    /// a real scene (a test) never sees a `@SceneStorage` write land, and a
+    /// blank bar is the failure this must not degrade into.
+    static func displayed(scene: String, own: String) -> String {
+        scene.isEmpty ? own : scene
     }
 }
