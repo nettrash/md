@@ -1,15 +1,16 @@
-md is a Markdown editor and live previewer for iPhone and iPad. This update (1.3) adds richer content — chemistry, syntax-highlighted code, Graphviz diagrams, footnotes, front matter and CSV/TSV tables — and several new exports: HTML, LaTeX, single-document EPUB, diagram-to-SVG, TextBundle, and a choice of page size for the PDF.
+md is a Markdown editor and live previewer for iPhone and iPad. This update (1.5) adds find and replace, typing that continues lists, quotes and tables and capitalizes sentences, hardware-keyboard shortcuts on iPad, and support for every Markdown file extension.
 
 1. ACCESS — NOTHING TO SET UP
 No account, no sign-in, no registration, no in-app purchases, no subscriptions. Every feature works the moment the app launches, so no demo credentials exist or are needed.
 
-No test file is needed: the app ships with sample documents. Open any document, tap the Examples button in the toolbar and pick one (Welcome, Formatting, Tables, Code, Images, Math, Diagrams, Writer Tools).
+No test file is needed: the app ships with sample documents. Open any document, tap the Examples button in the toolbar (on iPhone, in its three-dot More menu) and pick one (Welcome, Formatting, Tables, Code, Images, Math, Diagrams, Writer Tools).
 
 2. A THREE-MINUTE WALKTHROUGH OF WHAT IS NEW
-a) On the opening screen tap New Document. Type Markdown and watch the preview update. Open the Examples menu and choose Math to see LaTeX and mhchem chemistry, Diagrams to see Mermaid, Graphviz and PlantUML, and Code to see syntax highlighting.
-b) Chemistry, highlighting and diagrams are all drawn on the device, offline, by the bundled engines — nothing is fetched to render them.
-c) Tap the Share button. The menu now offers Export as PDF (with a page-size picker beside it — A4, A5, US Letter, US Legal, or a paperback trim), Export as HTML, Export as EPUB, Export as LaTeX, Export as TextBundle, and Export Diagram as SVG. Each writes a file to a location you pick in the system Files browser.
-d) In an open document, tap Examples then Example Book and choose a folder to see writer mode: chapters and articles listed in reading order. The book's own share button compiles the whole book to PDF or EPUB.
+a) Tap New Document on the opening screen and type Markdown; the preview follows. Return continues a list item, a quote or a table row, and the first letter of each line and sentence is capitalized. Both are switches in the toolbar's Typing menu.
+b) Tap Find in the toolbar, or Command-F on a hardware keyboard, for the system find panel, with Replace and Replace All on iPhone as well as iPad. It searches the source, not the preview.
+c) On an iPad with a hardware keyboard: Command-1, 2 and 3 select Edit, Split and Preview, Command-P prints, Shift-Command-B shows the book, and Control-Command-Up and Down step through its articles.
+d) Files open and save in place under every Markdown spelling (.md, .markdown, .mdown, .markdn, .mdtext, .mdtxt, .mkd, .mkdn, .mdwn, .mkdown), and as .txt, .puml, .plantuml, .iuml, .pu, .gv, .textbundle and .textpack.
+e) Everything else is as before: the Examples menu (Math, Diagrams, Code, and Example Book for writer mode) and the Share button's exports to PDF, HTML, EPUB, LaTeX, TextBundle and SVG, each written where you pick in the Files browser.
 
 The app creates no hidden files or sidecar metadata. Files and folders are reached only through the standard system document browser and folder picker, and folder access is kept as a security-scoped bookmark.
 
@@ -19,7 +20,7 @@ Writers, developers and students who keep notes, documentation or a book in plai
 4. NETWORK AND EXTERNAL SERVICES
 The app contacts no servers of ours; there are none. It has no analytics, no advertising, no tracking, and it collects no data (the Privacy Nutrition Label answer is "Data Not Collected").
 
-The one time the app touches the network is when a document the user opened references an image by a remote URL: the renderer fetches that image so it can be shown and printed. That request goes to the host named in the user's own document. Nothing else is ever sent or fetched.
+The app touches the network only when a document the user opened references an image by a remote URL: the renderer fetches that image so it can be shown and printed. That request goes to the host named in the user's own document. Nothing else is ever sent or fetched.
 
 5. NO DOWNLOADED CODE (2.5.2)
 Math, chemistry, diagrams and code highlighting are drawn by open-source JavaScript engines bundled inside the app and served to WKWebView from a private, offline scheme: KaTeX (with its mhchem extension), Mermaid, Graphviz, PlantUML, and highlight.js. No executable code is downloaded or updated at runtime, and no interpreted code comes from any server. There are no third-party Swift packages or SDKs.

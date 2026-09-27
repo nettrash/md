@@ -1,1 +1,1 @@
-Version 1.4 adds plots: a fenced block of formulas md draws as a chart itself, no engine behind it — and every document now reopens in the layout you last used for it.
+Version 1.5 adds find and replace on iPhone and iPad, Return that carries your lists, quotes and tables on, and every Markdown file extension now opens in md.

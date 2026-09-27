@@ -2,15 +2,20 @@ md is a Markdown editor and live previewer for iPhone and iPad. Write plain Mark
 
 WRITE AND SEE
 • Edit and Preview on iPhone; on iPad, a Split view puts the source and the rendered page side by side — and the two panes scroll as one, so the passage you are reading is the paragraph you are writing.
-• Every file reopens in the layout you last used for it, so a document you keep coming back to read stays a reading page and one you are writing stays a writing page.
+• Every file reopens in the layout you last used for it.
 • The preview is the printed page: one renderer draws the preview, the printout and the PDF — the same layout, set for paper.
 • Headings, lists, task lists, tables, quotes, code, links and images — plus footnotes, and metadata front matter (YAML or TOML) recognised and kept out of the page.
 • LaTeX math and mhchem chemistry, Mermaid graphs, Graphviz and PlantUML diagrams — all drawn on your device by engines built into the app.
-• A block of formulas tagged plot becomes a chart — curves, parametric figures and your own points, with a legend and a window you set — drawn by md itself, in code, with no engine behind it.
-• Code fenced with a language reads with its keywords, comments and strings set apart, in a quiet palette that matches the page rather than a bright editor theme.
+• A block of formulas tagged plot becomes a chart — curves, parametric figures and your own points, with a legend and a window you set — drawn by md itself.
+• Code fenced with a language is highlighted in a quiet palette that matches the page.
 • Paste a table straight from a spreadsheet into a csv or tsv block and md draws it — the first row the header, number columns lined up on the right.
 • Contents lists every heading and jumps the editor and the preview to it. Private author notes — an HTML comment on its own line whose text begins with the word note — are listed in the Notes menu and never appear in the preview, the PDF or the printout.
 • A live word and character count, and undo and redo, always within reach.
+
+FIND AND TYPE
+• Find and replace, with Replace All as a single undo.
+• Return continues lists, quotes and tables, and the first letter of each line and sentence is capitalized as you type. Both are switches.
+• On iPad, keyboard shortcuts for the layouts, Find, Print and the book.
 
 PRINT AND EXPORT
 • Print or export real A4 pages — or A5, US Letter, US Legal, or a paperback trim size for a book bound for print. Breaks fall between lines, and \newpage starts a fresh page wherever you decide.
@@ -25,11 +30,11 @@ WRITER MODE: BOOKS
 • Compile the whole book into one PDF at the page size you choose, or export it as a standard EPUB 3 with a proper table of contents — math and diagrams travel with it as images.
 
 FILES YOU CAN KEEP
-• Your documents are ordinary .md, .markdown and .txt files, kept where you choose — on your device or in your own iCloud Drive — and saved in the encoding they arrived in.
-• md also opens .puml, .gv, .textbundle and .textpack files. Built-in examples, including a small sample book, show everything the app can do.
+• Your documents are ordinary text files — .md, .markdown and every other Markdown spelling, or .txt — kept where you choose, on your device or in your own iCloud Drive, in the encoding they arrived in.
+• md also opens PlantUML, Graphviz, TextBundle and TextPack files. Built-in examples, including a small sample book, show everything the app can do.
 
 PRIVATE BY DESIGN
 • No accounts, no sign-in, no analytics, no tracking, no ads.
 • Everything is rendered on your device. The only thing md fetches from the network is an image your own document points at by URL.
 
-Written in Swift and SwiftUI, with no accounts and no servers. The only outside code in the app is the open-source engines that draw the math, chemistry, diagrams and code — KaTeX, mhchem, Mermaid, Graphviz, PlantUML and highlight.js — bundled in, and run on your device. The source code is public.
+Written in Swift and SwiftUI. The only outside code is the open-source engines that draw math, chemistry, diagrams and code — KaTeX, mhchem, Mermaid, Graphviz, PlantUML and highlight.js — bundled in and run on your device. The source code is public.

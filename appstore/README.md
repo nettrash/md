@@ -7,11 +7,11 @@ listings are written separately, because the apps differ.)
 
 | File | App Store Connect field | Limit | Current |
 | --- | --- | --- | --- |
-| `promotional-text.txt` | Promotional Text | 170 | 167 |
-| `description.txt` | Description | 4000 | 3939 |
+| `promotional-text.txt` | Promotional Text | 170 | 158 |
+| `description.txt` | Description | 4000 | 3987 |
 | `keywords.txt` | Keywords | 100 | 99 |
-| `whats-new.txt` | What's New in This Version | 4000 | 2520 |
-| `review-notes.txt` | App Review Information ▸ Notes | 4000 | 3854 |
+| `whats-new.txt` | What's New in This Version | 4000 | 3440 |
+| `review-notes.txt` | App Review Information ▸ Notes | 4000 | 3995 |
 
 Promotional Text can be changed at any time without submitting a new build;
 the Description, Keywords and What's New ship with a version.
@@ -66,4 +66,24 @@ Guideline 2.1 "information needed" hold: purpose, how to reach every
 feature without an account, what the one network call is for, and why the
 bundled JavaScript engines are not downloaded code (2.5.2). Section 2 is
 also the script for a demo recording, if one is ever requested: it
-exercises every new 1.2 feature in about three minutes.
+exercises every new 1.5 feature in about three minutes.
+
+## Screenshots
+
+`screenshots/iphone-6.9/` (1320 × 2868, the iPhone 6.9" slot) and
+`screenshots/ipad-13/` (2064 × 2752, the iPad 13" slot), numbered in upload
+order; the first three are what the App Store shows before a scroll. Taken
+for 1.5 on iOS 27.0 simulators (iPhone 17 Pro Max, iPad Pro 13-inch M5) with
+the status bar pinned to 9:41, US English, light appearance, and nothing but
+the built-in examples plus one typed document. RGB PNG, no alpha — App Store
+Connect refuses an alpha channel.
+
+They are made, not staged by hand: the DEBUG launch harness
+(`md/LaunchDiagnostics.swift`, `-mdScript`) opens each example through the
+production path, jumps with Contents, types the list through the real text
+view (so the capitals and the continued markers are md's own), and waits on
+a gate file while `simctl io screenshot` takes the picture. Two things to
+keep in mind next time: iPadOS 26's windowing refuses programmatic rotation,
+so the iPad set is portrait; and a Contents jump in Split focuses the editor,
+so the script's `blur` step puts the keyboard away before a shot that should
+not show one.

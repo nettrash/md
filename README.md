@@ -22,7 +22,13 @@ chemistry extension, Mermaid, Graphviz, PlantUML, and highlight.js for code).
 - **Document-based.** Open, edit and save `.md` / `.markdown` files in
   place through the system document browser — File ▸ New / Open / autosave,
   plus an in-app **Rename** (since `DocumentGroup` offers no in-editor
-  rename on iOS). Plain-text files open too and keep their extension. A
+  rename on iOS). The other Markdown spellings — `.mdown`, `.markdn`,
+  `.mdtext`, `.mdtxt`, `.mkd`, `.mkdn`, `.mdwn` and `.mkdown` — open and
+  save the same way and keep their extension. Every spelling but `.md`,
+  `.markdown` included, is registered under md's own document type, so it
+  is associated with md on iOS 26 (which itself knows Markdown only as
+  `.md`) as well as on iOS 27. Plain-text files (`.txt`,
+  `.text`) open too and keep their extension. A
   **TextBundle** (`.textbundle`) or **TextPack** (`.textpack`) — the
   Markdown-with-images container Ulysses, iA Writer and Bear write — opens
   too, imported as its text for editing (the bundle's own `assets/` images
@@ -56,8 +62,9 @@ chemistry extension, Mermaid, Graphviz, PlantUML, and highlight.js for code).
   or ` ```gv `, and every layout program — `neato`, `circo`, `fdp`, `sfdp`,
   `twopi`, `osage`, `patchwork` — usable as the block language) and
   **PlantUML** (` ```plantuml `), all drawn on-device by bundled engines and
-  carried through to print and PDF. A raw `.puml` or `.gv` file opens and
-  renders as the diagram it describes, source still editable.
+  carried through to print and PDF. A raw PlantUML file (`.puml`,
+  `.plantuml`, `.iuml` or `.pu`) or Graphviz file (`.gv`) opens and renders
+  as the diagram it describes, source still editable.
 - **Plots** (` ```plot `). A block of directives and formulas drawn as a
   chart — `x: -10..10`, `y: -2..2` (or `y: auto`), `title`, `xlabel`,
   `ylabel`, `legend`, `grid`, `axes`, `width`, `height`, `samples`, then a
@@ -80,6 +87,37 @@ chemistry extension, Mermaid, Graphviz, PlantUML, and highlight.js for code).
 - **Editing you'd expect.** A real Undo / Redo stack in the toolbar,
   continuous autosave through the document architecture, and Markdown
   punctuation left literal (no smart-quote / dash surprises).
+- **Find and Replace.** The system find panel over the editor — **Find** in
+  the toolbar, or ⌘F on a hardware keyboard — with a Replace field and
+  Replace All, on iPhone as well as iPad. Matching is the rule every md app
+  shares: plain text, case-insensitive, wrapping round the end of the document;
+  no regular expressions. Replace All is one Undo step, and a replaced document
+  is a dirty document — autosave sees it like any other edit.
+- **Keyboard shortcuts.** On an iPad with a keyboard, the Mac's and Windows'
+  chords: ⌘1 / ⌘2 / ⌘3 for Edit / Split / Preview (only the
+  layouts the window is wide enough to offer), ⌘F Find, ⌘P Print,
+  ⇧⌘B Show Book, and ⌃⌘↑ / ⌃⌘↓ to step
+  through a book's articles in reading order. ⌘Z / ⌘X / ⌘C /
+  ⌘V / ⌘A stay the text view's own, as they should. Shift-Return
+  still inserts a plain line break.
+- **Typing.** Return carries on what you were writing: a bullet, numbered
+  or task item continues with the next marker (`- `, `3. `, `- [ ] `), a
+  quote with its `> `, a table row with a fresh `|  |  |` row — and Return
+  on an *empty* item ends the list (or steps a nested one out a level)
+  instead of leaving a stray marker. The first letter of every line and of
+  every sentence is capitalized as you type, Markdown-aware: never inside
+  a code fence, a code span, math, a table cell, a URL, front matter or a
+  comment, and not after an abbreviation, an initial or an ellipsis
+  (`e.g. this`, `J. R. Tolkien`, `wait… what`). md does this itself — the
+  keyboard's own auto-capitalization is off in the editor — so it works
+  the same in every list, quote and heading, and the same as in the macOS,
+  Android and Windows editors. Didn't want the capital (`md`, `iOS`, `npm`
+  at the start of a sentence)? Delete the capital md wrote and type the
+  letter again; it stays lowercase. A capital is also its own Undo step,
+  so Undo right after one restores the lowercase letter.
+  On a hardware keyboard, Shift-Return inserts a plain line break. Both
+  behaviours are toggles in the toolbar's **Typing** menu — *Continue Lists
+  and Tables* and *Capitalize Sentences* — and take effect at once.
 - **Print & share.** Print or share the *rendered* document as a themed
   PDF — at A4, A5, US Letter or Legal, or a print-on-demand trim size
   (6 × 9″, 5 × 8″, 5.5 × 8.5″), the choice remembered and applied to the
@@ -94,6 +132,11 @@ chemistry extension, Mermaid, Graphviz, PlantUML, and highlight.js for code).
   **TextBundle** with any local images it references gathered into the
   bundle's `assets/`, or share the raw Markdown source.
 - **Dynamic Type, light/dark, text selection** throughout.
+- **A preview that comes back.** If WebKit's content process is taken away
+  under the preview — memory pressure on an iPad, a runaway diagram
+  layout — the pane reloads itself instead of going blank. If that
+  fails twice in a row it stops retrying and says so in one line; the next
+  edit brings it back.
 
 ## Platforms
 

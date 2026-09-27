@@ -7,6 +7,152 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The build number (`CFBundleVersion`) is auto-incremented on every build by
 a scheme post-action (`agvtool bump`) and is not tracked here.
 
+## [1.5] — 2026-09-23
+
+### Added
+
+- **Find and Replace.** The system find panel opens over the editor — from
+  the new **Find** row in the toolbar, or with ⌘F on a hardware keyboard
+  — and it carries a Replace field, Replace and Replace All, on iPhone as
+  well as on iPad. Matching is the rule every md app already shares: plain
+  text, case-insensitive, wrapping round the end of the document. There are
+  no regular expressions, and what is searched is the *source*: the panel
+  belongs to the editor pane, so it does not look inside the rendered
+  preview, and the Find row is not offered in Preview, where there is no
+  editor to search. Replace All is a single Undo step, and a replace marks
+  the document dirty exactly like a keystroke does, so autosave carries it
+  away.
+- **Smart typing.** Return continues a bullet, numbered or task list, a
+  quote or a table row, and Return on an empty item ends the list (or
+  outdents a nested one) rather than leaving a stray marker behind. The
+  first letter of every line and of every sentence is capitalized as you
+  type, Markdown-aware — never in a code fence, a code span, math, a table
+  cell, a URL, front matter or a comment, and not after an abbreviation, an
+  initial or an ellipsis. Delete the capital md wrote and type the letter
+  again; it stays lowercase. That holds however the capital went — deleted,
+  selected and typed over, cut or undone — and whatever else changed
+  around it, because md keeps track of where its capital is; typing in
+  front of a capital that is still there is ordinary typing. A capital is
+  its own Undo step, so Undo straight after one puts the lowercase letter
+  back. Shift-Return on a hardware keyboard inserts a plain line break.
+  Both rules are toggles in the new **Typing** toolbar menu — *Continue
+  Lists and Tables* and *Capitalize Sentences* — and take effect on the
+  next keystroke. The keyboard's own sentence capitalization is now off in
+  the editor, which is what stopped code fences being capitalized, and
+  autocorrection is left on, so `Ios` still becomes `iOS` after md's
+  capital. The rules are shared, keystroke for keystroke, with the macOS,
+  Android and Windows editors.
+- **Every Markdown extension opens.** Besides `.md` and `.markdown`, md now
+  opens and saves `.mdown`, `.markdn`, `.mdtext`, `.mdtxt`, `.mkd`,
+  `.mkdn`, `.mdwn` and `.mkdown` — the spellings other editors and older
+  tooling have used over the years — and a file keeps whichever extension
+  it came with, since each of them is writable rather than read-only. A new
+  document is still a `.md`. PlantUML files open under `.iuml` and `.pu` as
+  well as `.puml` and `.plantuml`. Every md app registers the same set of
+  extensions, so a file that opens on one of them opens on all of them.
+- **Hardware-keyboard shortcuts on iPad.** The chords the Mac and Windows
+  editors already answer to: ⌘1 / ⌘2 / ⌘3 for Edit, Split and
+  Preview, ⌘F Find, ⌘P Print, ⇧⌘B Show Book, and
+  ⌃⌘↑ / ⌃⌘↓ for the previous and next article of
+  the open book, in the book's own reading order. A chord for a layout the
+  window is too narrow to show is never installed, so it does nothing
+  rather than picking a pane that cannot appear, and a book chord with
+  nowhere to step does nothing at all — no alert, nothing moves. ⌘Z,
+  ⌘X, ⌘C, ⌘V and ⌘A are left to the text view, exactly as
+  the Windows command table leaves them to the focused control. The
+  iPadOS 26 menu bar is deliberately not part of this: the chords are
+  installed by the editor itself and work as typed, but they are not
+  listed as menu items along the top of the screen. The scene this app is
+  built on — a document group with its own launch screen — has delicate
+  browser plumbing behind it, and a second copy of chords that already
+  work was not worth disturbing it for.
+
+### Fixed
+
+- **Switching views no longer restarts a preview that stopped.** When a
+  diagram stopped the preview twice in a row, going to Edit and back to
+  Preview (or between Split and Preview) started it again — twice more —
+  for a document that had not changed. The notice now stays until you edit
+  the document.
+- **`.mdown`, `.markdn` and `.mdtext` were never actually associated with
+  md — and on iOS 26, neither was `.markdown`.** The app listed them
+  against Markdown's own identifier, `net.daringfireball.markdown`, but the
+  system declares that identifier itself and a system declaration takes
+  precedence over an app's copy of it: the copy was registered inactive and
+  every extension the system's own lacked was silently dropped, so those
+  files never offered md in Files or the document browser. iOS 27 lists
+  `.md` and `.markdown`; iOS 26 knows Markdown only as `.md` (the built-in
+  Shortcuts app's copy of the identifier is the live one there), so on
+  iOS 26 even a `.markdown` file was never associated with md. Every
+  spelling but `.md` — `.markdown` included — is now declared under an
+  identifier md owns, one that conforms to Markdown, which is what the
+  system honours on every release, while `.md` stays on Markdown's own
+  identifier.
+- **A preview that went blank stayed blank.** WebKit runs the preview's
+  page in a process of its own, and that process can be taken away —
+  memory pressure on an iPad with several documents open, a WebView update
+  landing under a running app, or a diagram engine that runs itself out of
+  room. md never heard about it: the pane simply emptied, and nothing said
+  why. It now loads the document again when that happens — bounded,
+  because a document whose render kills the process would kill it again:
+  after the second failure in a row md stops retrying and puts one quiet
+  line where the page would be, and the next edit brings the preview back.
+  A *slow* render is deliberately not treated as a failure; a heavy
+  PlantUML or Graphviz layout looks exactly like one, and reloading would
+  kill the render that made it slow. The count of failures is kept against
+  the page's own report that it finished rendering — the diagram engines
+  run after the page has loaded, so a page that merely loaded proves
+  nothing, and counting it would have made the retry endless for exactly
+  the heavy diagram and low-memory cases the bound exists for. An edit
+  lifts the notice and buys one more attempt rather than a fresh pair, so
+  typing in Split cannot keep a document that cannot render reloading for
+  ever.
+- **Every toolbar menu appeared twice after opening an example.** Picking an
+  example — or stepping to another article of a book — opens a second
+  document into the window that is already showing one, and the document
+  that was there did not go away: the system parented the new editor beside
+  the old one instead of in its place, and both went on filling the single
+  toolbar. Two documents in, the bar and its **…** menu held two of
+  everything — two Examples, two Book, two Share; three documents in, three
+  of everything. Each editor now stamps itself as it appears and only the
+  newest one fills the toolbar, so the bar shows one of each menu however
+  many documents you open in a row. A second window on an iPad keeps its own
+  count and is untouched by an open in the first.
+- **Find opened over the wrong document.** The same leak is what made Find
+  read as broken: the **Find** row left in the toolbar belonged to the
+  document that had been replaced, so the panel searched text that was no
+  longer on screen — you typed a word you could see and it found nothing.
+  The row now belongs to the document you are looking at. Find also says so
+  in the Console when it cannot open the panel at all, instead of quietly
+  doing nothing: a command you can tap should never be indistinguishable
+  from a broken one.
+- **After opening a second document into the window, ⌘P printed the
+  document that had been replaced, and ⌃⌘↑ / ⌃⌘↓ stepped from it.**
+  The same leak as the doubled toolbar, seen from the keyboard: the chords
+  that have no toolbar button of their own are carried by hidden buttons
+  behind the panes, every document view alive in the window installs its
+  own, and the one key command a chord resolves to reached whichever view
+  the system chose — the replaced one, on an iPhone. So Print printed the
+  document you had left, and Next Article stepped from it, or did nothing
+  at all when that document was not part of the book. The buttons now ask
+  which document is on screen before they act: the current document
+  registers what its chords do, and whichever view's button the chord
+  reaches runs that. (Hiding the replaced views' buttons instead would have
+  taken every chord away after the second open — the key command goes with
+  the button the system picked.)
+- **On iOS 27 the title bar stopped naming the document after the second
+  open.** Every document a scene shows writes into the one title the scene
+  has, and iOS 27 stops keeping that title in step with the document after
+  the second one: open Welcome, then Formatting, then Plots, and the bar
+  still said Formatting — with the right document open underneath it — and
+  a rename after that was ignored the same way. (iOS 26 keeps the title
+  itself, and is unchanged.) Stepping through a book's articles is the same
+  open three times over, so from the third chapter on the bar named the
+  wrong file. md now names the bar itself: the document on screen publishes
+  its name to the scene, every document view alive in that scene applies
+  it — which is what makes the order they write in irrelevant — and an
+  in-app Rename publishes the new name the moment the file has moved.
+
 ## [1.4] — 2026-08-29
 
 ### Added

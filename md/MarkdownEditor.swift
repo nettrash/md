@@ -20,9 +20,23 @@
 //  keystroke flows back through the `text` binding, which is what marks the
 //  `FileDocument` dirty and drives the document architecture's autosave.
 //
+//  The view itself is `SmartTextView` (`SmartTypingAdapter.swift`), the
+//  subclass that routes Return and typed words through `SmartTyping` —
+//  list / quote / table continuation and sentence capitalization. The two
+//  toolbar toggles behind it (`md.continueLists`, `md.capitalizeSentences`)
+//  arrive here as plain values and are pushed into the view on every
+//  update, so flipping one takes effect on the next keystroke without the
+//  pane being rebuilt.
+//
 
 import SwiftUI
 import UIKit
+import os
+
+/// The editor's own log. Find is a user-visible command: when it cannot do
+/// what it was asked, it has to say so somewhere rather than return in
+/// silence — see `EditorController.presentFind()`.
+private let editorLog = Logger(subsystem: "me.nettrash.md", category: "editor")
 
 /// Bridges the editor's `UITextView` undo stack to SwiftUI: publishes
 /// whether undo / redo are currently available (so the toolbar buttons can
@@ -49,6 +63,66 @@ final class EditorController: ObservableObject {
 
     func undo() { undoAction() }
     func redo() { redoAction() }
+
+    #if DEBUG
+    /// Wire a text view in the way `makeUIView` does, so a hosted test can
+    /// drive `presentFind()` over a real editor. `textView` is `fileprivate`
+    /// and `@testable` does not reach that, and nothing here is compiled
+    /// into a Release build.
+    func attachForTesting(_ textView: UITextView) { self.textView = textView }
+    #endif
+
+    /// Open the system find-and-replace panel over the editor pane.
+    ///
+    /// The panel is UIKit's own (`UIFindInteraction`, switched on by
+    /// `isFindInteractionEnabled` below): the same one ⌘F brings up on a
+    /// hardware keyboard and the same one the text-selection menu's Find
+    /// item shows. Routed through here so `DocumentView` asks the editor
+    /// for it, the way it asks for undo — the toolbar reaches into no
+    /// UIKit of its own.
+    ///
+    /// A no-op when there is no editor pane (Preview mode tore it down);
+    /// the toolbar hides the row there anyway, but a chord can still
+    /// arrive, and doing nothing is the right answer to it.
+    ///
+    /// Every way this can decline to open the panel is logged. It used to
+    /// return in silence, and a user-visible command that silently does
+    /// nothing is indistinguishable from a broken one — which is exactly
+    /// how the dead Find row of 1.5 was reported, with nothing in the
+    /// Console to say why.
+    func presentFind() {
+        guard let textView else {
+            editorLog.notice("Find: no editor pane to search (the document is in Preview)")
+            return
+        }
+        guard let interaction = textView.findInteraction else {
+            editorLog.error("Find: the editor pane has no find interaction")
+            return
+        }
+        // A pane that is not in a window cannot present anything: UIKit
+        // drops `presentFindNavigator` on the floor and the command reads
+        // as dead. That is what a document view left behind by an open into
+        // the same scene answers with (see `DocumentView.generation`).
+        guard textView.window != nil else {
+            editorLog.notice("Find: the editor pane is not on screen")
+            return
+        }
+        // Focus first: the panel searches the text view it belongs to, and
+        // a pane that never took focus has no selection for "Use Selection
+        // for Find" to start from.
+        if !textView.isFirstResponder {
+            textView.becomeFirstResponder()
+        }
+        // Presented in this same turn, deliberately. Deferring it by a
+        // runloop hop was tried and is not needed here — the row fires it
+        // from a plain navigation-bar button, not from inside a menu that
+        // is dismissing, and the panel comes up either way (measured on
+        // iOS 26.5 and 27.0 by firing the bar item's own action).
+        //
+        // Replace on every platform, iPhone included — the system panel
+        // offers the field and there is no reason for a phone to get less.
+        interaction.presentFindNavigator(showingReplace: true)
+    }
 
     /// Move the caret to the start of the given 0-based source line and
     /// scroll it into view (used by the Contents / Notes menus). If the
@@ -122,10 +196,27 @@ struct MarkdownEditor: UIViewRepresentable {
     /// The Split layout's pane link (see `ScrollSync`): the editor reports
     /// the scrolls the user's finger makes and follows the preview's.
     var scrollSync: ScrollSync? = nil
+    /// The Typing menu's toggles (`@AppStorage` in `DocumentView`), read
+    /// live: SwiftUI re-runs `updateUIView` when either flips.
+    var continueLists = true
+    var capitalizeSentences = true
 
-    func makeUIView(context: Context) -> UITextView {
-        let textView = UITextView()
-        textView.delegate = context.coordinator
+    /// A freshly built editor text view, configured but not yet wired to
+    /// anything: face, colours, insets, the literal-punctuation rules and
+    /// the find interaction. Everything here is a property of *the editor*
+    /// rather than of one SwiftUI pane, which is why it is separable — and
+    /// separable is what lets a test build the real thing and read the
+    /// switches back (`FindAndReplaceTests`).
+    static func configured() -> SmartTextView {
+        let textView = SmartTextView()
+
+        // Find and Replace. This one flag is the whole feature: UIKit adds
+        // the system find panel (with the Replace field), the ⌘F / ⌘G /
+        // ⇧⌘G chords on a hardware keyboard, and the Find items in the
+        // text-selection and Edit menus. The match rule is the system's,
+        // which is also the rule the other ports spell out in md.win's
+        // `TextSearch`: ordinal, case-insensitive, wrapping.
+        textView.isFindInteractionEnabled = true
 
         // Typewriter face, scaled for Dynamic Type and tracking later changes.
         textView.font = Typewriter.editorUIFont()
@@ -138,12 +229,13 @@ struct MarkdownEditor: UIViewRepresentable {
 
         // This is Markdown *source*: keep punctuation literal so the smart
         // substitutions don't turn `"` into curly quotes or `--` into an
-        // en-dash and corrupt the syntax.
+        // en-dash and corrupt the syntax. (Autocorrection stays on and the
+        // keyboard's own sentence capitalization is off — `SmartTextView`
+        // sets both: md capitalizes, Markdown-aware, and autocorrect still
+        // repairs `Ios` → `iOS` after md's capital.)
         textView.smartQuotesType = .no
         textView.smartDashesType = .no
         textView.smartInsertDeleteType = .no
-        textView.autocorrectionType = .default
-        textView.autocapitalizationType = .sentences
 
         // Comfortable margins; flush the text to the inset's left edge.
         textView.textContainerInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
@@ -151,7 +243,27 @@ struct MarkdownEditor: UIViewRepresentable {
         textView.alwaysBounceVertical = true
         textView.keyboardDismissMode = .interactive
 
+        return textView
+    }
+
+    func makeUIView(context: Context) -> SmartTextView {
+        let textView = Self.configured()
+        textView.delegate = context.coordinator
+        textView.continueLists = continueLists
+        textView.capitalizeSentences = capitalizeSentences
+
         textView.text = text
+
+        // A replace from the find panel is not a keystroke: it arrives as a
+        // programmatic edit, and `textViewDidChange` is the delegate call
+        // UIKit documents as "changed *by the user*". Without this the
+        // replaced text would sit in the view with the binding — and so the
+        // document's dirty flag, and so autosave — none the wiser. The hook
+        // only fires while the panel is on screen, so ordinary typing still
+        // pays for exactly one sync (`textViewDidChange`, below).
+        textView.didEditWhileFinding = { [weak coordinator = context.coordinator] in
+            coordinator?.sync()
+        }
 
         // Buttons drive the *text view's* own undo manager (the same stack
         // the keyboard's ⌘Z and the system Edit menu use), then sync.
@@ -175,9 +287,11 @@ struct MarkdownEditor: UIViewRepresentable {
         return textView
     }
 
-    func updateUIView(_ textView: UITextView, context: Context) {
+    func updateUIView(_ textView: SmartTextView, context: Context) {
         context.coordinator.parent = self
         context.coordinator.registerScrollSync()
+        textView.continueLists = continueLists
+        textView.capitalizeSentences = capitalizeSentences
         // Only reassign on a genuine *external* change (revert, open, a
         // programmatic edit) — never on our own keystroke echo, which would
         // yank the caret to the end. Preserve the selection across the swap.
@@ -187,6 +301,8 @@ struct MarkdownEditor: UIViewRepresentable {
             let clampedLocation = min(selected.location, (text as NSString).length)
             let clampedLength = min(selected.length, (text as NSString).length - clampedLocation)
             textView.selectedRange = NSRange(location: clampedLocation, length: clampedLength)
+            // Every offset the override gesture remembered is now stale.
+            textView.textWasReplacedExternally()
         }
     }
 

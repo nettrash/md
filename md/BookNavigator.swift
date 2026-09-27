@@ -332,6 +332,120 @@ enum BookOrdering {
     }
 }
 
+// MARK: - The tree, and the order a reader walks it
+
+/// A book as it is on disk, and the order it reads in.
+///
+/// One level deep by design: the root's loose articles, then its subfolders
+/// as chapters and the articles inside them. That is what the navigator
+/// lists, what `BookLibrary.compile` joins into one document, and — now
+/// that ⌃⌘↑ / ⌃⌘↓ step through a book from the editor — what "the next
+/// article" means. Keeping it here rather than inside the navigator's view
+/// is what lets the editor ask the same question the sheet answers, and
+/// lets `step(from:by:in:)` be tested without a book on disk.
+enum BookTree {
+
+    /// One chapter: a subfolder of the book root and its articles, in
+    /// display order.
+    struct Chapter: Identifiable, Equatable {
+        let url: URL
+        let articles: [URL]
+        var id: URL { url }
+    }
+
+    /// A whole book: loose articles at the root first, then the chapters.
+    struct Contents: Equatable {
+        var topArticles: [URL] = []
+        var chapters: [Chapter] = []
+    }
+
+    /// What counts as an article. Everything else in the folder (images,
+    /// PDFs, …) is simply not part of the book's navigation. Shared with
+    /// the naming logic, which must split the same extensions.
+    static func isArticle(_ url: URL) -> Bool {
+        BookNaming.articleExtensions.contains(url.pathExtension.lowercased())
+    }
+
+    /// Articles sort by their *displayed* name — extension stripped — so
+    /// "2. setup.md" and "2. setup.txt" order by "2. setup" alike.
+    static func sortedArticles(_ urls: [URL]) -> [URL] {
+        urls.sorted {
+            BookOrdering.areInIncreasingOrder($0.deletingPathExtension().lastPathComponent,
+                                              $1.deletingPathExtension().lastPathComponent)
+        }
+    }
+
+    /// (Re)read a book from disk. Synchronous on purpose: a book is a
+    /// hand-arranged folder of chapters, two shallow directory reads at
+    /// most — not worth an async pipeline. The security scope is held
+    /// across the whole enumeration.
+    static func read(root: URL) -> Contents {
+        let scoped = root.startAccessingSecurityScopedResource()
+        defer { if scoped { root.stopAccessingSecurityScopedResource() } }
+
+        let fm = FileManager.default
+        let entries = (try? fm.contentsOfDirectory(
+            at: root,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles])) ?? []
+
+        var folders: [URL] = []
+        var files: [URL] = []
+        for entry in entries {
+            if (try? entry.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
+                folders.append(entry)
+            } else if isArticle(entry) {
+                files.append(entry)
+            }
+        }
+
+        // Chapters are one level deep by design: a book is folders of
+        // articles, not an arbitrary tree — nesting stops here.
+        let chapters = folders
+            .sorted { BookOrdering.areInIncreasingOrder($0.lastPathComponent,
+                                                        $1.lastPathComponent) }
+            .map { folder -> Chapter in
+                let articles = ((try? fm.contentsOfDirectory(
+                    at: folder,
+                    includingPropertiesForKeys: nil,
+                    options: [.skipsHiddenFiles])) ?? [])
+                    .filter { isArticle($0) }
+                return Chapter(url: folder, articles: sortedArticles(articles))
+            }
+        return Contents(topArticles: sortedArticles(files), chapters: chapters)
+    }
+
+    /// The reading order: the root's articles, then each chapter's — the
+    /// order the navigator lists them in and the order `BookLibrary.compile`
+    /// writes them in, so "next" means the same thing in all three places.
+    static func readingOrder(_ contents: Contents) -> [URL] {
+        contents.topArticles + contents.chapters.flatMap(\.articles)
+    }
+
+    /// The article `offset` places along from `url`, or nil when `url` is
+    /// not in this book at all or the step runs off either end — the first
+    /// article has no previous and the last has no next, and neither is an
+    /// error worth saying anything about.
+    ///
+    /// Pure, and compares resolved paths rather than `URL`s: the document
+    /// architecture hands back a file URL that need not be spelled the way
+    /// the directory read spelled it (`/var` against `/private/var`, a
+    /// trailing slash, `..`), and a spelling difference must not mean "not
+    /// in this book".
+    static func step(from url: URL, by offset: Int, in order: [URL]) -> URL? {
+        let key = resolved(url)
+        guard let index = order.firstIndex(where: { resolved($0) == key }) else { return nil }
+        let target = index + offset
+        guard order.indices.contains(target) else { return nil }
+        return order[target]
+    }
+
+    /// One spelling for one file.
+    private static func resolved(_ url: URL) -> String {
+        url.resolvingSymlinksInPath().standardizedFileURL.path
+    }
+}
+
 // MARK: - Naming (rename / reorder plans)
 
 /// Pure name arithmetic behind the navigator's manage actions. Everything
@@ -579,7 +693,14 @@ struct BookLaunchBackdrop: View {
             // The one moment the document browser is in the view tree. See
             // `DocumentSceneOpener.primeBrowserCache()` for why the whole
             // Examples / book-article open path depends on catching it here.
-            .task { await DocumentSceneOpener.primeBrowserCache() }
+            .task {
+                await DocumentSceneOpener.primeBrowserCache()
+                #if DEBUG
+                // The DEBUG launch harness opens its example from here —
+                // the first moment the Examples menu's own path could work.
+                LaunchDiagnostics.launchScreenPrimed()
+                #endif
+            }
             .sheet(item: $model.bookSheet) { presentation in
                 BookNavigator(root: presentation.url)
             }
@@ -614,16 +735,11 @@ struct BookNavigator: View {
     /// defaults it to A4.
     @AppStorage("md.pdfPageSize") private var pdfPageSizeID = PageSize.a4.id
 
-    /// One chapter: a subfolder of the book root and its articles.
-    private struct Chapter: Identifiable {
-        let url: URL
-        let articles: [URL]
-        var id: URL { url }
-    }
-
     /// Loose articles directly at the book root, shown before the chapters.
+    /// The shapes (and the reading they come from) are `BookTree`'s, shared
+    /// with the editor's Previous / Next Article.
     @State private var topArticles: [URL] = []
-    @State private var chapters: [Chapter] = []
+    @State private var chapters: [BookTree.Chapter] = []
 
     // Creation prompts. The article prompt needs to know *where* to create,
     // so the tapped section's folder is stashed alongside the flag.
@@ -646,11 +762,6 @@ struct BookNavigator: View {
     /// A file operation failed (open / create / manage); shown in an alert
     /// rather than failing silently — a dead tap reads as a broken app.
     @State private var errorMessage: String?
-
-    /// What counts as an article. Everything else in the folder (images,
-    /// PDFs, …) is simply not part of the book's navigation. Shared with
-    /// the naming logic, which must split the same extensions.
-    private static let articleExtensions = BookNaming.articleExtensions
 
     var body: some View {
         NavigationStack {
@@ -773,7 +884,26 @@ struct BookNavigator: View {
             } message: {
                 Text(errorMessage ?? "")
             }
-            .task { refresh() }
+            .task {
+                refresh()
+                #if DEBUG
+                // The DEBUG launch harness drives the sheet through its own
+                // row and context-menu actions (see `LaunchDiagnostics`).
+                LaunchDiagnostics.navigatorAppeared(LaunchDiagnostics.NavigatorHooks(
+                    root: root,
+                    order: {
+                        BookTree.readingOrder(BookTree.Contents(topArticles: topArticles,
+                                                                chapters: chapters))
+                    },
+                    open: { open($0) },
+                    rename: { url, name in
+                        renameTarget = url
+                        renameName = name
+                        performRename()
+                    },
+                    move: { url, siblings, offset in move(url, in: siblings, by: offset) }))
+                #endif
+            }
         }
     }
 
@@ -845,57 +975,14 @@ struct BookNavigator: View {
 
     // MARK: Listing
 
-    /// (Re)read the book from disk. Synchronous on the main actor on
-    /// purpose: a book is a hand-arranged folder of chapters, two shallow
-    /// directory reads at most — not worth an async pipeline.
+    /// (Re)read the book from disk (see `BookTree.read`). Synchronous on
+    /// the main actor on purpose: a book is a hand-arranged folder of
+    /// chapters, two shallow directory reads at most — not worth an async
+    /// pipeline.
     private func refresh() {
-        // Hold the security scope across the whole enumeration.
-        let scoped = root.startAccessingSecurityScopedResource()
-        defer { if scoped { root.stopAccessingSecurityScopedResource() } }
-
-        let fm = FileManager.default
-        let entries = (try? fm.contentsOfDirectory(
-            at: root,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles])) ?? []
-
-        var folders: [URL] = []
-        var files: [URL] = []
-        for entry in entries {
-            if (try? entry.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
-                folders.append(entry)
-            } else if isArticle(entry) {
-                files.append(entry)
-            }
-        }
-
-        topArticles = sortedArticles(files)
-        // Chapters are one level deep by design: a book is folders of
-        // articles, not an arbitrary tree — nesting stops here.
-        chapters = folders
-            .sorted { BookOrdering.areInIncreasingOrder($0.lastPathComponent,
-                                                        $1.lastPathComponent) }
-            .map { folder in
-                let articles = ((try? fm.contentsOfDirectory(
-                    at: folder,
-                    includingPropertiesForKeys: nil,
-                    options: [.skipsHiddenFiles])) ?? [])
-                    .filter { isArticle($0) }
-                return Chapter(url: folder, articles: sortedArticles(articles))
-            }
-    }
-
-    private func isArticle(_ url: URL) -> Bool {
-        Self.articleExtensions.contains(url.pathExtension.lowercased())
-    }
-
-    /// Articles sort by their *displayed* name — extension stripped — so
-    /// "2. setup.md" and "2. setup.txt" order by "2. setup" alike.
-    private func sortedArticles(_ urls: [URL]) -> [URL] {
-        urls.sorted {
-            BookOrdering.areInIncreasingOrder($0.deletingPathExtension().lastPathComponent,
-                                              $1.deletingPathExtension().lastPathComponent)
-        }
+        let contents = BookTree.read(root: root)
+        topArticles = contents.topArticles
+        chapters = contents.chapters
     }
 
     // MARK: Actions

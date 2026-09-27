@@ -28,12 +28,27 @@
 		D0000000000000000000F502 /* Examples in Resources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F501 /* Examples */; };
 		D0000000000000000000F602 /* LaTeXExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F601 /* LaTeXExport.swift */; };
 		D0000000000000000000F802 /* ScalarText.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F801 /* ScalarText.swift */; };
+		D0000000000000000000FD02 /* SmartTyping.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FD01 /* SmartTyping.swift */; };
+		D0000000000000000000FE02 /* SmartTypingAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FE01 /* SmartTypingAdapter.swift */; };
 		D0000000000000000000F902 /* TextBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F901 /* TextBundle.swift */; };
 		D0000000000000000000FB02 /* Plot.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FB01 /* Plot.swift */; };
 		D0000000000000000000FB04 /* PlotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FB03 /* PlotTests.swift */; };
+		D0000000000000000000FD04 /* SmartTypingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FD03 /* SmartTypingTests.swift */; };
+		D0000000000000000000FE04 /* SmartTypingAdapterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FE03 /* SmartTypingAdapterTests.swift */; };
 		D0000000000000000000FB06 /* PlotVectors in Resources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FB05 /* PlotVectors */; };
+		D0000000000000000000FD06 /* TypingVectors in Resources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FD05 /* TypingVectors */; };
 		D0000000000000000000FA02 /* ViewMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FA01 /* ViewMode.swift */; };
 		D0000000000000000000FA04 /* ViewModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FA03 /* ViewModeTests.swift */; };
+		D0000000000000000000FC04 /* FileTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FC03 /* FileTypeTests.swift */; };
+		D0000000000000000000FF02 /* EditorShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FF01 /* EditorShortcuts.swift */; };
+		D0000000000000000000FF04 /* EditorShortcutsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FF03 /* EditorShortcutsTests.swift */; };
+		D0000000000000000000F202 /* PreviewRetryPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F201 /* PreviewRetryPolicy.swift */; };
+		D0000000000000000000F204 /* PreviewRetryPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F203 /* PreviewRetryPolicyTests.swift */; };
+		D0000000000000000000F702 /* FindAndReplaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F701 /* FindAndReplaceTests.swift */; };
+		D0000000000000000000E102 /* LaunchDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E101 /* LaunchDiagnostics.swift */; };
+		D0000000000000000000E104 /* DocumentGenerationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E103 /* DocumentGenerationTests.swift */; };
+		D0000000000000000000E106 /* DocumentTitleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E105 /* DocumentTitleTests.swift */; };
+		D0000000000000000000E108 /* DocumentChordsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E107 /* DocumentChordsTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,12 +82,27 @@
 		D0000000000000000000F301 /* BookNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookNavigator.swift; sourceTree = "<group>"; };
 		D0000000000000000000F601 /* LaTeXExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaTeXExport.swift; sourceTree = "<group>"; };
 		D0000000000000000000F801 /* ScalarText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalarText.swift; sourceTree = "<group>"; };
+		D0000000000000000000FD01 /* SmartTyping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartTyping.swift; sourceTree = "<group>"; };
+		D0000000000000000000FE01 /* SmartTypingAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartTypingAdapter.swift; sourceTree = "<group>"; };
 		D0000000000000000000F901 /* TextBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextBundle.swift; sourceTree = "<group>"; };
 		D0000000000000000000FB01 /* Plot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Plot.swift; sourceTree = "<group>"; };
 		D0000000000000000000FB03 /* PlotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlotTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000FD03 /* SmartTypingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartTypingTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000FE03 /* SmartTypingAdapterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartTypingAdapterTests.swift; sourceTree = "<group>"; };
 		D0000000000000000000FB05 /* PlotVectors */ = {isa = PBXFileReference; lastKnownFileType = folder; path = PlotVectors; sourceTree = "<group>"; };
+		D0000000000000000000FD05 /* TypingVectors */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TypingVectors; sourceTree = "<group>"; };
 		D0000000000000000000FA01 /* ViewMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewMode.swift; sourceTree = "<group>"; };
 		D0000000000000000000FA03 /* ViewModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModeTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000FC03 /* FileTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileTypeTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000FF01 /* EditorShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorShortcuts.swift; sourceTree = "<group>"; };
+		D0000000000000000000E101 /* LaunchDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchDiagnostics.swift; sourceTree = "<group>"; };
+		D0000000000000000000E103 /* DocumentGenerationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentGenerationTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000E105 /* DocumentTitleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentTitleTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000E107 /* DocumentChordsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentChordsTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000FF03 /* EditorShortcutsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorShortcutsTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000F201 /* PreviewRetryPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewRetryPolicy.swift; sourceTree = "<group>"; };
+		D0000000000000000000F203 /* PreviewRetryPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewRetryPolicyTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000F701 /* FindAndReplaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindAndReplaceTests.swift; sourceTree = "<group>"; };
 		D0000000000000000000F401 /* TestData */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TestData; sourceTree = "<group>"; };
 		D0000000000000000000F403 /* TestDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestDataTests.swift; sourceTree = "<group>"; };
 		D0000000000000000000F501 /* Examples */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Examples; sourceTree = "<group>"; };
@@ -122,6 +152,7 @@
 				D000000000000000000010A1 /* mdApp.swift */,
 				D000000000000000000010A6 /* DocumentView.swift */,
 				D0000000000000000000FA01 /* ViewMode.swift */,
+				D0000000000000000000FF01 /* EditorShortcuts.swift */,
 				D000000000000000000010AD /* MarkdownEditor.swift */,
 				D000000000000000000010A2 /* MarkdownDocument.swift */,
 				D000000000000000000010A3 /* MarkdownParser.swift */,
@@ -129,13 +160,17 @@
 				D000000000000000000010A5 /* MarkdownView.swift */,
 				D000000000000000000010AE /* MarkdownHTML.swift */,
 				D0000000000000000000F101 /* MarkdownWebView.swift */,
+				D0000000000000000000F201 /* PreviewRetryPolicy.swift */,
 				D000000000000000000010AF /* DocumentExport.swift */,
 				D0000000000000000000F601 /* LaTeXExport.swift */,
 				D0000000000000000000F801 /* ScalarText.swift */,
+				D0000000000000000000FD01 /* SmartTyping.swift */,
+				D0000000000000000000FE01 /* SmartTypingAdapter.swift */,
 				D0000000000000000000F901 /* TextBundle.swift */,
 				D0000000000000000000FB01 /* Plot.swift */,
 				D0000000000000000000F301 /* BookNavigator.swift */,
 				D000000000000000000010AC /* TypewriterTheme.swift */,
+				D0000000000000000000E101 /* LaunchDiagnostics.swift */,
 				D0000000000000000000F110 /* rich */,
 				D0000000000000000000F501 /* Examples */,
 				D000000000000000000010A7 /* Assets.xcassets */,
@@ -160,9 +195,19 @@
 				D000000000000000000010AB /* mdTests.swift */,
 				D0000000000000000000F403 /* TestDataTests.swift */,
 				D0000000000000000000FB03 /* PlotTests.swift */,
+				D0000000000000000000FD03 /* SmartTypingTests.swift */,
+				D0000000000000000000FE03 /* SmartTypingAdapterTests.swift */,
 				D0000000000000000000FA03 /* ViewModeTests.swift */,
+				D0000000000000000000FC03 /* FileTypeTests.swift */,
+				D0000000000000000000FF03 /* EditorShortcutsTests.swift */,
+				D0000000000000000000F203 /* PreviewRetryPolicyTests.swift */,
+				D0000000000000000000F701 /* FindAndReplaceTests.swift */,
+				D0000000000000000000E103 /* DocumentGenerationTests.swift */,
+				D0000000000000000000E105 /* DocumentTitleTests.swift */,
+				D0000000000000000000E107 /* DocumentChordsTests.swift */,
 				D0000000000000000000F401 /* TestData */,
 				D0000000000000000000FB05 /* PlotVectors */,
+				D0000000000000000000FD05 /* TypingVectors */,
 			);
 			path = mdTests;
 			sourceTree = "<group>";
@@ -261,6 +306,7 @@
 			files = (
 				D0000000000000000000F402 /* TestData in Resources */,
 				D0000000000000000000FB06 /* PlotVectors in Resources */,
+				D0000000000000000000FD06 /* TypingVectors in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -273,6 +319,7 @@
 			files = (
 				D000000000000000000020A6 /* DocumentView.swift in Sources */,
 				D0000000000000000000FA02 /* ViewMode.swift in Sources */,
+				D0000000000000000000FF02 /* EditorShortcuts.swift in Sources */,
 				D000000000000000000020AD /* MarkdownEditor.swift in Sources */,
 				D000000000000000000020A2 /* MarkdownDocument.swift in Sources */,
 				D000000000000000000020A3 /* MarkdownParser.swift in Sources */,
@@ -280,14 +327,18 @@
 				D000000000000000000020A5 /* MarkdownView.swift in Sources */,
 				D000000000000000000020AE /* MarkdownHTML.swift in Sources */,
 				D0000000000000000000F102 /* MarkdownWebView.swift in Sources */,
+				D0000000000000000000F202 /* PreviewRetryPolicy.swift in Sources */,
 				D000000000000000000020AF /* DocumentExport.swift in Sources */,
 				D0000000000000000000F602 /* LaTeXExport.swift in Sources */,
 				D0000000000000000000F802 /* ScalarText.swift in Sources */,
+				D0000000000000000000FD02 /* SmartTyping.swift in Sources */,
+				D0000000000000000000FE02 /* SmartTypingAdapter.swift in Sources */,
 				D0000000000000000000F902 /* TextBundle.swift in Sources */,
 				D0000000000000000000FB02 /* Plot.swift in Sources */,
 				D0000000000000000000F302 /* BookNavigator.swift in Sources */,
 				D000000000000000000020AC /* TypewriterTheme.swift in Sources */,
 				D000000000000000000020A1 /* mdApp.swift in Sources */,
+				D0000000000000000000E102 /* LaunchDiagnostics.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -298,7 +349,16 @@
 				D000000000000000000020AB /* mdTests.swift in Sources */,
 				D0000000000000000000F404 /* TestDataTests.swift in Sources */,
 				D0000000000000000000FB04 /* PlotTests.swift in Sources */,
+				D0000000000000000000FD04 /* SmartTypingTests.swift in Sources */,
+				D0000000000000000000FE04 /* SmartTypingAdapterTests.swift in Sources */,
 				D0000000000000000000FA04 /* ViewModeTests.swift in Sources */,
+				D0000000000000000000FC04 /* FileTypeTests.swift in Sources */,
+				D0000000000000000000FF04 /* EditorShortcutsTests.swift in Sources */,
+				D0000000000000000000F204 /* PreviewRetryPolicyTests.swift in Sources */,
+				D0000000000000000000F702 /* FindAndReplaceTests.swift in Sources */,
+				D0000000000000000000E104 /* DocumentGenerationTests.swift in Sources */,
+				D0000000000000000000E106 /* DocumentTitleTests.swift in Sources */,
+				D0000000000000000000E108 /* DocumentChordsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -454,7 +514,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 293;
+				CURRENT_PROJECT_VERSION = 445;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_ASSET_PATHS = "\"md/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
@@ -468,7 +528,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = me.nettrash.md;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -490,7 +550,7 @@
 				CODE_SIGN_ENTITLEMENTS = md/md.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 293;
+				CURRENT_PROJECT_VERSION = 445;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				DEVELOPMENT_ASSET_PATHS = "\"md/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
@@ -504,7 +564,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = me.nettrash.md;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = NO;
@@ -522,7 +582,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 293;
+				CURRENT_PROJECT_VERSION = 445;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -532,7 +592,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = nettrash.mdTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = NO;
@@ -550,7 +610,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 293;
+				CURRENT_PROJECT_VERSION = 445;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -560,7 +620,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = nettrash.mdTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = NO;
