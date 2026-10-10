@@ -20,7 +20,8 @@ If that already answers your question, you don't need to read the rest.
 telemetry. It contacts no servers of ours — there are none. The one time
 the app touches the network at all is when a document you opened points at
 an image by remote URL, and the renderer fetches that image so it can be
-shown, printed and exported (see **Permissions** below).
+shown, printed and exported — or, when you export an EPUB, its front matter
+names its cover by an `https:` URL (see **Permissions** below).
 
 ## Your documents
 
@@ -53,7 +54,9 @@ you open references an image by remote URL (`![alt](https://…)`), the
 renderer fetches that image so it can be shown, printed and exported. That
 request goes straight to the host **your own document names**, which sees
 your IP address exactly as it would if you opened the link in a browser. It
-happens only for documents that contain such a link.
+happens only for documents that contain such a link. The same goes for an
+EPUB export whose front matter says `cover: https://…`: the export fetches
+that one image to put it on the book, and nothing else.
 
 Everything else runs on your device: the Markdown renderer, and the math
 and diagram engines (KaTeX, Mermaid, Graphviz, PlantUML) are bundled inside

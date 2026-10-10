@@ -24,6 +24,7 @@
 //
 
 import XCTest
+@testable import md
 
 final class PlantUMLLimitTests: XCTestCase {
 
