@@ -58,6 +58,10 @@ happens only for documents that contain such a link. The same goes for an
 EPUB export whose front matter says `cover: https://…`: the export fetches
 that one image to put it on the book, and nothing else.
 
+md's Quick Look preview — what Files and Mail show for a TextBundle — makes
+no network request at all: it blocks every remote load, so a remote image in
+a previewed document is simply not shown.
+
 Everything else runs on your device: the Markdown renderer, and the math
 and diagram engines (KaTeX, Mermaid, Graphviz, PlantUML) are bundled inside
 the app and work offline.
