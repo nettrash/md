@@ -100,6 +100,17 @@ chemistry extension, Mermaid, Graphviz, PlantUML, and highlight.js for code).
   through a book's articles in reading order. ⌘Z / ⌘X / ⌘C /
   ⌘V / ⌘A stay the text view's own, as they should. Shift-Return
   still inserts a plain line break.
+- **Formatting.** Bold, italic, code, strikethrough, link, headings,
+  lists, tasks, quotes and indentation, from a **Format** menu in the
+  toolbar on iPad, a bar above the keyboard on iPhone (Bold, Italic, Code,
+  Link, Heading — H1 → H2 → H3 → none — Bullet List, Task List, Quote,
+  Outdent, Indent) and the Mac's chords on a hardware keyboard: ⌘B, ⌘I,
+  ⌘K, ⇧⌘C code, ⇧⌘X strikethrough, ⌥⌘1–6 headings, ⇧⌘L list, ⇧⌘T
+  task, ⌘' quote, ⌘] / ⌘[ indent and outdent. Each command toggles —
+  ⌘B on bold text takes the bold off — and is one Undo step. Typing `*`,
+  `_`, a backtick or `$` with text selected wraps the selection instead of
+  replacing it (*Wrap Selection When Typing* in the Typing menu). The
+  rules are the family's own, pinned by a vector file every md app shares.
 - **Typing.** Return carries on what you were writing: a bullet, numbered
   or task item continues with the next marker (`- `, `3. `, `- [ ] `), a
   quote with its `> `, a table row with a fresh `|  |  |` row — and Return

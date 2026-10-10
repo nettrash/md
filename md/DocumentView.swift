@@ -196,6 +196,9 @@ struct DocumentView: View {
     /// letter of a line and of a sentence. Both default to on.
     @AppStorage("md.continueLists") private var continueLists = true
     @AppStorage("md.capitalizeSentences") private var capitalizeSentences = true
+    /// The Typing menu's third toggle (1.6): typing `*`, `_`, a backtick or
+    /// `$` over a selection wraps it instead of replacing it.
+    @AppStorage("md.wrapSelection") private var wrapSelection = true
     /// Links the panes' scrolling in Split (identity-stable across
     /// renders; the panes register themselves on it).
     @State private var scrollSync = ScrollSync()
@@ -278,7 +281,8 @@ struct DocumentView: View {
                 await DocumentExport.print(source: document.text, title: baseName, dark: dark)
             },
             showBook: { showBook() },
-            stepArticle: { stepArticle(by: $0) })
+            stepArticle: { stepArticle(by: $0) },
+            format: { editor.format($0) })
     }
 
     /// The actions a chord runs: the scene's current document's, whichever
@@ -523,6 +527,18 @@ struct DocumentView: View {
                 .keyboardShortcut(.previousArticle)
             Button("Next Article") { chordActions.stepArticle(+1) }
                 .keyboardShortcut(.nextArticle)
+
+            // The formatting chords (1.6) — only while there is an editor
+            // pane to format; in Preview they are not installed at all, so
+            // ⌘B there does nothing rather than editing text off screen.
+            if effectiveMode != .preview {
+                ForEach(EditorShortcuts.formattingActions, id: \.self) { action in
+                    Button(EditorShortcuts.formattingTitle(action)) {
+                        if let op = EditorShortcuts.formattingOp(action) { chordActions.format(op) }
+                    }
+                    .keyboardShortcut(action)
+                }
+            }
         }
         .frame(width: 0, height: 0)
         .clipped()
@@ -603,9 +619,25 @@ struct DocumentView: View {
                 }
                 .disabled(!editor.canRedo)
 
+                // The Format menu — on a wide window, where there is room for
+                // it in the bar. A phone carries the same commands on the
+                // bar above its keyboard (`FormattingBar`). The chords are
+                // the sink's, not these rows': a toolbar menu's rows exist
+                // only while it is open (see `keyboardShortcuts`).
+                if isWide {
+                    Menu {
+                        formatRows(EditorShortcuts.formattingActions.prefix(5))
+                        Menu("Heading") { formatRows(EditorShortcuts.formattingActions[5..<11]) }
+                        Section { formatRows(EditorShortcuts.formattingActions.suffix(5)) }
+                    } label: {
+                        Label("Format", systemImage: "textformat")
+                    }
+                }
+
                 Menu {
                     Toggle("Continue Lists and Tables", isOn: $continueLists)
                     Toggle("Capitalize Sentences", isOn: $capitalizeSentences)
+                    Toggle("Wrap Selection When Typing * _ ` $", isOn: $wrapSelection)
                 } label: {
                     Label("Typing", systemImage: "keyboard")
                 }
@@ -993,9 +1025,21 @@ struct DocumentView: View {
         .background(Typewriter.paperSecondary)
     }
 
+    /// Format menu rows for some formatting actions, each running on this
+    /// document's editor.
+    @ViewBuilder
+    private func formatRows<C: RandomAccessCollection>(_ actions: C) -> some View where C.Element == EditorShortcuts.Action {
+        ForEach(Array(actions), id: \.self) { action in
+            Button(EditorShortcuts.formattingTitle(action)) {
+                if let op = EditorShortcuts.formattingOp(action) { editor.format(op) }
+            }
+        }
+    }
+
     private var editorPane: some View {
         MarkdownEditor(text: $document.text, controller: editor, scrollSync: scrollSync,
-                       continueLists: continueLists, capitalizeSentences: capitalizeSentences)
+                       continueLists: continueLists, capitalizeSentences: capitalizeSentences,
+                       wrapSelection: wrapSelection)
             .overlay(alignment: .topLeading) {
                 if document.text.isEmpty {
                     // The text view has no native placeholder; mimic one,
@@ -1379,6 +1423,9 @@ enum DocumentChords {
         let showBook: () -> Void
         /// ⌃⌘↑ / ⌃⌘↓, by −1 / +1.
         let stepArticle: (Int) -> Void
+        /// ⌘B, ⌘I, ⌥⌘1 … — a formatting command on the current document's
+        /// editor (1.6).
+        var format: (MarkdownFormatting.Op) -> Void = { _ in }
     }
 
     private static var byScene: [String: Actions] = [:]

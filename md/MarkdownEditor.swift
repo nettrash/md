@@ -61,8 +61,17 @@ final class EditorController: ObservableObject {
     /// the pane to be built. Consumed by `flushPendingScroll()`.
     private var pendingLine: Int?
 
+    /// Wired in `makeUIView`: runs one formatting command over the live
+    /// text view (see `MarkdownFormatting`) as a single undoable edit.
+    fileprivate var formatAction: (MarkdownFormatting.Op) -> Void = { _ in }
+
     func undo() { undoAction() }
     func redo() { redoAction() }
+
+    /// Bold, a heading, a list… over the editor's selection — the Format
+    /// menu, the hardware-keyboard chords and the phone bar all land here.
+    /// A no-op when there is no editor pane (Preview tore it down).
+    func format(_ op: MarkdownFormatting.Op) { formatAction(op) }
 
     #if DEBUG
     /// Wire a text view in the way `makeUIView` does, so a hosted test can
@@ -200,6 +209,9 @@ struct MarkdownEditor: UIViewRepresentable {
     /// live: SwiftUI re-runs `updateUIView` when either flips.
     var continueLists = true
     var capitalizeSentences = true
+    /// `md.wrapSelection`: typing `*`, `_`, a backtick or `$` over a
+    /// selection wraps it (`MarkdownFormatting.wrapTyped`). On by default.
+    var wrapSelection = true
 
     /// A freshly built editor text view, configured but not yet wired to
     /// anything: face, colours, insets, the literal-punctuation rules and
@@ -275,6 +287,34 @@ struct MarkdownEditor: UIViewRepresentable {
             textView?.undoManager?.redo()
             coordinator?.sync()
         }
+        controller.formatAction = { [weak textView, weak coordinator = context.coordinator] op in
+            guard let textView, textView.markedTextRange == nil else { return }
+            let selection = textView.selectedRange
+            guard let edit = MarkdownFormatting.format(
+                textView.text ?? "", selectionStart: selection.location,
+                selectionEnd: selection.location + selection.length, op: op) else { return }
+            Self.apply(edit, to: textView)
+            coordinator?.sync()
+        }
+        // The typed wrap: `*`, `_`, a backtick or `$` typed over a selection
+        // wraps it instead of replacing it — asked of the keystroke before
+        // SmartTyping sees it, as one undoable edit.
+        textView.interceptsInsertion = { [weak textView, weak coordinator = context.coordinator] typed in
+            guard let textView, let coordinator, coordinator.parent.wrapSelection else { return false }
+            let selection = textView.selectedRange
+            guard let edit = MarkdownFormatting.wrapTyped(
+                textView.text ?? "", selectionStart: selection.location,
+                selectionEnd: selection.location + selection.length, typed: typed) else { return false }
+            Self.apply(edit, to: textView)
+            coordinator.sync()
+            return true
+        }
+        // The phone bar: on an iPhone the formatting commands ride above the
+        // keyboard, where a phone's thumb already is. An iPad has the Format
+        // menu and the chords instead.
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            textView.inputAccessoryView = FormattingBar { [weak controller] op in controller?.format(op) }
+        }
         context.coordinator.textView = textView
         controller.textView = textView
         context.coordinator.registerScrollSync()
@@ -308,6 +348,19 @@ struct MarkdownEditor: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
+    /// Apply one formatting edit as a single undoable replacement — the same
+    /// `replace(_:withText:)` SmartTyping's Return uses — then select what
+    /// the edit says to select.
+    @MainActor static func apply(_ edit: MarkdownFormatting.Edit, to textView: UITextView) {
+        guard let start = textView.position(from: textView.beginningOfDocument, offset: edit.start),
+              let end = textView.position(from: textView.beginningOfDocument, offset: edit.end),
+              let range = textView.textRange(from: start, to: end) else { return }
+        textView.replace(range, withText: edit.text)
+        let selection = NSRange(location: edit.selectionStart, length: edit.selectionEnd - edit.selectionStart)
+        textView.selectedRange = selection
+        textView.scrollRangeToVisible(selection)
+    }
+
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: MarkdownEditor
         weak var textView: UITextView?
@@ -324,6 +377,7 @@ struct MarkdownEditor: UIViewRepresentable {
         }
 
         func textViewDidChange(_ textView: UITextView) { sync() }
+
         func textViewDidBeginEditing(_ textView: UITextView) {
             parent.controller.refresh(textView.undoManager)
         }
@@ -349,4 +403,69 @@ struct MarkdownEditor: UIViewRepresentable {
             parent.scrollSync?.editorDidScroll(to: fraction)
         }
     }
+}
+
+// MARK: - The phone bar
+
+/// The formatting bar above an iPhone's keyboard: Bold, Italic, Code, Link,
+/// Heading (H1 → H2 → H3 → none), Bullet List, Task List, Quote, Outdent and
+/// Indent — the family's order (md.win `docs/formatting.md` §5). It scrolls
+/// sideways rather than squeezing, so the narrowest phone still gets full-size
+/// targets, and its buttons never take focus from the editor.
+final class FormattingBar: UIInputView {
+
+    /// The bar's commands in order, with the symbol and the spoken name each one shows.
+    static let items: [(op: MarkdownFormatting.Op, symbol: String, name: String)] = [
+        (.bold, "bold", "Bold"),
+        (.italic, "italic", "Italic"),
+        (.code, "chevron.left.forwardslash.chevron.right", "Code"),
+        (.link, "link", "Link"),
+        (.headingCycle, "number", "Heading"),
+        (.bulletList, "list.bullet", "Bullet List"),
+        (.taskList, "checklist", "Task List"),
+        (.quote, "text.quote", "Quote"),
+        (.outdent, "decrease.indent", "Outdent"),
+        (.indent, "increase.indent", "Indent"),
+    ]
+
+    init(perform: @escaping (MarkdownFormatting.Op) -> Void) {
+        super.init(frame: CGRect(x: 0, y: 0, width: 0, height: 44), inputViewStyle: .keyboard)
+        allowsSelfSizing = true
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 4
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        for item in Self.items {
+            var configuration = UIButton.Configuration.plain()
+            configuration.image = UIImage(systemName: item.symbol)
+            configuration.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8)
+            let button = UIButton(configuration: configuration, primaryAction: UIAction { _ in perform(item.op) })
+            button.accessibilityLabel = item.name
+            button.accessibilityIdentifier = "format.\(item.op.rawValue)"
+            button.widthAnchor.constraint(greaterThanOrEqualToConstant: 40).isActive = true
+            stack.addArrangedSubview(button)
+        }
+        let scroll = UIScrollView()
+        scroll.showsHorizontalScrollIndicator = false
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        scroll.addSubview(stack)
+        addSubview(scroll)
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 44),
+            scroll.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor),
+            scroll.topAnchor.constraint(equalTo: topAnchor),
+            scroll.bottomAnchor.constraint(equalTo: bottomAnchor),
+            stack.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor, constant: 4),
+            stack.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor, constant: -4),
+            stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor),
+            stack.heightAnchor.constraint(equalTo: scroll.frameLayoutGuide.heightAnchor),
+            // Centred when it fits, scrolling when it does not.
+            stack.widthAnchor.constraint(greaterThanOrEqualTo: scroll.frameLayoutGuide.widthAnchor, constant: -8),
+        ])
+        stack.distribution = .equalSpacing
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 }

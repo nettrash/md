@@ -368,6 +368,13 @@ final class SmartTextView: UITextView, NSTextStorageDelegate {
     /// ordinary keystroke is not synced twice.
     var didEditWhileFinding: (() -> Void)?
 
+    /// Asked first about every typed insertion, before SmartTyping sees it:
+    /// returns true when it has handled the keystroke itself, and SmartTyping
+    /// then never runs for it. The editor hangs the formatting commands'
+    /// typed wrap here (`MarkdownFormatting.wrapTyped`: `*` over a selection
+    /// wraps it). Nil — the default — changes nothing about this view.
+    var interceptsInsertion: ((String) -> Bool)?
+
     /// Set while this file swaps one scalar for its capital, or back (the
     /// capital, its undo, its redo): the storage delegate leaves those to
     /// the code that made them (see the header).
@@ -436,6 +443,7 @@ final class SmartTextView: UITextView, NSTextStorageDelegate {
             super.insertText(text)
             return
         }
+        if let interceptsInsertion, interceptsInsertion(text) { return }
         let selection = selectedRange
         let start = selection.location
         let end = selection.location + selection.length
