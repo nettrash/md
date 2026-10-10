@@ -17,6 +17,17 @@ a scheme post-action (`agvtool bump`) and is not tracked here.
   view mode, the typing toggles, the PDF page size and the remembered book
   folder), under reason `CA92.1`. No visible change. (#10)
 
+### Fixed
+
+- **Large PlantUML diagrams render.** A diagram wider or taller than 4096
+  pixels — a 48-participant sequence diagram is already past it — used to
+  stop at "Diagram too large for browser rendering". The bundled engine's
+  size gate is raised exactly as md for VS Code raised it, so the two
+  copies of `plantuml.js` are byte-identical again; the preview and the
+  exports keep the SVG, and an EPUB snapshot is still capped at the page's
+  width. A pin test fails if a future engine update brings the gate back.
+  (#11)
+
 ## [1.5] — 2026-09-23
 
 ### Added
