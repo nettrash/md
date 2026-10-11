@@ -204,6 +204,8 @@ enum EpubMetadataReader {
             // Strict base64: `^[A-Za-z0-9+/]*={0,2}$`, a whole number of quads.
             let payload = Array(u[(comma + 1)...])
             guard !payload.isEmpty, payload.count % 4 == 0 else { return nil }
+            // Past the cover cap once decoded: refused before a byte is decoded.
+            guard payload.count / 4 * 3 <= maxCoverBytes + 2 else { return nil }
             var padding = 0
             for c in payload {
                 if c == 0x3D { padding += 1; continue }
