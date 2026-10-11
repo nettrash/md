@@ -426,6 +426,18 @@ final class SmartTextView: UITextView, NSTextStorageDelegate {
         textStorage.delegate = self
     }
 
+    /// Run a formatting command's edit (`MarkdownEditor.apply`), and drop an
+    /// override it armed: a command is not the writer deleting the capital
+    /// md just made, though wrapping `Word` as `**Word**` takes it along,
+    /// and the next word typed where it began would skip the sentence rule.
+    /// An override already armed, or a capital the edit merely moves, is
+    /// left as it was.
+    func applyingFormatting(_ edit: () -> Void) {
+        let wasArmed = capitalOverride.isArmed
+        edit()
+        if !wasArmed, capitalOverride.isArmed { capitalOverride.clear() }
+    }
+
     /// The pane replaced the whole text from outside (revert, reload, an
     /// article switch): every offset the override remembered is stale.
     /// (A capital's undo action left on the stack checks the text before

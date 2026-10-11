@@ -288,26 +288,15 @@ struct MarkdownEditor: UIViewRepresentable {
             coordinator?.sync()
         }
         controller.formatAction = { [weak textView, weak coordinator = context.coordinator] op in
-            guard let textView, textView.markedTextRange == nil else { return }
-            let selection = textView.selectedRange
-            guard let edit = MarkdownFormatting.format(
-                textView.text ?? "", selectionStart: selection.location,
-                selectionEnd: selection.location + selection.length, op: op) else { return }
-            Self.apply(edit, to: textView)
-            coordinator?.sync()
+            guard let textView else { return }
+            Self.perform(op, on: textView, coordinator: coordinator)
         }
         // The typed wrap: `*`, `_`, a backtick or `$` typed over a selection
         // wraps it instead of replacing it — asked of the keystroke before
         // SmartTyping sees it, as one undoable edit.
         textView.interceptsInsertion = { [weak textView, weak coordinator = context.coordinator] typed in
-            guard let textView, let coordinator, coordinator.parent.wrapSelection else { return false }
-            let selection = textView.selectedRange
-            guard let edit = MarkdownFormatting.wrapTyped(
-                textView.text ?? "", selectionStart: selection.location,
-                selectionEnd: selection.location + selection.length, typed: typed) else { return false }
-            Self.apply(edit, to: textView)
-            coordinator.sync()
-            return true
+            guard let textView, let coordinator else { return false }
+            return Self.wrapTyped(typed, on: textView, coordinator: coordinator)
         }
         // The phone bar: on an iPhone the formatting commands ride above the
         // keyboard, where a phone's thumb already is. An iPad has the Format
@@ -348,6 +337,32 @@ struct MarkdownEditor: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
+    /// One formatting command over the editor's selection — the Format
+    /// menu, the chords and the phone bar — as one undoable edit, then the
+    /// binding. Nothing at all when the command changes nothing.
+    @MainActor static func perform(_ op: MarkdownFormatting.Op, on textView: UITextView, coordinator: Coordinator?) {
+        guard textView.markedTextRange == nil else { return }
+        let selection = textView.selectedRange
+        guard let edit = MarkdownFormatting.format(
+            textView.text ?? "", selectionStart: selection.location,
+            selectionEnd: selection.location + selection.length, op: op) else { return }
+        apply(edit, to: textView)
+        coordinator?.sync()
+    }
+
+    /// The typed wrap, when it applies: `*`, `_`, a backtick or `$` typed
+    /// over a selection, with the setting on. True when it wrapped.
+    @MainActor static func wrapTyped(_ typed: String, on textView: UITextView, coordinator: Coordinator) -> Bool {
+        let selection = textView.selectedRange
+        guard coordinator.parent.wrapSelection, selection.length > 0,
+              let edit = MarkdownFormatting.wrapTyped(
+                textView.text ?? "", selectionStart: selection.location,
+                selectionEnd: selection.location + selection.length, typed: typed) else { return false }
+        apply(edit, to: textView)
+        coordinator.sync()
+        return true
+    }
+
     /// Apply one formatting edit as a single undoable replacement — the same
     /// `replace(_:withText:)` SmartTyping's Return uses — then select what
     /// the edit says to select.
@@ -355,7 +370,11 @@ struct MarkdownEditor: UIViewRepresentable {
         guard let start = textView.position(from: textView.beginningOfDocument, offset: edit.start),
               let end = textView.position(from: textView.beginningOfDocument, offset: edit.end),
               let range = textView.textRange(from: start, to: end) else { return }
-        textView.replace(range, withText: edit.text)
+        if let smart = textView as? SmartTextView {
+            smart.applyingFormatting { smart.replace(range, withText: edit.text) }
+        } else {
+            textView.replace(range, withText: edit.text)
+        }
         let selection = NSRange(location: edit.selectionStart, length: edit.selectionEnd - edit.selectionStart)
         textView.selectedRange = selection
         textView.scrollRangeToVisible(selection)

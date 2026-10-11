@@ -77,10 +77,13 @@ enum MarkdownFormatting {
     /// Typing one of `*` `_` `` ` `` `$` over a non-empty selection wraps it;
     /// anything else is ordinary typing (nil).
     static func wrapTyped(_ text: String, selectionStart: Int, selectionEnd: Int, typed: String) -> Edit? {
+        // Asked on every keystroke: a caret or any other character is
+        // answered before the text is copied.
+        guard selectionStart != selectionEnd, ["*", "_", "`", "$"].contains(typed) else { return nil }
         let u = Array(text.utf16)
         let s = max(0, min(min(selectionStart, selectionEnd), u.count))
         let e = max(0, min(max(selectionStart, selectionEnd), u.count))
-        guard s < e, ["*", "_", "`", "$"].contains(typed) else { return nil }
+        guard s < e else { return nil }
         return Edit(start: s, end: e, text: typed + string(u[s..<e]) + typed,
                     selectionStart: s + 1, selectionEnd: e + 1)
     }

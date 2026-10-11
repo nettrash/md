@@ -56,7 +56,10 @@ request goes straight to the host **your own document names**, which sees
 your IP address exactly as it would if you opened the link in a browser. It
 happens only for documents that contain such a link. The same goes for an
 EPUB export whose front matter says `cover: https://…`: the export fetches
-that one image to put it on the book, and nothing else.
+that one image to put it on the book, and nothing else. If that host
+redirects the request, md follows at most five redirects, and only to
+`https` addresses; each host along the way sees your IP address in the same
+way.
 
 md's Quick Look preview — what Files and Mail show for a TextBundle — makes
 no network request at all: it blocks every remote load, so a remote image in

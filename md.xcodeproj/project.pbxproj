@@ -56,6 +56,7 @@
 		D0000000000000000000E406 /* EpubPackageMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E405 /* EpubPackageMetadataTests.swift */; };
 		D0000000000000000000E502 /* MarkdownFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E501 /* MarkdownFormatting.swift */; };
 		D0000000000000000000E504 /* FormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E503 /* FormattingTests.swift */; };
+		D0000000000000000000E5A2 /* EditorFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E5A1 /* EditorFormattingTests.swift */; };
 		D0000000000000000000E506 /* FormattingVectors in Resources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E505 /* FormattingVectors */; };
 		D00000000000000000009020 /* PreviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000009004 /* PreviewViewController.swift */; };
 		D00000000000000000009021 /* QuickLookPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000009007 /* QuickLookPage.swift */; };
@@ -158,6 +159,7 @@
 		D0000000000000000000E405 /* EpubPackageMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpubPackageMetadataTests.swift; sourceTree = "<group>"; };
 		D0000000000000000000E501 /* MarkdownFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownFormatting.swift; sourceTree = "<group>"; };
 		D0000000000000000000E503 /* FormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormattingTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000E5A1 /* EditorFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFormattingTests.swift; sourceTree = "<group>"; };
 		D0000000000000000000E505 /* FormattingVectors */ = {isa = PBXFileReference; lastKnownFileType = folder; path = FormattingVectors; sourceTree = "<group>"; };
 		D00000000000000000009002 /* mdQuickLook.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = mdQuickLook.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D00000000000000000009004 /* PreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewViewController.swift; sourceTree = "<group>"; };
@@ -285,6 +287,7 @@
 				D0000000000000000000E403 /* EpubMetadataTests.swift */,
 				D0000000000000000000E405 /* EpubPackageMetadataTests.swift */,
 				D0000000000000000000E503 /* FormattingTests.swift */,
+				D0000000000000000000E5A1 /* EditorFormattingTests.swift */,
 				D0000000000000000000E505 /* FormattingVectors */,
 				D0000000000000000000E601 /* QuickLookPageTests.swift */,
 			);
@@ -497,6 +500,7 @@
 				D0000000000000000000E406 /* EpubPackageMetadataTests.swift in Sources */,
 				D0000000000000000000E504 /* FormattingTests.swift in Sources */,
 				D0000000000000000000E602 /* QuickLookPageTests.swift in Sources */,
+				D0000000000000000000E5A2 /* EditorFormattingTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

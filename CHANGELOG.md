@@ -41,7 +41,7 @@ a scheme post-action (`agvtool bump`) and is not tracked here.
   a selection exactly as the Mac, Android and Windows editors do — around
   surrounding blanks, inside `***bold italic***`, across lines. Typing `*`,
   `_`, a backtick or `$` with text selected now wraps the selection instead
-  of replacing it; *Wrap Selection When Typing * _ ` $* in the Typing menu
+  of replacing it; **Wrap Selection When Typing \* \_ \` $** in the Typing menu
   turns that off. (#13)
 - **A Quick Look preview.** A TextBundle tapped in Files, peeked in Mail or
   previewed by any app that asks Quick Look now shows the rendered md page
