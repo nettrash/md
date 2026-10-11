@@ -114,6 +114,15 @@ final class EpubMetadataTests: XCTestCase {
         XCTAssertNil(EpubMetadataReader.coverReference("data:image/png;base64,ab!d"))
     }
 
+    func testDataImagePastTheCapIsRefusedBeforeDecoding() {
+        var image = Data(count: EpubMetadataReader.maxCoverBytes)
+        image.replaceSubrange(0..<png.count, with: png)
+        XCTAssertEqual(EpubMetadataReader.coverReference("data:image/png;base64,\(image.base64EncodedString())"),
+                       .data(image))
+        image.append(contentsOf: [0, 0, 0])
+        XCTAssertNil(EpubMetadataReader.coverReference("data:image/png;base64,\(image.base64EncodedString())"))
+    }
+
     func testHttpsOnly() {
         XCTAssertEqual(EpubMetadataReader.coverReference("https://example.com/c.png"),
                        .https(URL(string: "https://example.com/c.png")!))

@@ -1297,7 +1297,11 @@ enum DocumentExport {
     /// sitting beside the document and named to match an image ref could
     /// otherwise point anywhere on disk and pass the prefix test. Resolving
     /// both sides first means the check compares the real locations.
-    private static func readAsset(_ relativePath: String, besideDocumentAt fileURL: URL?) -> Data? {
+    ///
+    /// With a `limit` — the cover's — no more than one byte past it is ever
+    /// read, so a huge file named as `cover:` costs nothing before it is refused.
+    private static func readAsset(_ relativePath: String, besideDocumentAt fileURL: URL?,
+                                  limit: Int? = nil) -> Data? {
         guard let folder = fileURL?.deletingLastPathComponent()
             .resolvingSymlinksInPath().standardizedFileURL else { return nil }
         let candidate = folder.appendingPathComponent(relativePath)
@@ -1307,7 +1311,11 @@ enum DocumentExport {
         // The document's own folder may be security-scoped (opened in place).
         let scoped = fileURL!.startAccessingSecurityScopedResource()
         defer { if scoped { fileURL!.stopAccessingSecurityScopedResource() } }
-        return try? Data(contentsOf: candidate)
+        guard let limit else { return try? Data(contentsOf: candidate) }
+        guard let handle = try? FileHandle(forReadingFrom: candidate) else { return nil }
+        defer { try? handle.close() }
+        guard let data = try? handle.read(upToCount: limit + 1), data.count <= limit else { return nil }
+        return data
     }
 
     // MARK: - EPUB export
@@ -1471,7 +1479,8 @@ enum DocumentExport {
         case .https(let url):
             return await EpubMetadataReader.fetchCover(url)
         case .local(let path):
-            return EpubMetadataReader.recogniseCover(readAsset(path, besideDocumentAt: fileURL))
+            return EpubMetadataReader.recogniseCover(
+                readAsset(path, besideDocumentAt: fileURL, limit: EpubMetadataReader.maxCoverBytes))
         }
     }
 
