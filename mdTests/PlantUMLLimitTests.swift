@@ -8,12 +8,14 @@
 //  The bundled browser build of PlantUML (1.2026.4beta4 / 9a0b195) compares a
 //  laid-out diagram's width and height against 4096.0 and, past either, throws
 //  the drawing away for "Diagram too large for browser rendering: 7655x1445
-//  (max 4096)". A 48-participant sequence diagram is already past it. The gate
-//  guards a raster budget md never spends: the preview and the HTML and PDF
-//  exports keep the SVG, and the EPUB snapshot photographs the rect the page
-//  gave the diagram, which `.plantuml svg { max-width: 100%; height: auto; }`
-//  has already capped at the page's width. So both literals are raised to
-//  1.0E9 — `rich/plantuml.js` is now byte-identical to md.vscode's.
+//  (max 4096)". A 48-participant sequence diagram is already past it. The
+//  preview and the HTML and PDF exports keep the SVG, so they spend no raster
+//  budget at all. The EPUB does — every rich block becomes a PNG — and with
+//  the gate gone a very tall diagram would be photographed whole at 2×;
+//  `EpubBuilder.snapshotScale` is that budget now, at most 16 Mpx a snapshot
+//  (width alone is capped by `.plantuml svg { max-width: 100%; height: auto; }`).
+//  So both literals are raised to 1.0E9 — `rich/plantuml.js` is now
+//  byte-identical to md.vscode's.
 //
 //  A re-vendored engine brings the gate back silently; this test is how that
 //  day fails loudly. Re-apply with
@@ -24,6 +26,7 @@
 //
 
 import XCTest
+@testable import md
 
 final class PlantUMLLimitTests: XCTestCase {
 
@@ -45,5 +48,16 @@ final class PlantUMLLimitTests: XCTestCase {
         // `4096` alone appears legitimately; the gate compared doubles, and no
         // other double 4096.0 exists in the build.
         XCTAssertFalse(try engine().contains("4096.0"))
+    }
+
+    /// The raster budget that replaces the gate for the EPUB: 2× while it
+    /// fits, scaled down so a snapshot never passes 16 Mpx.
+    func testEpubSnapshotsStayWithinThePixelBudget() {
+        XCTAssertEqual(EpubBuilder.snapshotScale(for: CGSize(width: 700, height: 1000)), 2)
+        let tall = CGSize(width: 700, height: 40_000)
+        let scale = EpubBuilder.snapshotScale(for: tall)
+        XCTAssertLessThan(scale, 2)
+        XCTAssertLessThanOrEqual(tall.width * scale * tall.height * scale, EpubBuilder.maxSnapshotPixels * 1.0001)
+        XCTAssertEqual(EpubBuilder.snapshotScale(for: .zero), 2)
     }
 }

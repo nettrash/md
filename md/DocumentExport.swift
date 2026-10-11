@@ -161,6 +161,18 @@ enum StoredZip {
 /// No I/O and no WebKit here — all of it is unit-testable.
 enum EpubBuilder {
 
+    /// The most pixels one EPUB snapshot may have: 16 Mpx, about what the
+    /// old 4096 px PlantUML gate let a page-wide diagram cost (1.6 raised the
+    /// gate, so nothing else bounds a tall one any more).
+    static let maxSnapshotPixels: CGFloat = 16 * 1024 * 1024
+
+    /// The snapshot scale for a block of `size` points: 2× for crispness,
+    /// less when 2× would pass `maxSnapshotPixels`.
+    static func snapshotScale(for size: CGSize, preferred: CGFloat = 2) -> CGFloat {
+        let area = max(size.width, 1) * max(size.height, 1)
+        return min(preferred, (maxSnapshotPixels / area).squareRoot())
+    }
+
     static let containerXML = """
     <?xml version="1.0" encoding="UTF-8"?>
     <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
@@ -1511,7 +1523,8 @@ enum DocumentExport {
             for (index, entry) in ranges.enumerated() where index < frames.count {
                 let frame = frames[index]
                 guard frame.width >= 1, frame.height >= 1 else { continue }
-                let image = try await renderer.snapshot(rect: frame, scale: 2)
+                let image = try await renderer.snapshot(rect: frame,
+                                                        scale: EpubBuilder.snapshotScale(for: frame.size))
                 guard let png = image.pngData() else { continue }
                 let href = String(format: "images/%@-%02d.png", unitID, images.count + 1)
                 images.append((href, png))
