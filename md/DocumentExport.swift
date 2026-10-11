@@ -184,10 +184,7 @@ enum EpubBuilder {
 
     /// Minimal XML escape for text and attribute content.
     static func escape(_ s: String) -> String {
-        s.replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-            .replacingOccurrences(of: "\"", with: "&quot;")
+        ScalarText.escapingMarkup(s)
     }
 
     /// A stable identifier for a book, derived from its title — an RFC 4122

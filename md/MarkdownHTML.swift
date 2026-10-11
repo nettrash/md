@@ -780,10 +780,7 @@ enum MarkdownHTML {
         // `"` is escaped too so a link URL (which lands in a double-quoted href
         // attribute, and whose characters aren't otherwise constrained) can't
         // break out and inject attributes / event handlers into the WebView.
-        s.replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-            .replacingOccurrences(of: "\"", with: "&quot;")
+        ScalarText.escapingMarkup(s)
     }
 
     private static func replace(_ pattern: String, _ template: String, in s: String) -> String {

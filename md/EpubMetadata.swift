@@ -309,10 +309,7 @@ enum EpubMetadataReader {
 
     /// The family's XML escape — `&`, `<`, `>`, `"`; never `'`.
     static func escape(_ s: String) -> String {
-        s.replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-            .replacingOccurrences(of: "\"", with: "&quot;")
+        ScalarText.escapingMarkup(s)
     }
 
     /// The metadata lines between `<dc:title>` and `dcterms:modified` —

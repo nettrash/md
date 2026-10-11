@@ -97,6 +97,11 @@ final class EpubMetadataTests: XCTestCase {
         XCTAssertEqual(lines("series_index: 3"), ["<dc:language>en</dc:language>"])
     }
 
+    func testEscapesScalarByScalarACombiningMarkHidesNoDelimiter() {
+        XCTAssertEqual(lines("author: A &\u{0301} B <\u{0301}\"\u{0301}>").first,
+                       "<dc:creator>A &amp;\u{0301} B &lt;\u{0301}&quot;\u{0301}&gt;</dc:creator>")
+    }
+
     func testEscapesAsThePackageDocumentDoesApostropheLeftAlone() {
         XCTAssertEqual(lines("author: O'Brien <ob@example.com>").first,
                        "<dc:creator>O'Brien &lt;ob@example.com&gt;</dc:creator>")
