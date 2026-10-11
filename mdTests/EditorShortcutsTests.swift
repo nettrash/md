@@ -196,7 +196,7 @@ final class EditorShortcutsTests: XCTestCase {
                       "⌃⌘↑ (Previous Article)")
         XCTAssertTrue(installed.contains(Chord(UIKeyCommand.inputDownArrow, [.command, .control])),
                       "⌃⌘↓ (Next Article)")
-        // The formatting chords (1.6), installed while there is an editor.
+        // The formatting chords (1.6), installed in every mode (see `DocumentChords`).
         for (input, modifiers, name) in [("b", UIKeyModifierFlags.command, "⌘B (Bold)"),
                                          ("i", .command, "⌘I (Italic)"),
                                          ("k", .command, "⌘K (Link)"),

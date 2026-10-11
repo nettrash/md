@@ -51,6 +51,16 @@ enum QuickLookPage {
         return out
     }
 
+    /// Whether a navigation inside the preview may go ahead: only to the
+    /// page itself — its first load, or an in-page anchor on it. Any other
+    /// link, to the web or to one of the extension's own assets
+    /// (`mdassets://md/rich/…`), is not the preview's to follow.
+    static func allowsNavigation(to url: URL?, page: URL) -> Bool {
+        guard let url, var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return false }
+        components.fragment = nil
+        return components.url == page
+    }
+
     private static func replacingBlocks(in html: String, open: String, close: String, engine: String) -> String {
         var out = ""
         var rest = html[...]

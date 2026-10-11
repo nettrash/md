@@ -3759,6 +3759,17 @@ final class mdTests: XCTestCase {
         XCTAssertEqual(TextBundle.textFromPack(archive)?.0, payload)
     }
 
+    /// Quick Look's preview cap reaches the text entry, stored or deflated.
+    func testTextPackTextIsBoundedStoredOrDeflated() {
+        let text = Data(String(repeating: "a", count: 1_000).utf8)
+        let stored = StoredZip.archive([("Doc.textbundle/text.md", text)])
+        XCTAssertEqual(TextBundle.textFromPack(stored, maxTextBytes: 1_000)?.0.utf16.count, 1_000)
+        XCTAssertNil(TextBundle.textFromPack(stored, maxTextBytes: 999))
+        let deflated = deflatedArchive(name: "Doc.textbundle/text.md", payload: text)
+        XCTAssertEqual(TextBundle.textFromPack(deflated, maxTextBytes: 1_000)?.0.utf16.count, 1_000)
+        XCTAssertNil(TextBundle.textFromPack(deflated, maxTextBytes: 999))
+    }
+
     func testTextPackImportRejectsNonZip() {
         XCTAssertNil(TextBundle.textFromPack(Data("plain text, not a pack".utf8)))
     }

@@ -288,7 +288,8 @@ struct MarkdownEditor: UIViewRepresentable {
             coordinator?.sync()
         }
         controller.formatAction = { [weak textView, weak coordinator = context.coordinator] op in
-            guard let textView else { return }
+            // Only a pane on screen: in Preview a chord formats nothing.
+            guard let textView, textView.window != nil else { return }
             Self.perform(op, on: textView, coordinator: coordinator)
         }
         // The typed wrap: `*`, `_`, a backtick or `$` typed over a selection

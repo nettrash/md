@@ -84,35 +84,81 @@ final class PreviewViewController: UIViewController, QLPreviewingController {
         pending(error)
     }
 
+    /// Poll for md-init.js's `data-md-render-complete` and finish when it is
+    /// set. Nothing to stop: once Quick Look has been answered — here, by
+    /// the fallback, or by a failure — the poll ends with it.
+    private func waitForRenderComplete(_ webView: WKWebView) {
+        guard pending != nil else { return }
+        webView.evaluateJavaScript("document.documentElement.getAttribute('data-md-render-complete')") {
+            [weak self, weak webView] value, _ in
+            guard let self, let webView else { return }
+            if (value as? String) == "1" {
+                log.info("render complete")
+                self.finish(nil)
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { self.waitForRenderComplete(webView) }
+            }
+        }
+    }
+
+    /// The most text a preview reads, in bytes: a document past it is left
+    /// to the system's own preview. Quick Look runs this extension under a
+    /// tight memory ceiling, and the text is copied several times on its way
+    /// to the page — decoded, rendered, handed to WebKit — so the cap is on
+    /// what is read, before any of that: the file, a bundle's text file, a
+    /// pack's archive and its text entry, stored or deflated. 8 MiB is far
+    /// past any hand-written document.
+    static let maxSourceBytes = 8 * 1024 * 1024
+
     /// The Markdown a file holds: a `.textbundle` folder's `text.md`, a
     /// `.textpack`'s, or the file itself decoded as the app decodes it.
     static func source(of url: URL) -> String? {
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return nil }
         if isDirectory.boolValue {
-            guard let wrapper = try? FileWrapper(url: url, options: .immediate) else { return nil }
+            // Lazy: only the text file is ever read, never the bundle's assets.
+            guard let wrapper = try? FileWrapper(url: url, options: []) else { return nil }
+            let tooLarge = (wrapper.fileWrappers ?? [:]).contains { name, child in
+                ScalarText.hasPrefix(name, "text.")
+                    && (child.fileAttributes[FileAttributeKey.size.rawValue] as? Int ?? 0) > maxSourceBytes
+            }
+            guard !tooLarge else { return nil }
             return TextBundle.textFromBundle(wrapper)?.0
         }
-        guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { return nil }
+        guard let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= maxSourceBytes,
+              let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { return nil }
         if url.pathExtension.lowercased() == "textpack" {
-            return TextBundle.textFromPack(data)?.0
+            return TextBundle.textFromPack(data, maxTextBytes: maxSourceBytes)?.0
         }
         return MarkdownDocument.decode(data)?.0
     }
 }
 
 extension PreviewViewController: WKNavigationDelegate {
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { finish(nil) }
-    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { finish(nil) }
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // The document has loaded, but md-init.js may still be drawing
+        // (Graphviz is asynchronous): Quick Look is told the preview is
+        // ready once the page says it has settled — or, failing that, by
+        // the ten-second fallback `show` set.
+        waitForRenderComplete(webView)
+    }
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { finish(error) }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!,
                  withError error: Error) { finish(error) }
 
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        log.error("web content process terminated")
+        finish(WKError(.webContentProcessTerminated))
+    }
+
     /// Links do nothing inside a preview: an in-page anchor scrolls, and
-    /// anything else is not the preview's to open.
+    /// anything else — the web, a relative link (`other.md` resolves to
+    /// `mdassets://md/other.md`), one of the app's assets — is not the
+    /// preview's to open.
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        let isOwn = action.request.url?.scheme == QuickLookAssetHandler.scheme
-        decisionHandler(isOwn ? .allow : .cancel)
+        let allowed = QuickLookPage.allowsNavigation(to: action.request.url, page: QuickLookAssetHandler.indexURL)
+        decisionHandler(allowed ? .allow : .cancel)
     }
 }
 

@@ -381,10 +381,10 @@
 				TargetAttributes = {
 					D0000000000000000000A001 = {
 						CreatedOnToolsVersion = 26.5;
-						D00000000000000000009001 = {
+					};
+					D00000000000000000009001 = {
 						CreatedOnToolsVersion = 26.5;
 					};
-				};
 					D0000000000000000000A003 = {
 						CreatedOnToolsVersion = 26.5;
 						TestTargetID = D0000000000000000000A001;

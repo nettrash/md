@@ -53,4 +53,17 @@ final class QuickLookPageTests: XCTestCase {
         let html = page("```html\n<pre class=\"mermaid\">x</pre>\n```\n")
         XCTAssertFalse(html.contains(QuickLookPage.caption("Mermaid")))
     }
+
+    /// Only the page itself is followed: its load, or an anchor on it.
+    func testOnlyThePageAndItsAnchorsAreFollowed() {
+        let page = URL(string: "mdassets://md/index.html")!
+        XCTAssertTrue(QuickLookPage.allowsNavigation(to: page, page: page))
+        XCTAssertTrue(QuickLookPage.allowsNavigation(to: URL(string: "mdassets://md/index.html#install"), page: page))
+        for link in ["mdassets://md/rich/md-init.js", "mdassets://md/other.md", "mdassets://other/missing",
+                     "mdassets://md/index.html?x=1",
+                     "https://example.com/", "http://md/index.html", "file:///etc/hosts"] {
+            XCTAssertFalse(QuickLookPage.allowsNavigation(to: URL(string: link), page: page), link)
+        }
+        XCTAssertFalse(QuickLookPage.allowsNavigation(to: nil, page: page))
+    }
 }
