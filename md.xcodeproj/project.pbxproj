@@ -56,6 +56,7 @@
 		D0000000000000000000E406 /* EpubPackageMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E405 /* EpubPackageMetadataTests.swift */; };
 		D0000000000000000000E502 /* MarkdownFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E501 /* MarkdownFormatting.swift */; };
 		D0000000000000000000E504 /* FormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E503 /* FormattingTests.swift */; };
+		D0000000000000000000E5A2 /* EditorFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E5A1 /* EditorFormattingTests.swift */; };
 		D0000000000000000000E506 /* FormattingVectors in Resources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E505 /* FormattingVectors */; };
 /* End PBXBuildFile section */
 
@@ -123,6 +124,7 @@
 		D0000000000000000000E405 /* EpubPackageMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpubPackageMetadataTests.swift; sourceTree = "<group>"; };
 		D0000000000000000000E501 /* MarkdownFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownFormatting.swift; sourceTree = "<group>"; };
 		D0000000000000000000E503 /* FormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormattingTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000E5A1 /* EditorFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFormattingTests.swift; sourceTree = "<group>"; };
 		D0000000000000000000E505 /* FormattingVectors */ = {isa = PBXFileReference; lastKnownFileType = folder; path = FormattingVectors; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -231,6 +233,7 @@
 				D0000000000000000000E403 /* EpubMetadataTests.swift */,
 				D0000000000000000000E405 /* EpubPackageMetadataTests.swift */,
 				D0000000000000000000E503 /* FormattingTests.swift */,
+				D0000000000000000000E5A1 /* EditorFormattingTests.swift */,
 				D0000000000000000000E505 /* FormattingVectors */,
 			);
 			path = mdTests;
@@ -391,6 +394,7 @@
 				D0000000000000000000E404 /* EpubMetadataTests.swift in Sources */,
 				D0000000000000000000E406 /* EpubPackageMetadataTests.swift in Sources */,
 				D0000000000000000000E504 /* FormattingTests.swift in Sources */,
+				D0000000000000000000E5A2 /* EditorFormattingTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
