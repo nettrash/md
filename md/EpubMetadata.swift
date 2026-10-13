@@ -265,25 +265,86 @@ enum EpubMetadataReader {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = coverTimeout
         configuration.timeoutIntervalForResource = coverTimeout
-        let redirects = CoverRedirects()
-        let session = URLSession(configuration: configuration, delegate: redirects, delegateQueue: nil)
-        defer { session.finishTasksAndInvalidate() }
-        guard let (bytes, response) = try? await session.bytes(from: url),
-              let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
-              http.url?.scheme?.lowercased() == "https",
-              http.expectedContentLength <= Int64(maxCoverBytes) else { return nil }
-        // Read no more than one byte past the cap, so a huge body is refused
-        // without being held.
-        var data = Data()
-        do {
-            for try await byte in bytes {
-                data.append(byte)
-                if data.count > maxCoverBytes { return nil }
+        return recogniseCover(await CoverDownload.data(from: url, configuration: configuration, limit: maxCoverBytes))
+    }
+
+    /// One cover download, taken in the chunks the session delivers — not
+    /// byte by byte, which at the cap is twenty million suspensions of an
+    /// async iterator — and cancelled the moment it cannot be a cover: a
+    /// response that is not a 2xx over https, a declared length past
+    /// `limit`, or a body that grows past it, so a huge body is refused
+    /// without being held. Redirects go through `CoverRedirects`.
+    final class CoverDownload: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+        private let limit: Int
+        private let redirects = CoverRedirects()
+        private let lock = NSLock()
+        private var body = Data()
+        private var refused = false
+        private var continuation: CheckedContinuation<Data?, Never>?
+
+        private init(limit: Int) { self.limit = limit }
+
+        /// The body at `url`, or nil for any failure or refusal.
+        static func data(from url: URL, configuration: URLSessionConfiguration, limit: Int) async -> Data? {
+            let download = CoverDownload(limit: limit)
+            let session = URLSession(configuration: configuration, delegate: download, delegateQueue: nil)
+            defer { session.finishTasksAndInvalidate() }
+            let task = session.dataTask(with: url)
+            return await withTaskCancellationHandler {
+                await withCheckedContinuation { continuation in
+                    download.lock.lock()
+                    download.continuation = continuation
+                    download.lock.unlock()
+                    task.resume()
+                }
+            } onCancel: {
+                task.cancel()
             }
-        } catch {
-            return nil
         }
-        return recogniseCover(data)
+
+        private func refuse() {
+            lock.lock()
+            refused = true
+            body = Data()
+            lock.unlock()
+        }
+
+        func urlSession(_ session: URLSession, task: URLSessionTask,
+                        willPerformHTTPRedirection response: HTTPURLResponse,
+                        newRequest request: URLRequest,
+                        completionHandler: @escaping (URLRequest?) -> Void) {
+            redirects.urlSession(session, task: task, willPerformHTTPRedirection: response,
+                                 newRequest: request, completionHandler: completionHandler)
+        }
+
+        func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse,
+                        completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+            let accepted = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } == true
+                && response.url?.scheme?.lowercased() == "https"
+                && response.expectedContentLength <= Int64(limit)
+            if !accepted { refuse() }
+            completionHandler(accepted ? .allow : .cancel)
+        }
+
+        func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+            lock.lock()
+            if !refused { body.append(data) }
+            let over = body.count > limit
+            lock.unlock()
+            if over {
+                refuse()
+                dataTask.cancel()
+            }
+        }
+
+        func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+            lock.lock()
+            let result = error == nil && !refused ? body : nil
+            let continuation = self.continuation
+            self.continuation = nil
+            lock.unlock()
+            continuation?.resume(returning: result)
+        }
     }
 
     /// Follows a redirect only while it stays on https and only five times:

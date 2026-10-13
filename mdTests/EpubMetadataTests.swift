@@ -189,8 +189,67 @@ final class EpubMetadataTests: XCTestCase {
         session.invalidateAndCancel()
     }
 
+    /// A download through `CoverStub`: nothing leaves the machine.
+    private func download(_ path: String, limit: Int = 64) async -> Data? {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [CoverStub.self]
+        return await EpubMetadataReader.CoverDownload.data(
+            from: URL(string: "https://cover.test/\(path)")!, configuration: configuration, limit: limit)
+    }
+
+    func testCoverDownloadKeepsABodyUpToTheLimitAcrossChunks() async {
+        let body = await download("chunks/64")
+        XCTAssertEqual(body, Data(repeating: 0x61, count: 64), "four chunks of 16, exactly at the limit")
+    }
+
+    func testCoverDownloadRefusesABodyPastTheLimit() async {
+        let body = await download("chunks/80")
+        XCTAssertNil(body, "a body that grows past the limit, with no length declared")
+    }
+
+    func testCoverDownloadRefusesADeclaredLengthPastTheLimit() async {
+        let body = await download("declared/65")
+        XCTAssertNil(body)
+    }
+
+    func testCoverDownloadRefusesANonSuccessStatus() async {
+        let body = await download("status/404")
+        XCTAssertNil(body)
+    }
+
     func testCoverItem() {
         XCTAssertEqual(EpubMetadataReader.coverItem(EpubMetadataReader.recogniseCover(jpeg)!),
                        "<item id=\"cover-image\" href=\"images/cover.jpg\" media-type=\"image/jpeg\" properties=\"cover-image\"/>")
     }
+}
+
+/// Serves `https://cover.test/…` without a network: `chunks/<n>` is n bytes
+/// in chunks of 16 with no declared length, `declared/<n>` declares n bytes
+/// and sends none, `status/<code>` is an empty response with that status.
+final class CoverStub: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { request.url?.host == "cover.test" }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let url = request.url else { return }
+        let parts = url.pathComponents.filter { $0 != "/" }
+        let n = parts.count == 2 ? Int(parts[1]) ?? 0 : 0
+        var status = 200
+        var headers: [String: String] = [:]
+        var chunks: [Data] = []
+        switch parts.first {
+        case "chunks":
+            chunks = stride(from: 0, to: n, by: 16).map { Data(repeating: 0x61, count: min(16, n - $0)) }
+        case "declared":
+            headers["Content-Length"] = "\(n)"
+        default:
+            status = n
+        }
+        let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        for chunk in chunks { client?.urlProtocol(self, didLoad: chunk) }
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
 }
