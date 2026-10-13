@@ -932,7 +932,7 @@ enum LaunchDiagnostics {
             await DocumentExport.exportHTML(source: source, title: title, dark: hooks.dark)
             ext = "html"
         case "epub":
-            await DocumentExport.exportDocumentEPUB(source: source, fileName: title)
+            await DocumentExport.exportDocumentEPUB(source: source, fileName: title, fileURL: hooks.fileURL)
             ext = "epub"
         case "latex":
             DocumentExport.exportLaTeX(source: source, title: title)

@@ -252,15 +252,22 @@ enum EpubBuilder {
     /// produced before the ```plot fence ever contained one — every rich block
     /// was replaced by a PNG on the way in — so every unit was emitted bare,
     /// and a plot is the first thing that makes the property owed.
+    ///
+    /// `metadata` and `cover` are a single document's front matter (see
+    /// `EpubMetadata.swift`); a book passes neither, and the defaults write
+    /// exactly the package document every md EPUB carried before 1.6.
     static func contentOPF(title: String, identifier: String, modified: String,
                            units: [(id: String, href: String, svg: Bool)],
-                           images: [String]) -> String {
+                           images: [String],
+                           metadata: EpubMetadata = .defaults,
+                           cover: EpubCover? = nil) -> String {
         let manifest = units.map {
             "<item id=\"\($0.id)\" href=\"\($0.href)\" media-type=\"application/xhtml+xml\""
                 + ($0.svg ? " properties=\"svg\"" : "") + "/>"
         } + images.enumerated().map { index, href in
             "<item id=\"img\(index + 1)\" href=\"\(href)\" media-type=\"image/png\"/>"
-        }
+        } + (cover.map { [EpubMetadataReader.coverItem($0)] } ?? [])
+        let metadataLines = EpubMetadataReader.metadataLines(metadata, cover: cover)
         let spine = units.map { "<itemref idref=\"\($0.id)\"/>" }
         return """
         <?xml version="1.0" encoding="UTF-8"?>
@@ -268,7 +275,7 @@ enum EpubBuilder {
         <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
         <dc:identifier id="book-id">\(escape(identifier))</dc:identifier>
         <dc:title>\(escape(title))</dc:title>
-        <dc:language>en</dc:language>
+        \(metadataLines.joined(separator: "\n"))
         <meta property="dcterms:modified">\(modified)</meta>
         </metadata>
         <manifest>
@@ -1290,7 +1297,11 @@ enum DocumentExport {
     /// sitting beside the document and named to match an image ref could
     /// otherwise point anywhere on disk and pass the prefix test. Resolving
     /// both sides first means the check compares the real locations.
-    private static func readAsset(_ relativePath: String, besideDocumentAt fileURL: URL?) -> Data? {
+    ///
+    /// With a `limit` — the cover's — no more than one byte past it is ever
+    /// read, so a huge file named as `cover:` costs nothing before it is refused.
+    private static func readAsset(_ relativePath: String, besideDocumentAt fileURL: URL?,
+                                  limit: Int? = nil) -> Data? {
         guard let folder = fileURL?.deletingLastPathComponent()
             .resolvingSymlinksInPath().standardizedFileURL else { return nil }
         let candidate = folder.appendingPathComponent(relativePath)
@@ -1300,7 +1311,11 @@ enum DocumentExport {
         // The document's own folder may be security-scoped (opened in place).
         let scoped = fileURL!.startAccessingSecurityScopedResource()
         defer { if scoped { fileURL!.stopAccessingSecurityScopedResource() } }
-        return try? Data(contentsOf: candidate)
+        guard let limit else { return try? Data(contentsOf: candidate) }
+        guard let handle = try? FileHandle(forReadingFrom: candidate) else { return nil }
+        defer { try? handle.close() }
+        guard let data = try? handle.read(upToCount: limit + 1), data.count <= limit else { return nil }
+        return data
     }
 
     // MARK: - EPUB export
@@ -1413,11 +1428,15 @@ enum DocumentExport {
     /// on the same identifier in a reader's library). What a lone document is
     /// *not* is a book — so there is no title-page unit, and the nav is the
     /// document's own headings rather than a chapter / article tree.
-    static func exportDocumentEPUB(source: String, fileName: String) async {
+    ///
+    /// The front matter also supplies the package document's metadata and,
+    /// when `cover:` names an image md can read, its cover (`readCover`).
+    /// `fileURL` is the saved document, for a cover that sits beside it.
+    static func exportDocumentEPUB(source: String, fileName: String, fileURL: URL? = nil) async {
         let title = EpubBuilder.documentTitle(
             frontMatter: MarkdownParser.frontMatter(of: source), fileName: fileName)
         do {
-            let data = try await documentEpubData(source: source, title: title)
+            let data = try await documentEpubData(source: source, title: title, fileURL: fileURL)
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("\(sanitized(title)).epub")
             try data.write(to: url, options: .atomic)
@@ -1431,13 +1450,38 @@ enum DocumentExport {
     /// per-article rendering, engines and all, under a fixed `content` unit id
     /// — then pack it with `documentEpubEntries`. Split from the presentation
     /// so the packing is testable without WebKit.
-    private static func documentEpubData(source: String, title: String) async throws -> Data {
+    private static func documentEpubData(source: String, title: String, fileURL: URL?) async throws -> Data {
         let rendered = try await renderArticleBody(
             EpubArticle(title: title, source: source), unitID: "content")
+        let fields = MarkdownParser.frontMatter(of: source)
+        let cover = await readCover(EpubMetadataReader.fieldValue(fields, "cover"), besideDocumentAt: fileURL)
         return StoredZip.archive(documentEpubEntries(
             title: title, body: rendered.body, images: rendered.images,
             outline: MarkdownParser.outline(source),
-            modified: ISO8601DateFormatter().string(from: Date())))
+            modified: ISO8601DateFormatter().string(from: Date()),
+            metadata: EpubMetadataReader.metadata(from: fields),
+            cover: cover))
+    }
+
+    /// The front matter's `cover:` image, when md can read it and it is a PNG,
+    /// JPEG, GIF or WebP; otherwise nil and the book has no cover — silently,
+    /// and with no new permission prompt. A `data:` image is decoded, an
+    /// `https:` one fetched (15 s, 20 MB, https throughout), and a relative
+    /// path read beside the saved document with the TextBundle export's
+    /// containment — which succeeds only where md already has access (the
+    /// document's own folder, or a book folder it holds open).
+    static func readCover(_ value: String?, besideDocumentAt fileURL: URL?) async -> EpubCover? {
+        switch EpubMetadataReader.coverReference(value) {
+        case nil:
+            return nil
+        case .data(let data):
+            return EpubMetadataReader.recogniseCover(data)
+        case .https(let url):
+            return await EpubMetadataReader.fetchCover(url)
+        case .local(let path):
+            return EpubMetadataReader.recogniseCover(
+                readAsset(path, besideDocumentAt: fileURL, limit: EpubMetadataReader.maxCoverBytes))
+        }
     }
 
     /// The EPUB package entries for a single document, `mimetype` first:
@@ -1458,14 +1502,18 @@ enum DocumentExport {
     static func documentEpubEntries(title: String, body: String,
                                     images: [(href: String, data: Data)],
                                     outline: [OutlineEntry],
-                                    modified: String) -> [(name: String, data: Data)] {
+                                    modified: String,
+                                    metadata: EpubMetadata = .defaults,
+                                    cover: EpubCover? = nil) -> [(name: String, data: Data)] {
         let contentHref = "content.xhtml"
         let opf = EpubBuilder.contentOPF(
             title: title,
             identifier: EpubBuilder.stableIdentifier(forTitle: title),
             modified: modified,
             units: [(id: "content", href: contentHref, svg: body.contains("<svg"))],
-            images: images.map(\.href))
+            images: images.map(\.href),
+            metadata: metadata,
+            cover: cover)
         // The document's outline as the nav TOC: a flat list of heading links,
         // the way the Contents menu itself lists them, each pointing at its
         // anchor inside the single content file. Reuses the book nav builder —
@@ -1496,6 +1544,7 @@ enum DocumentExport {
              data: Data(EpubBuilder.page(title: title, body: body).utf8)),
         ]
         entries += images.map { (name: "OEBPS/\($0.href)", data: $0.data) }
+        if let cover { entries.append((name: "OEBPS/\(cover.href)", data: cover.data)) }
         return entries
     }
 

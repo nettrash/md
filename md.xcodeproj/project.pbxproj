@@ -51,6 +51,9 @@
 		D0000000000000000000E106 /* DocumentTitleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E105 /* DocumentTitleTests.swift */; };
 		D0000000000000000000E108 /* DocumentChordsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E107 /* DocumentChordsTests.swift */; };
 		D0000000000000000000E304 /* PlantUMLLimitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E303 /* PlantUMLLimitTests.swift */; };
+		D0000000000000000000E402 /* EpubMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E401 /* EpubMetadata.swift */; };
+		D0000000000000000000E404 /* EpubMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E403 /* EpubMetadataTests.swift */; };
+		D0000000000000000000E406 /* EpubPackageMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E405 /* EpubPackageMetadataTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -112,6 +115,9 @@
 		D0000000000000000000A002 /* md.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = md.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0000000000000000000A004 /* mdTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = mdTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0000000000000000000E303 /* PlantUMLLimitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlantUMLLimitTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000E401 /* EpubMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpubMetadata.swift; sourceTree = "<group>"; };
+		D0000000000000000000E403 /* EpubMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpubMetadataTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000E405 /* EpubPackageMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpubPackageMetadataTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -182,6 +188,7 @@
 				D0000000000000000000E201 /* PrivacyInfo.xcprivacy */,
 				D000000000000000000010AA /* md.entitlements */,
 				D0000000000000000000F005 /* Preview Content */,
+				D0000000000000000000E401 /* EpubMetadata.swift */,
 			);
 			path = md;
 			sourceTree = "<group>";
@@ -214,6 +221,8 @@
 				D0000000000000000000FB05 /* PlotVectors */,
 				D0000000000000000000FD05 /* TypingVectors */,
 				D0000000000000000000E303 /* PlantUMLLimitTests.swift */,
+				D0000000000000000000E403 /* EpubMetadataTests.swift */,
+				D0000000000000000000E405 /* EpubPackageMetadataTests.swift */,
 			);
 			path = mdTests;
 			sourceTree = "<group>";
@@ -346,6 +355,7 @@
 				D000000000000000000020AC /* TypewriterTheme.swift in Sources */,
 				D000000000000000000020A1 /* mdApp.swift in Sources */,
 				D0000000000000000000E102 /* LaunchDiagnostics.swift in Sources */,
+				D0000000000000000000E402 /* EpubMetadata.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -367,6 +377,8 @@
 				D0000000000000000000E106 /* DocumentTitleTests.swift in Sources */,
 				D0000000000000000000E108 /* DocumentChordsTests.swift in Sources */,
 				D0000000000000000000E304 /* PlantUMLLimitTests.swift in Sources */,
+				D0000000000000000000E404 /* EpubMetadataTests.swift in Sources */,
+				D0000000000000000000E406 /* EpubPackageMetadataTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

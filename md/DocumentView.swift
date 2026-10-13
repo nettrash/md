@@ -776,7 +776,8 @@ struct DocumentView: View {
                     // is passed as the fallback. No `dark:` — a reflowing book
                     // owns its own theme.
                     Task { await DocumentExport.exportDocumentEPUB(source: document.text,
-                                                                   fileName: baseName) }
+                                                                   fileName: baseName,
+                                                                   fileURL: fileURL) }
                 } label: {
                     Label("Export as EPUB…", systemImage: "books.vertical")
                 }
