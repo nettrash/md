@@ -7,11 +7,11 @@ listings are written separately, because the apps differ.)
 
 | File | App Store Connect field | Limit | Current |
 | --- | --- | --- | --- |
-| `promotional-text.txt` | Promotional Text | 170 | 158 |
-| `description.txt` | Description | 4000 | 3987 |
+| `promotional-text.txt` | Promotional Text | 170 | 162 |
+| `description.txt` | Description | 4000 | 3956 |
 | `keywords.txt` | Keywords | 100 | 99 |
-| `whats-new.txt` | What's New in This Version | 4000 | 3440 |
-| `review-notes.txt` | App Review Information ▸ Notes | 4000 | 3995 |
+| `whats-new.txt` | What's New in This Version | 4000 | 3054 |
+| `review-notes.txt` | App Review Information ▸ Notes | 4000 | 3943 |
 
 Promotional Text can be changed at any time without submitting a new build;
 the Description, Keywords and What's New ship with a version.
@@ -37,8 +37,9 @@ listing must describe *this* version, not the roadmap.
   without implying endorsement.
 - Privacy claims match the code and the linked privacy policy: nothing is
   collected, and the only network use is fetching an image a document
-  itself points at. The Privacy Nutrition Label answer that matches this
-  build is **Data Not Collected**, with no tracking.
+  itself points at, or the https cover its front matter names for an
+  EPUB. The Privacy Nutrition Label answer that matches this build is
+  **Data Not Collected**, with no tracking.
 
 ## Wording that must not drift back
 
@@ -63,10 +64,10 @@ rejection).
 
 `review-notes.txt` answers the seven things App Review asks for on a
 Guideline 2.1 "information needed" hold: purpose, how to reach every
-feature without an account, what the one network call is for, and why the
+feature without an account, what the two network fetches are for, and why the
 bundled JavaScript engines are not downloaded code (2.5.2). Section 2 is
 also the script for a demo recording, if one is ever requested: it
-exercises every new 1.5 feature in about three minutes.
+exercises every new 1.6 feature in about three minutes.
 
 ## Screenshots
 
@@ -87,3 +88,12 @@ keep in mind next time: iPadOS 26's windowing refuses programmatic rotation,
 so the iPad set is portrait; and a Contents jump in Split focuses the editor,
 so the script's `blur` step puts the keyboard away before a shot that should
 not show one.
+
+For 1.6 the iPad set was retaken whole, since every iPad shot is in Split
+and its toolbar gained the Format menu, and so was the iPhone typing shot,
+which now shows the formatting bar above the keyboard and a word made bold
+(the script `select`s it, then `key cmd+b`). The other iPhone shots show
+nothing 1.6 changed and are still the 1.5 pictures. The scripts are
+`shots.txt` (1.5) and `shots16.txt` (1.6) in the Documents of each md-shots
+simulator; delete the example copies there before a run, or md opens
+"Formatting 2" beside the old one.
