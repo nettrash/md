@@ -528,16 +528,17 @@ struct DocumentView: View {
             Button("Next Article") { chordActions.stepArticle(+1) }
                 .keyboardShortcut(.nextArticle)
 
-            // The formatting chords (1.6) — only while there is an editor
-            // pane to format; in Preview they are not installed at all, so
-            // ⌘B there does nothing rather than editing text off screen.
-            if effectiveMode != .preview {
-                ForEach(EditorShortcuts.formattingActions, id: \.self) { action in
-                    Button(EditorShortcuts.formattingTitle(action)) {
-                        if let op = EditorShortcuts.formattingOp(action) { chordActions.format(op) }
-                    }
-                    .keyboardShortcut(action)
+            // The formatting chords (1.6). Installed in every mode, like the
+            // chords above: SwiftUI may hand a chord to a retired view's
+            // button (see `DocumentChords`), and a button missing there
+            // would leave the live document without ⌘B. In Preview the
+            // command is a no-op — the editor pane is off screen and
+            // `MarkdownEditor` formats only a text view in a window.
+            ForEach(EditorShortcuts.formattingActions, id: \.self) { action in
+                Button(EditorShortcuts.formattingTitle(action)) {
+                    if let op = EditorShortcuts.formattingOp(action) { chordActions.format(op) }
                 }
+                .keyboardShortcut(action)
             }
         }
         .frame(width: 0, height: 0)
@@ -619,12 +620,13 @@ struct DocumentView: View {
                 }
                 .disabled(!editor.canRedo)
 
-                // The Format menu — on a wide window, where there is room for
-                // it in the bar. A phone carries the same commands on the
-                // bar above its keyboard (`FormattingBar`). The chords are
-                // the sink's, not these rows': a toolbar menu's rows exist
-                // only while it is open (see `keyboardShortcuts`).
-                if isWide {
+                // The Format menu — on every iPad, a narrow Split View or
+                // Stage Manager window included, and on a wide phone window.
+                // A phone carries the same commands on the bar above its
+                // keyboard (`FormattingBar`). The chords are the sink's, not
+                // these rows': a toolbar menu's rows exist only while it is
+                // open (see `keyboardShortcuts`).
+                if isWide || UIDevice.current.userInterfaceIdiom != .phone {
                     Menu {
                         formatRows(EditorShortcuts.formattingActions.prefix(5))
                         Menu("Heading") { formatRows(EditorShortcuts.formattingActions[5..<11]) }

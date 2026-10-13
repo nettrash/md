@@ -61,6 +61,8 @@
 //      dumpfind  dumppreview  checktypes  activate <label>  activateindex <n>  dumplabels
 //      key <chord>   (cmd+1, cmd+shift+b, ctrl+cmd+up, shift+return)
 //      export pdf|html|epub|latex|textbundle|svg[ n]   print   sharesource
+//      quicklook <path>   (the system QLPreviewController — the Quick Look
+//                          extension renders it out of process, as in Files)
 //      renameprompt   rename <name>   dismiss
 //      contents <i>   note <i>   scrollsync <fraction>   scrollpreview <fraction>
 //      book install | root <rel> | show | list | open <i> | rename <i> <name>
@@ -75,6 +77,7 @@
 
 import SwiftUI
 import UIKit
+import QuickLook
 import UniformTypeIdentifiers
 import WebKit
 import os
@@ -342,6 +345,33 @@ enum LaunchDiagnostics {
 
     // MARK: - The step script
 
+    /// Present the system Quick Look controller over `path` (relative to
+    /// Documents). md's own `mdQuickLook` extension is what renders a Markdown
+    /// file there, out of process — the path Files and Mail take.
+    private static func presentQuickLook(_ path: String) {
+        let url = path.hasPrefix("/") ? URL(fileURLWithPath: path) : documentsDirectory.appendingPathComponent(path)
+        let source = QuickLookSource(url: url)
+        quickLookSource = source
+        let controller = QLPreviewController()
+        controller.dataSource = source
+        let root = windows.first { $0.isKeyWindow }?.rootViewController ?? windows.first?.rootViewController
+        guard let top = topPresented() ?? root else { log.error("quicklook: nothing to present over"); return }
+        top.present(controller, animated: false)
+        log.notice("quicklook: presented \(url.lastPathComponent, privacy: .public) canPreview=\(QLPreviewController.canPreview(url as NSURL), privacy: .public)")
+    }
+
+    /// Kept alive while the controller shows it (`dataSource` is weak).
+    private static var quickLookSource: QuickLookSource?
+
+    private final class QuickLookSource: NSObject, QLPreviewControllerDataSource {
+        let url: URL
+        init(url: URL) { self.url = url }
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+            url as NSURL
+        }
+    }
+
     private static var documentsDirectory: URL {
         (try? FileManager.default.url(for: .documentDirectory, in: .userDomainMask,
                                       appropriateFor: nil, create: true))
@@ -455,6 +485,8 @@ enum LaunchDiagnostics {
             dumpKeyCommands()
         case "dumpmode":
             dumpMode()
+        case "quicklook":
+            presentQuickLook(argument)
         case "dumppresented":
             dumpPresented()
         case "dumpscroll":

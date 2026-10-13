@@ -58,6 +58,20 @@
 		D0000000000000000000E504 /* FormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E503 /* FormattingTests.swift */; };
 		D0000000000000000000E5A2 /* EditorFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E5A1 /* EditorFormattingTests.swift */; };
 		D0000000000000000000E506 /* FormattingVectors in Resources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E505 /* FormattingVectors */; };
+		D00000000000000000009020 /* PreviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000009004 /* PreviewViewController.swift */; };
+		D00000000000000000009021 /* QuickLookPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000009007 /* QuickLookPage.swift */; };
+		D00000000000000000009022 /* MarkdownHTML.swift in Sources */ = {isa = PBXBuildFile; fileRef = D000000000000000000010AE /* MarkdownHTML.swift */; };
+		D00000000000000000009023 /* MarkdownParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D000000000000000000010A3 /* MarkdownParser.swift */; };
+		D00000000000000000009024 /* MarkdownInline.swift in Sources */ = {isa = PBXBuildFile; fileRef = D000000000000000000010A4 /* MarkdownInline.swift */; };
+		D00000000000000000009025 /* ScalarText.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F801 /* ScalarText.swift */; };
+		D00000000000000000009026 /* Plot.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000FB01 /* Plot.swift */; };
+		D00000000000000000009027 /* TextBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000F901 /* TextBundle.swift */; };
+		D00000000000000000009028 /* MarkdownDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = D000000000000000000010A2 /* MarkdownDocument.swift */; };
+		D00000000000000000009029 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D00000000000000000009006 /* PrivacyInfo.xcprivacy */; };
+		D0000000000000000000902A /* QuickLookPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000009007 /* QuickLookPage.swift */; };
+		D00000000000000000009031 /* mdQuickLook.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D00000000000000000009002 /* mdQuickLook.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D00000000000000000009061 /* QuickLook.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D00000000000000000009060 /* QuickLook.framework */; };
+		D0000000000000000000E602 /* QuickLookPageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E601 /* QuickLookPageTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -68,7 +82,28 @@
 			remoteGlobalIDString = D0000000000000000000A001;
 			remoteInfo = md;
 		};
+		D00000000000000000009041 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D0000000000000000000F001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D00000000000000000009001;
+			remoteInfo = mdQuickLook;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D00000000000000000009030 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D00000000000000000009031 /* mdQuickLook.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		D000000000000000000010A1 /* mdApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mdApp.swift; sourceTree = "<group>"; };
@@ -126,6 +161,13 @@
 		D0000000000000000000E503 /* FormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormattingTests.swift; sourceTree = "<group>"; };
 		D0000000000000000000E5A1 /* EditorFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFormattingTests.swift; sourceTree = "<group>"; };
 		D0000000000000000000E505 /* FormattingVectors */ = {isa = PBXFileReference; lastKnownFileType = folder; path = FormattingVectors; sourceTree = "<group>"; };
+		D00000000000000000009002 /* mdQuickLook.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = mdQuickLook.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D00000000000000000009004 /* PreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewViewController.swift; sourceTree = "<group>"; };
+		D00000000000000000009005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D00000000000000000009006 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		D00000000000000000009007 /* QuickLookPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLookPage.swift; sourceTree = "<group>"; };
+		D00000000000000000009060 /* QuickLook.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickLook.framework; path = System/Library/Frameworks/QuickLook.framework; sourceTree = SDKROOT; };
+		D0000000000000000000E601 /* QuickLookPageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLookPageTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -143,6 +185,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D00000000000000000009011 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D00000000000000000009061 /* QuickLook.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -151,6 +201,8 @@
 			children = (
 				D0000000000000000000F004 /* md */,
 				D0000000000000000000F006 /* mdTests */,
+				D00000000000000000009003 /* mdQuickLook */,
+				D00000000000000000009062 /* Frameworks */,
 				D0000000000000000000F003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -160,6 +212,7 @@
 			children = (
 				D0000000000000000000A002 /* md.app */,
 				D0000000000000000000A004 /* mdTests.xctest */,
+				D00000000000000000009002 /* mdQuickLook.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -179,6 +232,7 @@
 				D000000000000000000010AE /* MarkdownHTML.swift */,
 				D0000000000000000000F101 /* MarkdownWebView.swift */,
 				D0000000000000000000F201 /* PreviewRetryPolicy.swift */,
+				D00000000000000000009007 /* QuickLookPage.swift */,
 				D000000000000000000010AF /* DocumentExport.swift */,
 				D0000000000000000000F601 /* LaTeXExport.swift */,
 				D0000000000000000000F801 /* ScalarText.swift */,
@@ -235,8 +289,27 @@
 				D0000000000000000000E503 /* FormattingTests.swift */,
 				D0000000000000000000E5A1 /* EditorFormattingTests.swift */,
 				D0000000000000000000E505 /* FormattingVectors */,
+				D0000000000000000000E601 /* QuickLookPageTests.swift */,
 			);
 			path = mdTests;
+			sourceTree = "<group>";
+		};
+		D00000000000000000009003 /* mdQuickLook */ = {
+			isa = PBXGroup;
+			children = (
+				D00000000000000000009004 /* PreviewViewController.swift */,
+				D00000000000000000009006 /* PrivacyInfo.xcprivacy */,
+				D00000000000000000009005 /* Info.plist */,
+			);
+			path = mdQuickLook;
+			sourceTree = "<group>";
+		};
+		D00000000000000000009062 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D00000000000000000009060 /* QuickLook.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -249,10 +322,12 @@
 				D0000000000000000000E001 /* Sources */,
 				D0000000000000000000E002 /* Frameworks */,
 				D0000000000000000000E003 /* Resources */,
+				D00000000000000000009030 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				D00000000000000000009040 /* PBXTargetDependency */,
 			);
 			name = md;
 			productName = md;
@@ -277,6 +352,23 @@
 			productReference = D0000000000000000000A004 /* mdTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		D00000000000000000009001 /* mdQuickLook */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D00000000000000000009050 /* Build configuration list for PBXNativeTarget "mdQuickLook" */;
+			buildPhases = (
+				D00000000000000000009010 /* Sources */,
+				D00000000000000000009011 /* Frameworks */,
+				D00000000000000000009012 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = mdQuickLook;
+			productName = mdQuickLook;
+			productReference = D00000000000000000009002 /* mdQuickLook.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -288,6 +380,9 @@
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
 					D0000000000000000000A001 = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					D00000000000000000009001 = {
 						CreatedOnToolsVersion = 26.5;
 					};
 					D0000000000000000000A003 = {
@@ -311,6 +406,7 @@
 			targets = (
 				D0000000000000000000A001 /* md */,
 				D0000000000000000000A003 /* mdTests */,
+				D00000000000000000009001 /* mdQuickLook */,
 			);
 		};
 /* End PBXProject section */
@@ -336,6 +432,14 @@
 				D0000000000000000000FB06 /* PlotVectors in Resources */,
 				D0000000000000000000FD06 /* TypingVectors in Resources */,
 				D0000000000000000000E506 /* FormattingVectors in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000009012 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D00000000000000000009029 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -370,6 +474,7 @@
 				D0000000000000000000E102 /* LaunchDiagnostics.swift in Sources */,
 				D0000000000000000000E402 /* EpubMetadata.swift in Sources */,
 				D0000000000000000000E502 /* MarkdownFormatting.swift in Sources */,
+				D0000000000000000000902A /* QuickLookPage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -394,7 +499,24 @@
 				D0000000000000000000E404 /* EpubMetadataTests.swift in Sources */,
 				D0000000000000000000E406 /* EpubPackageMetadataTests.swift in Sources */,
 				D0000000000000000000E504 /* FormattingTests.swift in Sources */,
+				D0000000000000000000E602 /* QuickLookPageTests.swift in Sources */,
 				D0000000000000000000E5A2 /* EditorFormattingTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000009010 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D00000000000000000009020 /* PreviewViewController.swift in Sources */,
+				D00000000000000000009021 /* QuickLookPage.swift in Sources */,
+				D00000000000000000009022 /* MarkdownHTML.swift in Sources */,
+				D00000000000000000009023 /* MarkdownParser.swift in Sources */,
+				D00000000000000000009024 /* MarkdownInline.swift in Sources */,
+				D00000000000000000009025 /* ScalarText.swift in Sources */,
+				D00000000000000000009026 /* Plot.swift in Sources */,
+				D00000000000000000009027 /* TextBundle.swift in Sources */,
+				D00000000000000000009028 /* MarkdownDocument.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -405,6 +527,11 @@
 			isa = PBXTargetDependency;
 			target = D0000000000000000000A001 /* md */;
 			targetProxy = D0000000000000000000D002 /* PBXContainerItemProxy */;
+		};
+		D00000000000000000009040 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D00000000000000000009001 /* mdQuickLook */;
+			targetProxy = D00000000000000000009041 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -669,6 +796,72 @@
 			};
 			name = Release;
 		};
+		D00000000000000000009051 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				ENABLE_DEBUG_DYLIB = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 445;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = mdQuickLook/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = md;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.6;
+				PRODUCT_BUNDLE_IDENTIFIER = me.nettrash.md.QuickLook;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		D00000000000000000009052 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				ENABLE_DEBUG_DYLIB = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 445;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = mdQuickLook/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = md;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.6;
+				PRODUCT_BUNDLE_IDENTIFIER = me.nettrash.md.QuickLook;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -695,6 +888,15 @@
 			buildConfigurations = (
 				D0000000000000000000C005 /* Debug */,
 				D0000000000000000000C006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D00000000000000000009050 /* Build configuration list for PBXNativeTarget "mdQuickLook" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D00000000000000000009051 /* Debug */,
+				D00000000000000000009052 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

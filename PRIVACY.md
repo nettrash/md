@@ -61,6 +61,10 @@ redirects the request, md follows at most five redirects, and only to
 `https` addresses; each host along the way sees your IP address in the same
 way.
 
+md's Quick Look preview — what Files and Mail show for a TextBundle — makes
+no network request at all: it blocks every remote load, so a remote image in
+a previewed document is simply not shown.
+
 Everything else runs on your device: the Markdown renderer, and the math
 and diagram engines (KaTeX, Mermaid, Graphviz, PlantUML) are bundled inside
 the app and work offline.

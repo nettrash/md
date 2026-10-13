@@ -43,6 +43,17 @@ a scheme post-action (`agvtool bump`) and is not tracked here.
   `_`, a backtick or `$` with text selected now wraps the selection instead
   of replacing it; **Wrap Selection When Typing \* \_ \` $** in the Typing menu
   turns that off. (#13)
+- **A Quick Look preview.** A TextBundle tapped in Files, peeked in Mail or
+  previewed by any app that asks Quick Look now shows the rendered md page
+  — the app's own renderer, typewriter paper, math and Graphviz — instead
+  of a generic file card. Mermaid and PlantUML diagrams, the two engines too
+  heavy for a preview's memory, show their source under a caption saying md
+  draws them. The extension reads the engines from the app rather than
+  carrying a second copy, reaches no network (a remote image stays a gap),
+  and carries its own privacy manifest. A `.md`, `.puml`, `.gv` or
+  `.textpack` file keeps the system's own preview: iOS previews plain text
+  and zip archives itself and does not hand those types to an app's
+  extension. (#14)
 
 ### Fixed
 
