@@ -193,6 +193,27 @@ enum ScalarText {
         string(text.unicodeScalars.dropFirst(count))
     }
 
+    // MARK: - Escaping
+
+    /// `&`, `<`, `>` and `"` as entities, scalar by scalar: the escape for
+    /// HTML and XML text and for a double-quoted attribute value. A
+    /// `replacingOccurrences` misses a delimiter that carries a combining
+    /// mark — `"\u{0301}` stayed raw, closed an `alt` or `title` attribute
+    /// early and let the document add an event handler of its own.
+    static func escapingMarkup(_ text: String) -> String {
+        var out = String.UnicodeScalarView()
+        for scalar in text.unicodeScalars {
+            switch scalar {
+            case "&": out.append(contentsOf: "&amp;".unicodeScalars)
+            case "<": out.append(contentsOf: "&lt;".unicodeScalars)
+            case ">": out.append(contentsOf: "&gt;".unicodeScalars)
+            case "\"": out.append(contentsOf: "&quot;".unicodeScalars)
+            default: out.append(scalar)
+            }
+        }
+        return String(out)
+    }
+
     // MARK: - Building
 
     /// A `String` from any run of scalars — a view, a slice or an array.

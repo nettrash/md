@@ -28,21 +28,23 @@ a scheme post-action (`agvtool bump`) and is not tracked here.
   otherwise, with no new permission prompt. All five md EPUB writers change
   together and write the same lines; a book's EPUB and a document without
   front matter are unchanged. (#12)
-- **Formatting commands.** Bold, Italic, Code, Strikethrough, Link,
-  Heading 1–6, Bullet List, Task List, Quote, Indent and Outdent: a
-  **Format** menu in the toolbar on iPad, a bar above the keyboard on
-  iPhone (Bold, Italic, Code, Link, a Heading button that cycles H1 → H2 →
-  H3 → none, Bullet List, Task List, Quote, Outdent, Indent), and on a
-  hardware keyboard the chords every md app now shares — ⌘B, ⌘I, ⌘K, ⇧⌘C,
-  ⇧⌘X, ⌥⌘1–6, ⇧⌘L, ⇧⌘T, ⌘' and ⌘] / ⌘[. Quote is ⌘' rather than ⇧⌘Q,
-  which is the Mac's Log Out. Every command toggles and is one Undo step,
-  and they all follow one shared specification and one vector file
-  (`MarkdownFormatting.swift`, `formatting-vectors.json`), so they rewrite
-  a selection exactly as the Mac, Android and Windows editors do — around
-  surrounding blanks, inside `***bold italic***`, across lines. Typing `*`,
-  `_`, a backtick or `$` with text selected now wraps the selection instead
-  of replacing it; **Wrap Selection When Typing \* \_ \` $** in the Typing menu
-  turns that off. (#13)
+- **Formatting commands.** Bold, Italic, Code, Strikethrough, Link, Heading
+  1–6, Bullet List, Task List, Quote, Indent and Outdent: a **Format** menu
+  in the toolbar on iPad, a bar above the keyboard on iPhone (Bold, Italic,
+  Code, Link, a Heading button that cycles H1 → H2 → H3 → none, Bullet List,
+  Task List, Quote, Outdent, Indent), and on a hardware keyboard the chords
+  every md app now shares — ⌘B, ⌘I, ⌘K, ⇧⌘C, ⇧⌘X, ⌥⌘1–6, ⇧⌘L, ⇧⌘T, ⌘' and ⌘]
+  / ⌘[. Quote is ⌘' rather than ⇧⌘Q, which is the Mac's Log Out. Bold,
+  Italic, Code, Strikethrough, the headings, the lists and Quote toggle;
+  Link inserts link syntax, and Indent and Outdent add and remove
+  indentation. Every command is one Undo step, and they all follow one
+  shared specification and one vector file (`MarkdownFormatting.swift`,
+  `formatting-vectors.json`), so they rewrite a selection exactly as the
+  Mac, Android and Windows editors do — around surrounding blanks, inside
+  `***bold italic***`, across lines. Typing `*`, `_`, a backtick or `$` with
+  text selected now wraps the selection instead of replacing it; **Wrap
+  Selection When Typing \* \_ \` $** in the Typing menu turns that off.
+  (#13)
 - **A Quick Look preview.** A TextBundle tapped in Files, peeked in Mail or
   previewed by any app that asks Quick Look now shows the rendered md page
   — the app's own renderer, typewriter paper, math and Graphviz — instead

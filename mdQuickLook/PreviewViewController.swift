@@ -32,7 +32,15 @@ final class PreviewViewController: UIViewController, QLPreviewingController {
     private var webView: WKWebView?
     private var pending: ((Error?) -> Void)?
 
+    /// Quick Look may ask one controller for several previews in turn, so
+    /// each request is numbered: work started for an earlier one — its rule
+    /// compilation, its render poll, its ten-second fallback — finds a
+    /// different number when it lands and does nothing, and its web view,
+    /// torn down by `beginRequest`, calls back no more.
+    private var request = 0
+
     func preparePreviewOfFile(at url: URL, completionHandler handler: @escaping (Error?) -> Void) {
+        let request = beginRequest()
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let source = Self.source(of: url) else {
@@ -51,17 +59,18 @@ final class PreviewViewController: UIViewController, QLPreviewingController {
             encodedContentRuleList: #"[{"trigger":{"url-filter":"^https?://"},"action":{"type":"block"}}]"#
         ) { [weak self] rules, error in
             if let error { log.error("offline rule: \(error.localizedDescription, privacy: .public)") }
-            DispatchQueue.main.async { self?.show(rules: rules) }
+            DispatchQueue.main.async { self?.show(rules: rules, request: request) }
         }
     }
 
-    private func show(rules: WKContentRuleList?) {
+    private func show(rules: WKContentRuleList?, request: Int) {
+        guard request == self.request else { return }
         let configuration = WKWebViewConfiguration()
         configuration.setURLSchemeHandler(assets, forURLScheme: QuickLookAssetHandler.scheme)
         // Without the offline rule the page is not shown: a preview that
         // might reach the network is not one this extension makes.
         guard let rules else {
-            finish(CocoaError(.featureUnsupported))
+            finish(CocoaError(.featureUnsupported), request: request)
             return
         }
         configuration.userContentController.add(rules)
@@ -74,27 +83,50 @@ final class PreviewViewController: UIViewController, QLPreviewingController {
         self.webView = webView
         webView.load(URLRequest(url: QuickLookAssetHandler.indexURL))
         // Quick Look should not wait on a page that never finishes.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in self?.finish(nil) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in self?.finish(nil, request: request) }
     }
 
-    private func finish(_ error: Error?) {
-        guard let pending else { return }
+    /// Answer Quick Look for `request`, once — unless it is no longer the
+    /// current one.
+    private func finish(_ error: Error?, request: Int) {
+        guard request == self.request, let pending else { return }
         log.notice("finished: \(error?.localizedDescription ?? "ok", privacy: .public)")
         self.pending = nil
         pending(error)
+    }
+
+    /// Start a request, ending the one before it if Quick Look moved on
+    /// before it was answered: its completion is called — cancelled — and its
+    /// web view is torn down, so nothing it was doing reaches the next file.
+    private func beginRequest() -> Int {
+        if let pending {
+            self.pending = nil
+            pending(CocoaError(.userCancelled))
+        }
+        if let webView {
+            webView.stopLoading()
+            webView.navigationDelegate = nil
+            webView.removeFromSuperview()
+            self.webView = nil
+        }
+        request += 1
+        return request
     }
 
     /// Poll for md-init.js's `data-md-render-complete` and finish when it is
     /// set. Nothing to stop: once Quick Look has been answered — here, by
     /// the fallback, or by a failure — the poll ends with it.
     private func waitForRenderComplete(_ webView: WKWebView) {
-        guard pending != nil else { return }
+        guard webView === self.webView, pending != nil else { return }
+        // The reply can land after Quick Look has moved on: it counts only
+        // for the request and the web view it was asked about.
+        let request = self.request
         webView.evaluateJavaScript("document.documentElement.getAttribute('data-md-render-complete')") {
             [weak self, weak webView] value, _ in
-            guard let self, let webView else { return }
+            guard let self, let webView, webView === self.webView, request == self.request else { return }
             if (value as? String) == "1" {
                 log.info("render complete")
-                self.finish(nil)
+                self.finish(nil, request: request)
             } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { self.waitForRenderComplete(webView) }
             }
@@ -142,13 +174,20 @@ extension PreviewViewController: WKNavigationDelegate {
         // the ten-second fallback `show` set.
         waitForRenderComplete(webView)
     }
-    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { finish(error) }
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { finish(error, from: webView) }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!,
-                 withError error: Error) { finish(error) }
+                 withError error: Error) { finish(error, from: webView) }
+
+    /// A failure from the current request's web view; a torn-down one has
+    /// no delegate, so this is belt and braces.
+    private func finish(_ error: Error, from webView: WKWebView) {
+        guard webView === self.webView else { return }
+        finish(error, request: request)
+    }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         log.error("web content process terminated")
-        finish(WKError(.webContentProcessTerminated))
+        finish(WKError(.webContentProcessTerminated), from: webView)
     }
 
     /// Links do nothing inside a preview: an in-page anchor scrolls, and

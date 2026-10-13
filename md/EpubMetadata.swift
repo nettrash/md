@@ -265,25 +265,110 @@ enum EpubMetadataReader {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = coverTimeout
         configuration.timeoutIntervalForResource = coverTimeout
-        let redirects = CoverRedirects()
-        let session = URLSession(configuration: configuration, delegate: redirects, delegateQueue: nil)
-        defer { session.finishTasksAndInvalidate() }
-        guard let (bytes, response) = try? await session.bytes(from: url),
-              let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
-              http.url?.scheme?.lowercased() == "https",
-              http.expectedContentLength <= Int64(maxCoverBytes) else { return nil }
-        // Read no more than one byte past the cap, so a huge body is refused
-        // without being held.
-        var data = Data()
-        do {
-            for try await byte in bytes {
-                data.append(byte)
-                if data.count > maxCoverBytes { return nil }
+        return recogniseCover(await CoverDownload.data(from: url, configuration: configuration, limit: maxCoverBytes))
+    }
+
+    /// One cover download, taken in the chunks the session delivers — not
+    /// byte by byte, which at the cap is twenty million suspensions of an
+    /// async iterator — and cancelled the moment it cannot be a cover: a
+    /// response that is not a 2xx over https, a declared length past
+    /// `limit`, or a body that grows past it, so a huge body is refused
+    /// without being held. Redirects go through `CoverRedirects`.
+    final class CoverDownload: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+        private let limit: Int
+        private let redirects = CoverRedirects()
+        private let lock = NSLock()
+        private var body = Data()
+        private var refused = false
+        private var continuation: CheckedContinuation<Data?, Never>?
+        /// What the download came to, once it is over. Completion and the
+        /// waiting caller can arrive in either order — a caller already
+        /// cancelled runs `onCancel` before it waits, and the cancelled
+        /// task may complete before anyone is waiting — so whichever comes
+        /// second delivers it, under `lock`.
+        private var outcome: Data??
+        private var cancelled = false
+
+        private init(limit: Int) { self.limit = limit }
+
+        /// The body at `url`, or nil for any failure or refusal.
+        static func data(from url: URL, configuration: URLSessionConfiguration, limit: Int) async -> Data? {
+            let download = CoverDownload(limit: limit)
+            let session = URLSession(configuration: configuration, delegate: download, delegateQueue: nil)
+            defer { session.finishTasksAndInvalidate() }
+            let task = session.dataTask(with: url)
+            return await withTaskCancellationHandler {
+                await withCheckedContinuation { continuation in
+                    download.lock.lock()
+                    if let outcome = download.outcome {
+                        download.lock.unlock()
+                        continuation.resume(returning: outcome)
+                    } else if download.cancelled {
+                        download.outcome = .some(nil)
+                        download.lock.unlock()
+                        continuation.resume(returning: nil)
+                    } else {
+                        download.continuation = continuation
+                        download.lock.unlock()
+                        task.resume()
+                    }
+                }
+            } onCancel: {
+                download.lock.lock()
+                download.cancelled = true
+                download.lock.unlock()
+                task.cancel()
             }
-        } catch {
-            return nil
         }
-        return recogniseCover(data)
+
+        private func refuse() {
+            lock.lock()
+            refused = true
+            body = Data()
+            lock.unlock()
+        }
+
+        func urlSession(_ session: URLSession, task: URLSessionTask,
+                        willPerformHTTPRedirection response: HTTPURLResponse,
+                        newRequest request: URLRequest,
+                        completionHandler: @escaping (URLRequest?) -> Void) {
+            redirects.urlSession(session, task: task, willPerformHTTPRedirection: response,
+                                 newRequest: request, completionHandler: completionHandler)
+        }
+
+        func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse,
+                        completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+            let accepted = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } == true
+                && response.url?.scheme?.lowercased() == "https"
+                && response.expectedContentLength <= Int64(limit)
+            if !accepted { refuse() }
+            completionHandler(accepted ? .allow : .cancel)
+        }
+
+        func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+            lock.lock()
+            if !refused { body.append(data) }
+            let over = body.count > limit
+            lock.unlock()
+            if over {
+                refuse()
+                dataTask.cancel()
+            }
+        }
+
+        func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+            lock.lock()
+            guard outcome == nil else {
+                lock.unlock()
+                return
+            }
+            let result = error == nil && !refused ? body : nil
+            outcome = .some(result)
+            let continuation = self.continuation
+            self.continuation = nil
+            lock.unlock()
+            continuation?.resume(returning: result)
+        }
     }
 
     /// Follows a redirect only while it stays on https and only five times:
@@ -311,10 +396,7 @@ enum EpubMetadataReader {
 
     /// The family's XML escape — `&`, `<`, `>`, `"`; never `'`.
     static func escape(_ s: String) -> String {
-        s.replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-            .replacingOccurrences(of: "\"", with: "&quot;")
+        ScalarText.escapingMarkup(s)
     }
 
     /// The metadata lines between `<dc:title>` and `dcterms:modified` —
