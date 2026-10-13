@@ -118,12 +118,15 @@ final class PreviewViewController: UIViewController, QLPreviewingController {
     /// the fallback, or by a failure — the poll ends with it.
     private func waitForRenderComplete(_ webView: WKWebView) {
         guard webView === self.webView, pending != nil else { return }
+        // The reply can land after Quick Look has moved on: it counts only
+        // for the request and the web view it was asked about.
+        let request = self.request
         webView.evaluateJavaScript("document.documentElement.getAttribute('data-md-render-complete')") {
             [weak self, weak webView] value, _ in
-            guard let self, let webView else { return }
+            guard let self, let webView, webView === self.webView, request == self.request else { return }
             if (value as? String) == "1" {
                 log.info("render complete")
-                self.finish(nil, request: self.request)
+                self.finish(nil, request: request)
             } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { self.waitForRenderComplete(webView) }
             }

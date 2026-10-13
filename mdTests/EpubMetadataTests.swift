@@ -217,6 +217,23 @@ final class EpubMetadataTests: XCTestCase {
         XCTAssertNil(body)
     }
 
+    func testCoverDownloadReturnsWhenItsTaskIsAlreadyCancelled() async {
+        let returned = expectation(description: "the download returns")
+        let task = Task { () -> Data? in
+            withUnsafeCurrentTask { $0?.cancel() }
+            let body = await download("chunks/16")
+            returned.fulfill()
+            return body
+        }
+        // Waited on through the expectation, never `task.value` alone: a
+        // download that never returns must fail this test, not hang it.
+        guard await XCTWaiter().fulfillment(of: [returned], timeout: 10) == .completed else {
+            return XCTFail("a download whose task was cancelled before it began never returned")
+        }
+        let body = await task.value
+        XCTAssertNil(body, "a cancelled download is no cover")
+    }
+
     func testCoverItem() {
         XCTAssertEqual(EpubMetadataReader.coverItem(EpubMetadataReader.recogniseCover(jpeg)!),
                        "<item id=\"cover-image\" href=\"images/cover.jpg\" media-type=\"image/jpeg\" properties=\"cover-image\"/>")

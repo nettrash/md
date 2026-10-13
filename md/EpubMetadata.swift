@@ -281,6 +281,13 @@ enum EpubMetadataReader {
         private var body = Data()
         private var refused = false
         private var continuation: CheckedContinuation<Data?, Never>?
+        /// What the download came to, once it is over. Completion and the
+        /// waiting caller can arrive in either order — a caller already
+        /// cancelled runs `onCancel` before it waits, and the cancelled
+        /// task may complete before anyone is waiting — so whichever comes
+        /// second delivers it, under `lock`.
+        private var outcome: Data??
+        private var cancelled = false
 
         private init(limit: Int) { self.limit = limit }
 
@@ -293,11 +300,23 @@ enum EpubMetadataReader {
             return await withTaskCancellationHandler {
                 await withCheckedContinuation { continuation in
                     download.lock.lock()
-                    download.continuation = continuation
-                    download.lock.unlock()
-                    task.resume()
+                    if let outcome = download.outcome {
+                        download.lock.unlock()
+                        continuation.resume(returning: outcome)
+                    } else if download.cancelled {
+                        download.outcome = .some(nil)
+                        download.lock.unlock()
+                        continuation.resume(returning: nil)
+                    } else {
+                        download.continuation = continuation
+                        download.lock.unlock()
+                        task.resume()
+                    }
                 }
             } onCancel: {
+                download.lock.lock()
+                download.cancelled = true
+                download.lock.unlock()
                 task.cancel()
             }
         }
@@ -339,7 +358,12 @@ enum EpubMetadataReader {
 
         func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
             lock.lock()
+            guard outcome == nil else {
+                lock.unlock()
+                return
+            }
             let result = error == nil && !refused ? body : nil
+            outcome = .some(result)
             let continuation = self.continuation
             self.continuation = nil
             lock.unlock()
