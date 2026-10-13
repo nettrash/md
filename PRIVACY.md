@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Effective date:** 28 June 2026
+**Effective date:** 13 October 2026
 **Applies to:** md — the iOS / iPadOS Markdown editor published by
 nettrash. This policy is versioned alongside the
 app's source code; the most recent commit on `main` is authoritative.
@@ -33,9 +33,10 @@ Apple account under Apple's privacy terms, not ours.
 
 The app stores a few small settings on-device, through the standard system
 preferences store: your last-used Edit / Split / Preview layout (and the
-layout each file was last shown in), your PDF page size, the two Typing
-toggles — whether Return continues lists and tables, and whether sentences
-are capitalized — and, if you use writer mode, a security-scoped bookmark
+layout each file was last shown in), your PDF page size, the three Typing
+switches — whether Return continues lists and tables, whether sentences are
+capitalized, and whether typing `*`, `_`, a backtick or `$` wraps a
+selection — and, if you use writer mode, a security-scoped bookmark
 to the book folder you chose, so the book reopens without asking you to
 find it again. A security-scoped bookmark is simply how a sandboxed app is
 permitted to reopen a folder you picked; it points at a place on your own

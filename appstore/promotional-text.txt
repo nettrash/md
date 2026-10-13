@@ -1,1 +1,1 @@
-Version 1.5 adds find and replace on iPhone and iPad, Return that carries your lists, quotes and tables on, and every Markdown file extension now opens in md.
+Version 1.6 adds formatting commands on a bar above the iPhone keyboard and in an iPad Format menu, and EPUBs that carry their author, language, series and cover.
