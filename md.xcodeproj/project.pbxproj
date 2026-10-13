@@ -50,6 +50,7 @@
 		D0000000000000000000E104 /* DocumentGenerationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E103 /* DocumentGenerationTests.swift */; };
 		D0000000000000000000E106 /* DocumentTitleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E105 /* DocumentTitleTests.swift */; };
 		D0000000000000000000E108 /* DocumentChordsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E107 /* DocumentChordsTests.swift */; };
+		D0000000000000000000E304 /* PlantUMLLimitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000E303 /* PlantUMLLimitTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -110,6 +111,7 @@
 		D0000000000000000000E201 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		D0000000000000000000A002 /* md.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = md.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0000000000000000000A004 /* mdTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = mdTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D0000000000000000000E303 /* PlantUMLLimitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlantUMLLimitTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -211,6 +213,7 @@
 				D0000000000000000000F401 /* TestData */,
 				D0000000000000000000FB05 /* PlotVectors */,
 				D0000000000000000000FD05 /* TypingVectors */,
+				D0000000000000000000E303 /* PlantUMLLimitTests.swift */,
 			);
 			path = mdTests;
 			sourceTree = "<group>";
@@ -363,6 +366,7 @@
 				D0000000000000000000E104 /* DocumentGenerationTests.swift in Sources */,
 				D0000000000000000000E106 /* DocumentTitleTests.swift in Sources */,
 				D0000000000000000000E108 /* DocumentChordsTests.swift in Sources */,
+				D0000000000000000000E304 /* PlantUMLLimitTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
