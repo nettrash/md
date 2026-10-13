@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The build number (`CFBundleVersion`) is auto-incremented on every build by
 a scheme post-action (`agvtool bump`) and is not tracked here.
 
+## [1.6] — 2026-10-10
+
+### Added
+
+- **A privacy manifest.** The app now carries `PrivacyInfo.xcprivacy`,
+  declaring what was already true: no tracking, no collected data, and
+  one required-reason API — `UserDefaults`, for md's own settings (the
+  view mode, the typing toggles, the PDF page size and the remembered book
+  folder), under reason `CA92.1`. No visible change. (#10)
+
 ## [1.5] — 2026-09-23
 
 ### Added
