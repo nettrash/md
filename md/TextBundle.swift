@@ -67,7 +67,8 @@ enum ZipReader {
     /// entries can't exhaust memory no matter how many it declares — only the
     /// text is ever materialised.
     static func entries(in archive: Data,
-                        shouldInflate: (String) -> Bool = { _ in true }) -> [Entry]? {
+                        shouldInflate: (String) -> Bool = { _ in true },
+                        maxEntrySize limit: Int = maxEntrySize) -> [Entry]? {
         let bytes = [UInt8](archive)
         guard let eocd = locateEndRecord(bytes) else { return nil }
 
@@ -116,9 +117,10 @@ enum ZipReader {
             let content: Data
             switch method {
             case 0:
+                guard payload.count <= limit else { return nil }
                 content = Data(payload)
             case 8:
-                guard let inflated = inflate(payload, expectedSize: uncompressedSize) else { return nil }
+                guard let inflated = inflate(payload, expectedSize: uncompressedSize, limit: limit) else { return nil }
                 content = inflated
             default:
                 return nil
@@ -154,16 +156,16 @@ enum ZipReader {
     /// hand-authored document, so 128 MB per entry is far past anything real
     /// (and `text.md` — the only entry we actually inflate; see `entries`) is
     /// text, which is smaller still).
-    private static let maxEntrySize = 128 * 1024 * 1024
+    static let maxEntrySize = 128 * 1024 * 1024
 
     /// Inflate a raw DEFLATE stream to its known uncompressed size. Fails if
     /// the codec writes anything other than exactly that many bytes (a
     /// truncated or corrupt entry), rather than returning a short buffer — and
     /// refuses, without allocating, an entry that claims to be larger than
     /// `maxEntrySize`, so a malicious size field cannot exhaust memory.
-    private static func inflate(_ compressed: [UInt8], expectedSize: Int) -> Data? {
+    private static func inflate(_ compressed: [UInt8], expectedSize: Int, limit: Int) -> Data? {
         guard expectedSize > 0 else { return Data() }
-        guard expectedSize <= maxEntrySize else { return nil }
+        guard expectedSize <= limit else { return nil }
         guard !compressed.isEmpty else { return nil }
         var destination = [UInt8](repeating: 0, count: expectedSize)
         let written = destination.withUnsafeMutableBufferPointer { dst in
@@ -228,13 +230,16 @@ enum TextBundle {
     /// `.textbundle` folder, so the entry is nested under it — matched by its
     /// last path component. Nil when the bytes aren't a readable zip or carry
     /// no text file.
-    static func textFromPack(_ archive: Data) -> (String, String.Encoding)? {
+    /// `maxTextBytes` bounds the text entry, stored or deflated — Quick Look
+    /// passes its own, much smaller, preview cap.
+    static func textFromPack(_ archive: Data,
+                             maxTextBytes: Int = ZipReader.maxEntrySize) -> (String, String.Encoding)? {
         // Inflate only the text file. Every other entry (the assets, which
         // import does not use) is listed but never decompressed, so a pack
         // that declares gigabytes of assets costs nothing to open.
         guard let entries = ZipReader.entries(in: archive, shouldInflate: {
             ScalarText.hasPrefix(lastComponent($0), "text.")
-        }) else { return nil }
+        }, maxEntrySize: maxTextBytes) else { return nil }
         let entry = entries.first(where: { lastComponent($0.name) == "text.md" })
             ?? entries.first(where: { lastComponent($0.name) == "text.markdown" })
             ?? entries.first(where: { ScalarText.hasPrefix(lastComponent($0.name), "text.") })

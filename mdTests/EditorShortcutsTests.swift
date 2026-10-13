@@ -60,6 +60,12 @@ final class EditorShortcutsTests: XCTestCase {
     ///     Next Article      .keyboardShortcut(.downArrow, modifiers: [.control, .command])
     ///     Print…            .keyboardShortcut("p", modifiers: .command)
     ///
+    /// and its Format menu (1.6, md.macOS/md/mdApp.swift `FormatCommands`):
+    ///
+    ///     Bold ⌘B · Italic ⌘I · Link ⌘K · Code ⇧⌘C · Strikethrough ⇧⌘X
+    ///     Heading 1–6 ⌥⌘1–6 · Bullet List ⇧⌘L · Task List ⇧⌘T · Quote ⌘'
+    ///     Indent ⌘] · Outdent ⌘[
+    ///
     /// Find is not in that list on purpose: on the Mac ⌘F is the stock Edit
     /// ▸ Find item driving `NSTextFinder`, and on iOS it is UIKit's own
     /// find interaction. Windows is the only port that spells it out
@@ -74,16 +80,63 @@ final class EditorShortcutsTests: XCTestCase {
             (.showBook, "b", [.command, .shift]),
             (.previousArticle, .upArrow, [.control, .command]),
             (.nextArticle, .downArrow, [.control, .command]),
+            (.bold, "b", .command),
+            (.italic, "i", .command),
+            (.link, "k", .command),
+            (.code, "c", [.command, .shift]),
+            (.strikethrough, "x", [.command, .shift]),
+            (.heading1, "1", [.command, .option]),
+            (.heading2, "2", [.command, .option]),
+            (.heading3, "3", [.command, .option]),
+            (.heading4, "4", [.command, .option]),
+            (.heading5, "5", [.command, .option]),
+            (.heading6, "6", [.command, .option]),
+            (.bulletList, "l", [.command, .shift]),
+            (.taskList, "t", [.command, .shift]),
+            (.quote, "'", .command),
+            (.indent, "]", .command),
+            (.outdent, "[", .command),
         ]
         XCTAssertEqual(expected.count, EditorShortcuts.Action.allCases.count,
                        "a command was added without a chord to check it against")
         for (action, key, modifiers) in expected {
-            let chord = EditorShortcuts.chord(action)
-            XCTAssertEqual(chord.keyEquivalent.character, key.character,
+            let chord = EditorShortcuts.appleChord(action)
+            XCTAssertEqual(chord.key.character, key.character,
                            "\(action.rawValue) is on the wrong key")
-            XCTAssertEqual(chord.eventModifiers, modifiers,
+            XCTAssertEqual(chord.modifiers, modifiers,
                            "\(action.rawValue) has the wrong modifiers")
         }
+    }
+
+    /// Exactly two families leave the rule on Apple — the headings (⌥⌘, not
+    /// ⌃⌘) and Quote (⌘', because ⇧⌘Q is the Mac's Log Out) — and every
+    /// other row is the Windows table translated, nothing more.
+    func testOnlyTheHeadingsAndQuoteLeaveTheRule() {
+        XCTAssertEqual(Set(EditorShortcuts.appleExceptions.keys),
+                       [.heading1, .heading2, .heading3, .heading4, .heading5, .heading6, .quote])
+        for action in EditorShortcuts.Action.allCases where EditorShortcuts.appleExceptions[action] == nil {
+            let chord = EditorShortcuts.chord(action)
+            XCTAssertEqual(EditorShortcuts.appleChord(action).key.character, chord.keyEquivalent.character)
+            XCTAssertEqual(EditorShortcuts.appleChord(action).modifiers, chord.eventModifiers)
+        }
+    }
+
+    /// No two commands share a chord as Apple presses them, either.
+    func testNoTwoCommandsShareAnAppleChord() {
+        let chords = EditorShortcuts.Action.allCases.map {
+            let c = EditorShortcuts.appleChord($0)
+            return "\(c.key.character)|\(c.modifiers.rawValue)"
+        }
+        XCTAssertEqual(Set(chords).count, chords.count)
+    }
+
+    /// Every formatting action names its command, and every command has an action.
+    func testFormattingActionsCoverEveryChordedCommand() {
+        let ops = EditorShortcuts.formattingActions.compactMap(EditorShortcuts.formattingOp)
+        XCTAssertEqual(ops.count, EditorShortcuts.formattingActions.count)
+        // The cycle is the phone bar's alone; every other command has a chord.
+        XCTAssertEqual(Set(ops.map(\.rawValue)),
+                       Set(MarkdownFormatting.Op.allCases.map(\.rawValue)).subtracting(["headingCycle"]))
     }
 
     /// The translation rule itself, stated once: Windows Ctrl is Apple's
@@ -143,6 +196,21 @@ final class EditorShortcutsTests: XCTestCase {
                       "⌃⌘↑ (Previous Article)")
         XCTAssertTrue(installed.contains(Chord(UIKeyCommand.inputDownArrow, [.command, .control])),
                       "⌃⌘↓ (Next Article)")
+        // The formatting chords (1.6), installed in every mode (see `DocumentChords`).
+        for (input, modifiers, name) in [("b", UIKeyModifierFlags.command, "⌘B (Bold)"),
+                                         ("i", .command, "⌘I (Italic)"),
+                                         ("k", .command, "⌘K (Link)"),
+                                         ("c", [.command, .shift], "⇧⌘C (Code)"),
+                                         ("x", [.command, .shift], "⇧⌘X (Strikethrough)"),
+                                         ("1", [.command, .alternate], "⌥⌘1 (Heading 1)"),
+                                         ("6", [.command, .alternate], "⌥⌘6 (Heading 6)"),
+                                         ("l", [.command, .shift], "⇧⌘L (Bullet List)"),
+                                         ("t", [.command, .shift], "⇧⌘T (Task List)"),
+                                         ("'", .command, "⌘' (Quote)"),
+                                         ("]", .command, "⌘] (Indent)"),
+                                         ("[", .command, "⌘[ (Outdent)")] {
+            XCTAssertTrue(installed.contains(Chord(input, modifiers)), name)
+        }
     }
 
     /// Show Book is the one chord with something to be disabled by — the

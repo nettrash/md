@@ -1,29 +1,29 @@
-md is a Markdown editor and live previewer for iPhone and iPad. This update (1.5) adds find and replace, typing that continues lists, quotes and tables and capitalizes sentences, hardware-keyboard shortcuts on iPad, and support for every Markdown file extension.
+md is a Markdown editor and live previewer for iPhone and iPad. This update (1.6) adds formatting commands (a bar above the iPhone keyboard, a Format menu on iPad), a Quick Look extension that previews TextBundles, and EPUB export that takes author, language, series and cover from a document's front matter.
 
 1. ACCESS — NOTHING TO SET UP
-No account, no sign-in, no registration, no in-app purchases, no subscriptions. Every feature works the moment the app launches, so no demo credentials exist or are needed.
+No account, sign-in, registration, in-app purchase or subscription. Every feature works at launch, so no demo credentials exist or are needed.
 
 No test file is needed: the app ships with sample documents. Open any document, tap the Examples button in the toolbar (on iPhone, in its three-dot More menu) and pick one (Welcome, Formatting, Tables, Code, Images, Math, Diagrams, Writer Tools).
 
 2. A THREE-MINUTE WALKTHROUGH OF WHAT IS NEW
-a) Tap New Document on the opening screen and type Markdown; the preview follows. Return continues a list item, a quote or a table row, and the first letter of each line and sentence is capitalized. Both are switches in the toolbar's Typing menu.
-b) Tap Find in the toolbar, or Command-F on a hardware keyboard, for the system find panel, with Replace and Replace All on iPhone as well as iPad. It searches the source, not the preview.
-c) On an iPad with a hardware keyboard: Command-1, 2 and 3 select Edit, Split and Preview, Command-P prints, Shift-Command-B shows the book, and Control-Command-Up and Down step through its articles.
-d) Files open and save in place under every Markdown spelling (.md, .markdown, .mdown, .markdn, .mdtext, .mdtxt, .mkd, .mkdn, .mdwn, .mkdown), and as .txt, .puml, .plantuml, .iuml, .pu, .gv, .textbundle and .textpack.
-e) Everything else is as before: the Examples menu (Math, Diagrams, Code, and Example Book for writer mode) and the Share button's exports to PDF, HTML, EPUB, LaTeX, TextBundle and SVG, each written where you pick in the Files browser.
+a) Tap New Document on the opening screen and type a few words, then select one. On iPhone, the bar above the keyboard formats it: Bold, Italic, Code, Link, Heading, the lists, Quote, Outdent and Indent. On iPad, the same commands are in the toolbar's Format menu. Tapping Bold again takes the bold off. With a hardware keyboard: Command-B, Command-I, Option-Command-1 for a heading.
+b) With text selected, type * or _ and the selection is wrapped rather than replaced. A switch in the toolbar's Typing menu turns this off.
+c) Open the Formatting example, tap Share and export a TextBundle to Files. In the Files app, long-press it and choose Quick Look: the preview is md's rendered page.
+d) Add lines such as "author: A. Writer" and "language: fr" between two "---" lines at the top of a document, then Share, Export as EPUB: the book's details carry them.
+e) Unchanged: Find (Command-F), the Examples menu (Math, Diagrams, Code, Example Book for writer mode) and the Share button's exports to PDF, HTML, EPUB, LaTeX, TextBundle and SVG, each saved where you pick in Files.
 
-The app creates no hidden files or sidecar metadata. Files and folders are reached only through the standard system document browser and folder picker, and folder access is kept as a security-scoped bookmark.
+The app creates no hidden files or sidecar metadata; a book folder's access is kept as a security-scoped bookmark.
 
 3. PURPOSE AND AUDIENCE
-Writers, developers and students who keep notes, documentation or a book in plain Markdown files and want to see, print and export the finished page. Nothing is shared, published or hosted anywhere, so there is nothing to moderate, report or block.
+Writers, developers and students who keep notes, documentation or a book in Markdown and want to see, print and export the page. Nothing is shared, published or hosted, so there is nothing to moderate, report or block.
 
 4. NETWORK AND EXTERNAL SERVICES
-The app contacts no servers of ours; there are none. It has no analytics, no advertising, no tracking, and it collects no data (the Privacy Nutrition Label answer is "Data Not Collected").
+The app contacts no servers of ours; there are none. No analytics, advertising or tracking, and no data collected (Privacy Nutrition Label: "Data Not Collected").
 
-The app touches the network only when a document the user opened references an image by a remote URL: the renderer fetches that image so it can be shown and printed. That request goes to the host named in the user's own document. Nothing else is ever sent or fetched.
+The app fetches only what the user's own document names by URL: an image it references, so it can be shown and printed, and, when an EPUB is exported with a front-matter "cover:" https URL, that one image (at most 20 MB in 15 seconds, at most five redirects, https only). Nothing else is ever sent or fetched. The Quick Look extension blocks every remote load: a previewed document's remote images are not fetched.
 
 5. NO DOWNLOADED CODE (2.5.2)
-Math, chemistry, diagrams and code highlighting are drawn by open-source JavaScript engines bundled inside the app and served to WKWebView from a private, offline scheme: KaTeX (with its mhchem extension), Mermaid, Graphviz, PlantUML, and highlight.js. No executable code is downloaded or updated at runtime, and no interpreted code comes from any server. There are no third-party Swift packages or SDKs.
+Math, chemistry, diagrams and code highlighting are drawn by open-source JavaScript engines bundled in the app and served to WKWebView from a private, offline scheme: KaTeX (with its mhchem extension), Mermaid, Graphviz, PlantUML, and highlight.js. No executable code is downloaded or updated at runtime. There are no third-party Swift packages or SDKs.
 
 6. PERMISSIONS
 None are requested: no camera, microphone, location, contacts, calendars, notifications, or tracking prompt. Files are reached only through the system document browser and folder picker — the user always chooses what the app may touch.

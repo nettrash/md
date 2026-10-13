@@ -2033,6 +2033,20 @@ final class mdTests: XCTestCase {
         XCTAssertEqual(LaTeXExport.escape("a < b > c | d"), "a < b > c | d")
     }
 
+    func testHTMLEscapeWalksScalarsNotGraphemeClusters() {
+        // A `"` carrying a combining mark is one `Character` that is not
+        // `"`: escaped by grapheme it stayed raw, closed the attribute, and
+        // the rest of the alt text or title became attributes of its own.
+        let image = MarkdownHTML.document("![a\"\u{0301} onerror=alert(1) b](x.png)", title: "t", dark: false)
+        XCTAssertTrue(image.contains("alt=\"a&quot;\u{0301} onerror=alert(1) b\""), image)
+        let link = MarkdownHTML.document("[a](x \"t\"\u{0301} onmouseover=alert(1) q\")", title: "t", dark: false)
+        XCTAssertTrue(link.contains("title=\"t&quot;\u{0301} onmouseover=alert(1) q\""), link)
+        let text = MarkdownHTML.document("A &\u{0301} B <\u{0301}b> C", title: "t", dark: false)
+        XCTAssertTrue(text.contains("A &amp;\u{0301} B &lt;\u{0301}b&gt; C"), text)
+        XCTAssertEqual(ScalarText.escapingMarkup("&\u{0301}<\u{FE0F}>\u{200D}\"\u{0301}'"),
+                       "&amp;\u{0301}&lt;\u{FE0F}&gt;\u{200D}&quot;\u{0301}'")
+    }
+
     func testLaTeXEscapeWalksScalarsNotGraphemeClusters() {
         // A special followed by a combining mark is a single `Character`,
         // and it is not `"#"` — so a walk over characters leaves the
@@ -3757,6 +3771,17 @@ final class mdTests: XCTestCase {
         let archive = deflatedArchive(name: "Doc.textbundle/text.md",
                                       payload: Data(payload.utf8))
         XCTAssertEqual(TextBundle.textFromPack(archive)?.0, payload)
+    }
+
+    /// Quick Look's preview cap reaches the text entry, stored or deflated.
+    func testTextPackTextIsBoundedStoredOrDeflated() {
+        let text = Data(String(repeating: "a", count: 1_000).utf8)
+        let stored = StoredZip.archive([("Doc.textbundle/text.md", text)])
+        XCTAssertEqual(TextBundle.textFromPack(stored, maxTextBytes: 1_000)?.0.utf16.count, 1_000)
+        XCTAssertNil(TextBundle.textFromPack(stored, maxTextBytes: 999))
+        let deflated = deflatedArchive(name: "Doc.textbundle/text.md", payload: text)
+        XCTAssertEqual(TextBundle.textFromPack(deflated, maxTextBytes: 1_000)?.0.utf16.count, 1_000)
+        XCTAssertNil(TextBundle.textFromPack(deflated, maxTextBytes: 999))
     }
 
     func testTextPackImportRejectsNonZip() {
